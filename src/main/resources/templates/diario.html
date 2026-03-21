@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout :: head('Quem Vem Hoje - CT Nexxus')}"></head>
+
+<body>
+
+    <div th:replace="~{layout :: sidebar('diario')}"></div>
+
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h4 fw-bold mb-0"><i class="bi bi-calendar-check"></i> Quem Vem Hoje</h1>
+                <p class="text-muted mb-0"
+                    th:text="${'Alunos agendados para: ' + #temporals.format(dataAtual, 'dd/MM/yyyy') + ' (' + diaSemanaTexto + ')'}">
+                </p>
+            </div>
+
+            <form class="d-flex gap-2 align-items-center" action="/diario" method="get">
+                <div class="input-group shadow-sm" style="width: auto;">
+                    <span class="input-group-text bg-white border-end-0"><i
+                            class="bi bi-calendar3 text-primary"></i></span>
+                    <input type="date" class="form-control border-start-0 ps-0 text-primary fw-bold" name="data"
+                        th:value="${dataAtual}" onchange="this.form.submit()" style="max-width: 150px;">
+                </div>
+
+                <div class="input-group shadow-sm">
+                    <input type="text" class="form-control border-end-0" name="busca" th:value="${termoBuscaAluno}"
+                        placeholder="Buscar aluno no dia..." aria-label="Buscar aluno">
+                    <button type="submit" class="btn btn-primary px-3"><i class="bi bi-search"></i> Buscar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- LÓGICA DE AGRUPAMENTO POR MODALIDADE -->
+        <div th:each="entry : ${alunosAgrupados}">
+            <h5 class="fw-bold text-primary mt-4 mb-3" th:text="${entry.key}">Modalidade Nome</h5>
+
+            <div class="card p-0 overflow-hidden shadow-sm mb-4">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 100px;">Presença</th>
+                            <th>Horário</th>
+                            <th>Aluno</th>
+                            <th class="text-end">Opções</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="m : ${entry.value}">
+                            <!-- Coluna Checkbox Presença -->
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <input type="radio" class="btn-check" th:name="'presenca_' + ${m.id}"
+                                        th:id="'presente_' + ${m.id}" autocomplete="off"
+                                        th:checked="${mapaPresenca.containsKey(m.id) and mapaPresenca.get(m.id)}"
+                                        th:onclick="'marcarPresenca(' + ${m.id} + ', true)'">
+                                    <label class="btn btn-outline-success"
+                                        th:for="'presente_' + ${m.id}">Presente</label>
+
+                                    <input type="radio" class="btn-check" th:name="'presenca_' + ${m.id}"
+                                        th:id="'ausente_' + ${m.id}" autocomplete="off"
+                                        th:checked="${mapaPresenca.containsKey(m.id) and !mapaPresenca.get(m.id)}"
+                                        th:onclick="'marcarPresenca(' + ${m.id} + ', false)'">
+                                    <label class="btn btn-outline-danger" th:for="'ausente_' + ${m.id}">Ausente</label>
+                                </div>
+                            </td>
+
+                            <!-- Lógica de Exibição de Horário -->
+                            <td class="fw-bold text-primary">
+                                <span th:if="${m.horario != null}" th:text="${m.horario.horaInicio}"></span>
+                                <span th:if="${m.horario == null and m.horarioPersonalizado != null}"
+                                    th:text="${#strings.contains(m.horarioPersonalizado, '|') ? #strings.substringAfter(m.horarioPersonalizado, '|') : m.horarioPersonalizado}">
+                                </span>
+                                <span th:if="${m.horario == null and m.horarioPersonalizado == null}"
+                                    class="badge bg-secondary">A Combinar</span>
+                            </td>
+
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary text-white me-2"
+                                        th:text="${#strings.substring(m.aluno.nome, 0, 1)}"></div>
+                                    <div>
+                                        <div class="fw-bold text-dark" th:text="${m.aluno.nome}"></div>
+                                        <div class="small text-muted" th:text="${m.aluno.telefone}"></div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="text-end">
+                                <!-- REDIRECIONAR PARA FICHA DE TREINO (FICHA DO ALUNO) -->
+                                <a th:href="@{/fichas/aluno/{id}(id=${m.aluno.id})}"
+                                    class="btn btn-sm btn-outline-primary mt-1" title="Visualizar Ficha">
+                                    <i class="bi bi-card-checklist"></i> Ficha
+                                </a>
+                                <!-- REDIRECIONAR PARA HISTORICO DE PRESENCAS E OBSERVACOES -->
+                                <a th:href="@{/diario/historico/{id}(id=${m.aluno.id})}"
+                                    class="btn btn-sm btn-outline-info mt-1" title="Ver Histórico de Frequência">
+                                    <i class="bi bi-clock-history"></i> Histórico
+                                </a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div th:if="${#maps.isEmpty(alunosAgrupados)}" class="p-5 text-center mt-4 bg-white rounded shadow-sm border">
+            <i class="bi bi-calendar-x display-4 text-muted mb-3 d-block"></i>
+            <h5 class="text-muted">Nenhum aluno com horário agendado para este dia.</h5>
+            <div th:if="${diaSemanaTexto == ''}" class="text-warning small mt-2">
+                (As datas inseridas precisam existir nos horários criados. Ex: Seg, Ter, Qua...)
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{layout :: scripts}"></div>
+
+    <script th:inline="javascript">
+
+        function marcarPresenca(matriculaId, presente) {
+            const data = document.querySelector('input[name="data"]').value;
+
+            fetch('/diario/api/presenca', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    matriculaId: matriculaId,
+                    data: data,
+                    presente: presente
+                })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        const Toast = Swal.mixin({
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 1500,
+                            timerProgressBar: false,
+                        });
+                        Toast.fire({
+                            icon: 'success',
+                            title: presente ? 'Presença confirmada!' : 'Falta registrada!'
+                        });
+                    } else {
+                        console.error('Erro na resposta');
+                        Swal.fire('Erro', 'Erro ao salvar presença.', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    Swal.fire('Erro', 'Erro de conexão.', 'error');
+                });
+        }
+    </script>
+
+</body>
+
+</html>

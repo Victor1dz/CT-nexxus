@@ -1,80 +1,1487 @@
 <!doctype html>
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
-<head>
-  <meta charset="utf-8">
-  <title>Aluno - CT Nexxus</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="container py-4">
 
-<h1 class="h4 mb-3">Aluno</h1>
+<head th:replace="~{layout :: head('Cadastro de Aluno - CT Nexxus')}"></head>
 
-<form th:action="@{/alunos/salvar}" th:object="${aluno}" method="post">
-  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-  <input type="hidden" th:field="*{id}"/>
+<body>
 
-  <div class="mb-3">
-    <label class="form-label">Nome</label>
-    <input class="form-control" th:field="*{nome}" required>
-  </div>
+  <div th:replace="~{layout :: sidebar('alunos')}"></div>
 
-  <div class="mb-3">
-    <label class="form-label">Telefone</label>
-    <input class="form-control" th:field="*{telefone}">
-  </div>
+  <main class="main-content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex align-items-center">
+        <h1 class="h4 fw-bold mb-0" th:text="${aluno.id == null ? 'Novo Aluno' : 'Editar Aluno'}">Novo Aluno</h1>
 
-  <div class="mb-3">
-    <label class="form-label">E-mail (obrigatório para lembretes)</label>
-    <input class="form-control" type="email" th:field="*{email}" required placeholder="ex: aluno@email.com">
-  </div>
+        <!-- Botão Aviso Pagamento -->
+        <a th:if="${aluno.id != null and aluno.telefone != null}"
+          th:href="'https://wa.me/55' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(aluno.telefone, '(', ''), ')', ''), '-', ''), ' ', '')} + '?text=' + ${msgCobranca}"
+          target="_blank" th:class="'btn btn-' + ${corBotaoFinanceiro} + ' btn-sm ms-2'"
+          th:title="'Status: ' + ${statusFinanceiro}">
+          <i class="bi bi-cash-coin"></i> Aviso Pagamento
+        </a>
 
-  <div class="row">
-    <div class="col-6 mb-3">
-      <label class="form-label">Data de início</label>
-      <input class="form-control" type="date" th:field="*{dataInicio}" required>
+        <!-- Botão Conversar -->
+        <a th:if="${aluno.id != null and aluno.telefone != null}"
+          th:href="'https://wa.me/55' + ${#strings.replace(#strings.replace(#strings.replace(#strings.replace(aluno.telefone, '(', ''), ')', ''), '-', ''), ' ', '')} + '?text=Olá ' + ${aluno.nome} + ', tudo bem?'"
+          target="_blank" class="btn btn-outline-success btn-sm ms-2">
+          <i class="bi bi-whatsapp"></i> Conversar
+        </a>
+      </div>
+      <a href="/alunos" class="btn btn-outline-secondary">Voltar</a>
     </div>
 
-    <div class="col-6 mb-3">
-      <label class="form-label">Dia do vencimento (1 a 31)</label>
-      <input class="form-control" type="number" min="1" max="31" th:field="*{diaVencimento}" required>
-      <div class="form-text">Se o mês não tiver esse dia (ex: 31), o sistema usa o último dia do mês.</div>
+    <div class="row">
+      <div class="col-lg-8 mx-auto">
+        <form th:action="@{/alunos/salvar}" th:object="${aluno}" method="post">
+          <input type="hidden" th:field="*{id}" />
+
+          <!-- Card Dados Pessoais -->
+          <div class="card mb-4 border-0 shadow-sm">
+            <div class="card-header bg-white py-3 border-bottom-0">
+              <h5 class="card-title fw-bold text-primary mb-0"><i class="bi bi-person"></i> Dados Pessoais</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-12 mb-3">
+                  <label class="form-label fw-bold">Nome Completo</label>
+                  <input class="form-control" type="text" th:field="*{nome}" placeholder="Nome do aluno">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">CPF (Opcional)</label>
+                  <input class="form-control" th:field="*{cpf}" id="cpf" placeholder="000.000.000-00">
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Data de Nascimento (Opcional)</label>
+                  <input class="form-control" type="date" th:field="*{dataNascimento}">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Telefone (WhatsApp) <span class="text-danger">*</span></label>
+                  <input class="form-control" th:field="*{telefone}" id="telefone" placeholder="(XX) 9XXXX-XXXX"
+                    required>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Email (Opcional)</label>
+                  <input class="form-control" type="email" th:field="*{email}" placeholder="email@exemplo.com">
+                </div>
+              </div>
+
+              <!-- Endereço -->
+              <h6 class="fw-bold mt-3 mb-3 text-secondary border-bottom pb-2">
+                Endereço (Opcional)
+              </h6>
+              <div class="row">
+                <div class="col-md-3 mb-3">
+                  <label class="form-label fw-bold">CEP</label>
+                  <div class="input-group">
+                    <input class="form-control" th:field="*{cep}" id="cep" placeholder="00000-000">
+                    <button class="btn btn-outline-secondary" type="button" id="btnBuscarCep"><i
+                        class="bi bi-search"></i></button>
+                  </div>
+                  <small class="text-primary" style="cursor: pointer;"
+                    onclick="$('#logradouro').focus(); $('#logradouro').val('');"><i class="bi bi-info-circle"></i> Não
+                    sei o CEP</small>
+                </div>
+                <div class="col-md-2 mb-3">
+                  <label class="form-label fw-bold">UF</label>
+                  <select class="form-select bg-light" th:field="*{uf}" id="uf">
+                    <option value="">...</option>
+                    <option value="SP">SP</option>
+                    <option value="RJ">RJ</option>
+                    <option value="MG">MG</option>
+                    <option value="RS">RS</option>
+                    <option value="PR">PR</option>
+                    <option value="SC">SC</option>
+                    <option value="BA">BA</option>
+                    <option value="GO">GO</option>
+                    <option value="ES">ES</option>
+                  </select>
+                </div>
+                <div class="col-md-5 mb-3">
+                  <label class="form-label fw-bold">Cidade</label>
+                  <input class="form-control" th:field="*{cidade}" id="cidade" placeholder="Digite a cidade...">
+                </div>
+                <div class="col-md-2 mb-3">
+                  <label class="form-label fw-bold">Número</label>
+                  <input class="form-control" th:field="*{numero}" id="numero">
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-8 mb-3 position-relative">
+                  <label class="form-label fw-bold">Logradouro (Digite para buscar)</label>
+                  <input class="form-control" th:field="*{logradouro}" id="logradouro"
+                    placeholder="Comece a digitar o nome da rua..." autocomplete="off">
+
+                  <!-- Lista de Sugestões Inline -->
+                  <div id="sugestoes-logradouro" class="list-group position-absolute w-100 shadow"
+                    style="z-index: 1000; display:none; max-height: 200px; overflow-y: auto;"></div>
+                </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label fw-bold">Bairro</label>
+                  <input class="form-control" th:field="*{bairro}" id="bairro">
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Card Matrículas Ativas (Apenas Edição) -->
+          <div class="card mb-4 border-0 shadow-sm" th:if="${aluno.id != null}">
+            <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+              <h5 class="card-title fw-bold text-success mb-0"><i class="bi bi-journal-check"></i> Matrículas Ativas
+              </h5>
+              <a th:href="@{/fichas/aluno/{id}(id=${aluno.id})}" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-clipboard-data"></i> Acessar Ficha de Treino (Aulas)
+              </a>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive" th:if="${not #lists.isEmpty(aluno.matriculas)}">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th class="ps-4">Modalidade</th>
+                      <th>Horário</th>
+                      <th>Status</th>
+                      <th class="text-end pe-4">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr th:each="m : ${aluno.matriculas}">
+                      <td class="ps-4 fw-bold" th:text="${m.modalidade.nome}"></td>
+                      <td>
+                        <span th:if="${m.horario != null}"
+                          th:text="${m.horario.diasSemana + ' (' + m.horario.horaInicio + ')'}"></span>
+                        <span th:if="${m.horario == null and m.horarioPersonalizado != null}"
+                          class="text-primary fw-bold"
+                          th:text="${#strings.replace(m.horarioPersonalizado, '|', ' ')}"></span>
+                        <span th:if="${m.horario == null and m.horarioPersonalizado == null}" class="text-muted">A
+                          Combinar</span>
+                      </td>
+                      <td>
+                        <span th:if="${m.ativo}" class="badge bg-success bg-opacity-10 text-success">Ativa</span>
+                        <span th:if="${!m.ativo}" class="badge bg-danger bg-opacity-10 text-danger">Encerrada</span>
+                        <div class="mt-1" style="font-size: 0.75rem;">
+                          <span class="text-muted d-block"><i class="bi bi-calendar-event"></i> Início: <span
+                              th:text="${#temporals.format(m.dataInicio, 'dd/MM/yy')}"></span></span>
+                          <span class="text-muted d-block" th:if="${m.dataFim != null}"><i class="bi bi-calendar-x"></i>
+                            Fim: <span th:text="${#temporals.format(m.dataFim, 'dd/MM/yy')}"></span></span>
+                          <span class="text-primary fw-bold d-block mt-1"><i class="bi bi-cash-coin"></i> Vence Dia:
+                            <span th:text="${m.diaVencimento}"></span></span>
+                        </div>
+                      </td>
+                      <td class="text-end pe-4">
+                        <button th:if="${m.ativo}" type="button" class="btn btn-sm btn-outline-warning me-1"
+                          title="Editar Contrato" data-bs-toggle="modal"
+                          th:data-bs-target="'#modalEditarMatricula_' + ${m.id}">
+                          <i class="bi bi-pencil"></i>
+                        </button>
+                        <button th:if="${m.ativo}" type="button" class="btn btn-sm btn-outline-danger"
+                          title="Encerrar Matrícula" th:onclick="'confirmarEncerramento(' + ${m.id} + ')'">
+                          <i class="bi bi-x-circle"></i> Encerrar
+                        </button>
+                      </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(aluno.matriculas.?[ativo == true])}">
+                      <td colspan="4" class="text-center py-4 text-muted">
+                        Nenhuma matrícula ativa.
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Matrícula Inicial (Apenas para novos alunos) -->
+          <div class="card mb-4 border-0 shadow-sm" th:if="${aluno.id == null}">
+            <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+              <h5 class="card-title fw-bold text-success mb-0"><i class="bi bi-journal-check"></i> Planos / Modalidades
+              </h5>
+              <button type="button" class="btn btn-sm btn-outline-success" id="btnAdicionarModalidade">
+                <i class="bi bi-plus-circle"></i> Adicionar Outro Plano
+              </button>
+            </div>
+
+            <div class="card-body bg-light" id="matriculasContainer">
+              <div class="alert alert-info py-2">
+                <small><i class="bi bi-info-circle"></i> Selecione as modalidades. Clique em "Adicionar" para colocar
+                  mais de um plano no mesmo contrato.</small>
+              </div>
+
+              <!-- BLOCO DE MATRÍCULA -->
+              <div class="matricula-block border border-success border-opacity-25 rounded p-3 mb-4 bg-white"
+                data-index="0">
+                <div class="d-flex justify-content-end mb-2">
+                  <button type="button" class="btn btn-sm btn-outline-danger btn-remover-matricula"
+                    style="display:none;" title="Remover este plano">
+                    <i class="bi bi-trash"></i> Remover Plano
+                  </button>
+                </div>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Modalidade <span class="text-danger">*</span></label>
+                    <select class="form-select modalidade-select" name="modalidadeId" required autocomplete="off">
+                      <option value="">Selecione...</option>
+                      <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}"
+                        th:data-exige-horario="${m.exigeHorario}"></option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Plano / Frequência <span class="text-danger">*</span></label>
+                    <select class="form-select preco-select" name="precoId" required>
+                      <option value="">Selecione a modalidade primeiro...</option>
+                    </select>
+                    <small class="text-primary fw-bold mt-1 d-block preco-display">Valor: R$ 0,00</small>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Horário de Preferência</label>
+                    <select class="form-select horario-select" name="horarioId">
+                      <option value="">Selecione...</option>
+                      <option th:each="h : ${horarios}" th:if="${h.modalidade != null}" th:value="${h.id}"
+                        th:data-modalidade="${h.modalidade.id}" th:data-hora-inicio="${h.horaInicio}"
+                        th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '(Agendar) ') + h.modalidade.nome + ' | ' + h.diasSemana}">
+                      </option>
+                      <option value="custom" class="fw-bold text-primary" data-modalidade="all">+ Definir Horário
+                        Manualmente / A Combinar</option>
+                    </select>
+
+                    <div class="mt-2 text-end">
+                      <button type="button" class="btn btn-sm btn-link text-decoration-none btn-toggle-personalizado">
+                        <i class="bi bi-gear"></i> Horário Manual / Livre
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Área de Horário Personalizado -->
+                <div class="div-horario-personalizado mt-3 p-4 bg-light border rounded shadow-sm w-100"
+                  style="display:none; transition: all 0.3s ease;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-calendar-check"></i> Configurar
+                      Horário Personalizado</label>
+                    <button type="button" class="btn-close btn-fechar-personalizado" aria-label="Close"
+                      title="Cancelar Personalizado"></button>
+                  </div>
+
+                  <!-- Horizontal Layout for Custom Schedule -->
+                  <div class="row align-items-start">
+                    <div class="col-lg-5 mb-3 mb-lg-0 border-end">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">1. Dias da
+                        Semana</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Seg" autocomplete="off"> SEG</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Ter" autocomplete="off"> TER</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Qua" autocomplete="off"> QUA</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Qui" autocomplete="off"> QUI</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Sex" autocomplete="off"> SEX</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check dias-check" value="Sáb" autocomplete="off"> SÁB</label>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-3 mb-3 mb-lg-0 border-end px-4">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">2. Horário
+                        Exato</label>
+                      <div class="row g-2">
+                        <div class="col-12">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light fw-bold" style="width: 50px;">Das</span>
+                            <input type="time" class="form-control fw-bold text-center hora-inicio-pers">
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light fw-bold" style="width: 50px;">Às</span>
+                            <input type="time" class="form-control fw-bold text-center hora-fim-pers">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-4 px-4">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">3. Horário
+                        Livre</label>
+                      <div class="p-3 bg-white rounded border border-success d-flex align-items-center"
+                        style="min-height: 70px;">
+                        <input class="form-check-input check-livre fs-4 m-0 me-2" type="checkbox">
+                        <label class="fw-bold small text-success m-0">Aluno tem horário flexível</label>
+                      </div>
+                    </div>
+                    <input type="hidden" name="horarioPersonalizado" class="horario-personalizado-input">
+                  </div>
+                </div>
+
+                <!-- Detalhes do Contrato para esta Matricula -->
+                <div class="row mt-4 pt-3 border-top">
+                  <div class="col-12 mb-3">
+                    <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clipboard-data"></i> Detalhes do Contrato</h6>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Data de Início <span class="text-danger">*</span></label>
+                    <input class="form-control input-data-inicio" type="date" name="dataInicioMatricula"
+                      th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Data de Fim (Opcional)</label>
+                    <input class="form-control" type="date" name="dataFimMatricula">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Dia Vencimento <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light text-secondary">Dia</span>
+                      <input class="form-control fw-bold text-center input-dia-vencimento" type="number"
+                        name="diaVencimento" min="1" max="31" value="10" required>
+                    </div>
+                  </div>
+                </div>
+              </div> <!-- Fim MATRICULA BLOCK -->
+            </div>
+
+
+            <!-- Disponibilidade de Horários -->
+            <div class="row mt-3">
+              <div class="col-12">
+                <div class="accordion mb-4 shadow-sm" id="accordionDisponibilidade">
+                  <div class="accordion-item border-0">
+                    <h2 class="accordion-header" id="headingDisp">
+                      <button class="accordion-button collapsed fw-bold text-success bg-white" type="button"
+                        data-bs-toggle="collapse" data-bs-target="#collapseDisp" aria-expanded="false"
+                        aria-controls="collapseDisp">
+                        <i class="bi bi-calendar-check me-2"></i> Consultar Grade de Horários Livres (Calculado)
+                      </button>
+                    </h2>
+                    <div id="collapseDisp" class="accordion-collapse collapse" aria-labelledby="headingDisp"
+                      data-bs-parent="#accordionDisponibilidade">
+                      <div class="accordion-body bg-light">
+                        <div class="row row-cols-1 row-cols-md-3 row-cols-lg-6 g-2">
+                          <div class="col" th:each="entry : ${mapaLivres}">
+                            <div class="card h-100 border-0 shadow-sm">
+                              <div class="card-header bg-success text-white py-1 text-center"
+                                style="font-size: 0.85rem;">
+                                <strong class="text-uppercase" th:text="${entry.key}">DIA</strong>
+                              </div>
+                              <div class="card-body p-2 bg-white d-flex flex-column align-items-center">
+                                <div
+                                  class="w-100 position-relative mb-2 bg-secondary bg-opacity-25 rounded-pill overflow-hidden"
+                                  style="height: 8px;">
+                                  <div th:each="intervalo : ${entry.value}" class="position-absolute bg-success h-100"
+                                    th:style="'left: ' + ${intervalo.leftPercent} + '; width: ' + ${intervalo.widthPercent} + ';'">
+                                  </div>
+                                </div>
+                                <div th:if="${#lists.isEmpty(entry.value)}" class="text-center text-muted"><small
+                                    class="fw-bold">Lotado</small></div>
+                                <div th:if="${not #lists.isEmpty(entry.value)}" class="w-100 text-center"><small
+                                    class="text-success fw-bold"><span th:text="${entry.value.size()}"></span>
+                                    janelas</small></div>
+                              </div>
+                              <div class="card-footer bg-white border-0 p-1 text-center">
+                                <button type="button" class="btn btn-sm btn-outline-secondary p-0 px-2"
+                                  style="font-size: 0.7rem;" data-bs-toggle="tooltip" data-bs-html="true"
+                                  th:title="${#strings.listJoin(entry.value, '<br>')}">Ver Detalhes</button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12 text-end">
+              <a href="/alunos" class="btn btn-light border me-2">Cancelar</a>
+
+              <button th:if="${aluno.id != null}" type="button" class="btn btn-outline-danger me-2"
+                onclick="if(confirm('Tem certeza que deseja EXCLUIR DEFINITIVAMENTE este cadastro? Todo o histórico de fichas, matrículas e finanças será permanentemente excluído!')) document.getElementById('form-excluir').submit();">
+                <i class="bi bi-trash"></i> Excluir Aluno
+              </button>
+
+              <button class="btn btn-primary btn-lg px-5" type="submit">
+                <i class="bi bi-check-lg"></i> Salvar Aluno
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Nova Matrícula (Para Alunos Já Cadastrados) -->
+        <div class="card mb-4 border-0 shadow-sm mt-4" th:if="${aluno.id != null}">
+          <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+            <h5 class="card-title fw-bold text-primary mb-0"><i class="bi bi-plus-circle"></i> Adicionar Nova(s)
+              Matrícula(s)
+            </h5>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdicionarModalidadeNova">
+              <i class="bi bi-plus-circle"></i> Adicionar Outro Plano
+            </button>
+          </div>
+          <div class="card-body bg-light">
+            <form th:action="@{/alunos/matricula/adicionar}" method="post">
+              <input type="hidden" name="alunoId" th:value="${aluno.id}" />
+
+              <div class="alert alert-light border py-2">
+                <small><i class="bi bi-info-circle"></i> Utilize esta seção para matricular o aluno em novas
+                  modalidades.</small>
+              </div>
+
+              <div id="matriculasContainerNova">
+                <!-- BLOCO DE MATRÍCULA -->
+                <div class="nova-matricula-block border border-primary border-opacity-25 rounded p-3 mb-4 bg-white"
+                  data-index="0">
+                  <div class="d-flex justify-content-end mb-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remover-nova-matricula"
+                      style="display:none;" title="Remover este plano">
+                      <i class="bi bi-trash"></i> Remover Plano
+                    </button>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Modalidade <span class="text-danger">*</span></label>
+                      <select class="form-select nova-modalidade-select" name="modalidadeId" required
+                        autocomplete="off">
+                        <option value="">Selecione...</option>
+                        <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}"
+                          th:data-exige-horario="${m.exigeHorario}"></option>
+                      </select>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Plano / Frequência <span class="text-danger">*</span></label>
+                      <select class="form-select nova-preco-select" name="precoId" required>
+                        <option value="">Selecione a modalidade primeiro...</option>
+                      </select>
+                      <small class="text-primary fw-bold mt-1 d-block nova-preco-display">Valor: R$ 0,00</small>
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Horário de Preferência</label>
+                      <select class="form-select nova-horario-select" name="horarioId">
+                        <option value="">Selecione...</option>
+                        <option th:each="h : ${horarios}" th:if="${h.modalidade != null}" th:value="${h.id}"
+                          th:data-modalidade="${h.modalidade.id}" th:data-hora-inicio="${h.horaInicio}"
+                          th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '(Agendar) ') + h.modalidade.nome + ' | ' + h.diasSemana}">
+                        </option>
+                        <option value="custom" class="fw-bold text-primary" data-modalidade="all">+ Definir Horário
+                          Manualmente / A Combinar</option>
+                      </select>
+
+                      <div class="mt-2 text-end">
+                        <button type="button"
+                          class="btn btn-sm btn-link text-decoration-none btn-toggle-novo-personalizado">
+                          <i class="bi bi-gear"></i> Horário Manual / Livre
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Área de Horário Personalizado -->
+                  <div class="div-novo-horario-personalizado mt-3 p-4 bg-light border rounded shadow-sm w-100"
+                    style="display:none; transition: all 0.3s ease;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                      <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-calendar-check"></i>
+                        Configurar Horário Personalizado</label>
+                      <button type="button" class="btn-close btn-fechar-novo-personalizado" aria-label="Close"
+                        title="Cancelar Personalizado"></button>
+                    </div>
+
+                    <!-- Horizontal Layout for Custom Schedule -->
+                    <div class="row align-items-start">
+                      <div class="col-lg-5 mb-3 mb-lg-0 border-end">
+                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">1. Dias da
+                          Semana</label>
+                        <div class="d-flex flex-wrap gap-2">
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Seg" autocomplete="off"> SEG</label>
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Ter" autocomplete="off"> TER</label>
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Qua" autocomplete="off"> QUA</label>
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Qui" autocomplete="off"> QUI</label>
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Sex" autocomplete="off"> SEX</label>
+                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                              class="btn-check nova-dias-check" value="Sáb" autocomplete="off"> SÁB</label>
+                        </div>
+                      </div>
+
+                      <div class="col-lg-3 mb-3 mb-lg-0 border-end px-4">
+                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">2. Horário
+                          Exato</label>
+                        <div class="row g-2">
+                          <div class="col-12">
+                            <div class="input-group input-group-sm">
+                              <span class="input-group-text bg-light fw-bold" style="width: 50px;">Das</span>
+                              <input type="time" class="form-control fw-bold text-center nova-hora-inicio-pers">
+                            </div>
+                          </div>
+                          <div class="col-12">
+                            <div class="input-group input-group-sm">
+                              <span class="input-group-text bg-light fw-bold" style="width: 50px;">Às</span>
+                              <input type="time" class="form-control fw-bold text-center nova-hora-fim-pers">
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-lg-4 px-4">
+                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">3. Horário
+                          Livre</label>
+                        <div class="p-3 bg-white rounded border border-success d-flex align-items-center"
+                          style="min-height: 70px;">
+                          <input class="form-check-input nova-check-livre fs-4 m-0 me-2" type="checkbox"
+                            autocomplete="off">
+                          <label class="fw-bold small text-success m-0">Aluno tem horário flexível</label>
+                        </div>
+                      </div>
+                      <input type="hidden" name="horarioPersonalizado" class="novo-horario-personalizado-input">
+                    </div>
+                  </div>
+
+                  <!-- Detalhes do Contrato para esta Matricula -->
+                  <div class="row mt-4 pt-3 border-top">
+                    <div class="col-12 mb-3">
+                      <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clipboard-data"></i> Detalhes do Contrato
+                      </h6>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Data de Início <span class="text-danger">*</span></label>
+                      <input class="form-control nova-input-data-inicio" type="date" name="dataInicioMatricula"
+                        th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Data de Fim (Opcional)</label>
+                      <input class="form-control" type="date" name="dataFimMatricula">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                      <label class="form-label fw-bold">Dia Vencimento <span class="text-danger">*</span></label>
+                      <div class="input-group">
+                        <span class="input-group-text bg-light text-secondary">Dia</span>
+                        <input class="form-control fw-bold text-center nova-input-dia-vencimento" type="number"
+                          name="diaVencimento" min="1" max="31" value="10" required>
+                      </div>
+                    </div>
+                  </div>
+                </div> <!-- Fim MATRICULA BLOCK -->
+              </div>
+
+              <div class="row">
+                <div class="col-12 text-end">
+                  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar Adição de
+                    Planos</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- Histórico de Presenças -->
+        <div class="card mb-4 border-0 shadow-sm mt-4" id="historico-presencas" th:if="${aluno.id != null}">
+          <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
+            <h5 class="card-title fw-bold text-info mb-0"><i class="bi bi-clock-history"></i> Histórico de Presenças
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <!-- Estatísticas do Mês Atual -->
+            <div class="px-4 pt-3 pb-2 bg-light border-bottom d-flex align-items-center flex-wrap gap-3"
+              th:if="${historicoPresencas != null}">
+              <div class="d-flex flex-column">
+                <span class="text-uppercase small fw-bold text-secondary">Frequência (Mês Atual)</span>
+                <span class="fs-4 fw-bold text-primary">
+                  <span th:text="${presencasMes}"></span>/<span th:text="${totalMes}"></span> Aulas
+                </span>
+              </div>
+              <div class="d-flex flex-column border-start ps-3 border-dark border-opacity-25">
+                <span class="text-uppercase small fw-bold text-secondary">Aproveitamento</span>
+                <span class="fs-4 fw-bold" th:classappend="${porcentagemMes >= 70 ? 'text-success' : 'text-danger'}">
+                  <span th:text="${porcentagemMes}"></span>%
+                </span>
+              </div>
+              <div class="d-flex flex-column border-start ps-3 border-dark border-opacity-25">
+                <span class="text-uppercase small fw-bold text-secondary">Ausências</span>
+                <span class="fs-4 fw-bold text-danger">
+                  <span th:text="${faltasMes}"></span>
+                </span>
+              </div>
+            </div>
+
+            <div class="table-responsive" th:if="${not #lists.isEmpty(historicoPresencas)}">
+              <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th class="ps-4">Data</th>
+                    <th>Status</th>
+                    <th>Observação / Motivo</th>
+                    <th class="text-end pe-4">Modalidade</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr th:each="p : ${historicoPresencas}">
+                    <td class="ps-4 fw-bold text-secondary">
+                      <span th:if="${p.data != null}" th:text="${#temporals.format(p.data, 'dd/MM/yyyy')}"></span>
+                      <span th:if="${p.data == null}" class="text-muted">Data Indisponível</span>
+                    </td>
+                    <td>
+                      <span th:if="${p.presente}" class="badge bg-success"><i class="bi bi-check-circle"></i>
+                        Presente</span>
+                      <span th:if="${!p.presente}" class="badge bg-danger"><i class="bi bi-x-circle"></i> Falta</span>
+                    </td>
+                    <td>
+                      <!-- Botões -->
+                      <button class="btn btn-sm btn-link text-decoration-none p-0" type="button"
+                        data-bs-toggle="collapse" th:data-bs-target="'#obs' + ${p.id}"
+                        th:if="${p.observacao == null or p.observacao.isBlank()}">
+                        <small><i class="bi bi-plus-circle"></i> Adicionar Obs.</small>
+                      </button>
+                      <button class="btn btn-sm btn-outline-secondary p-1 py-0 shadow-sm" type="button"
+                        data-bs-toggle="collapse" th:data-bs-target="'#obs' + ${p.id}"
+                        th:if="${p.observacao != null and !p.observacao.isBlank()}" title="Ver Observação">
+                        <i class="bi bi-eye"></i> Visualizar Obs.
+                      </button>
+
+                      <!-- Collapse Form -->
+                      <div class="collapse mt-2" th:id="'#obs' + ${p.id}">
+                        <div th:if="${p.observacao != null and !p.observacao.isBlank()}"
+                          class="mb-2 p-2 bg-light border border-info rounded text-dark small">
+                          <i class="bi bi-chat-text text-info"></i> <strong th:text="${p.observacao}"></strong>
+                        </div>
+                        <form th:action="@{/alunos/presenca/{pid}/observacao(pid=${p.id})}" method="post"
+                          class="d-flex align-items-center">
+                          <input type="hidden" name="alunoId" th:value="${aluno.id}">
+                          <input type="text" name="observacao" class="form-control form-control-sm me-1"
+                            placeholder="Sua observação..." th:value="${p.observacao}" style="max-width: 250px;">
+                          <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check"></i></button>
+                        </form>
+                      </div>
+                    </td>
+                    <td class="text-end pe-4 text-muted small fw-bold"
+                      th:text="${p.matricula != null and p.matricula.modalidade != null ? p.matricula.modalidade.nome : '-'}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div th:if="${#lists.isEmpty(historicoPresencas)}" class="p-4 text-center text-muted">
+              <i class="bi bi-calendar-x d-block fs-2 mb-2 opacity-50"></i>
+              Nenhum registro de presença para exibir.
+            </div>
+          </div>
+        </div>
+
+        <form id="form-excluir" th:if="${aluno.id != null}" th:action="@{/alunos/excluir/{id}(id=${aluno.id})}"
+          method="post" style="display: none;"></form>
+      </div>
+    </div>
+  </main>
+
+  <!-- Script com todosPrecos movido para antes dos modais para garantir que seja carregado -->
+  <div th:replace="~{layout :: scripts}"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    var todosPrecos = /*[[${todosPrecos}]]*/ [];
+    if (!todosPrecos) todosPrecos = [];
+    console.log("CT-Nexxus: todosPrecos injetado com " + todosPrecos.length + " itens.");
+    /*]]>*/
+  </script>
+
+  <!-- MODAIS DE EDIÇÃO DE MATRÍCULA -->
+  <div th:if="${aluno.id != null and aluno.matriculas != null}" th:each="m : ${aluno.matriculas}">
+    <div th:if="${m != null and m.id != null}" class="modal fade" th:id="'modalEditarMatricula_' + ${m.id}" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <form th:action="@{/alunos/matricula/editar}" method="post">
+            <input type="hidden" name="alunoId" th:value="${aluno.id}" />
+            <input type="hidden" name="matriculaId" th:value="${m.id}" />
+
+            <div class="modal-header bg-warning py-2">
+              <h5 class="modal-title text-dark fw-bold"><i class="bi bi-pencil-square"></i> Editar Contrato Ativo</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body bg-light">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Modalidade</label>
+                  <select class="form-select" name="modalidadeId" required>
+                    <option th:each="mod : ${modalidades}" th:value="${mod.id}" th:text="${mod.nome}"
+                      th:selected="${m.modalidade != null and m.modalidade.id != null and m.modalidade.id.equals(mod.id)}"></option>
+                  </select>
+                </div>
+                <!-- Not fetching full precificacao to keep it simple, letting them re-select if needed or just maintaining -->
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold cursor-help"
+                    title="Abra este modal apenas para manter ou alterar o valor.">Plano Atual</label>
+                  <input type="hidden" name="precoId" th:value="${m.preco != null ? m.preco.id : ''}">
+                  <input type="text" class="form-control"
+                    th:value="${m.preco != null ? m.preco.descricao + ' - R$ ' + m.preco.valor : 'Indefinido'}" readonly
+                    disabled>
+                  <small class="text-muted" style="font-size:0.75rem;">(Para mudar o preço, recomenda-se criar nova
+                    matrícula, ou encerrar esta)</small>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Alterar Horário</label>
+                  <select class="form-select" name="horarioId">
+                    <option value="">(Remover Horário Fixo / A Combinar)</option>
+                    <option th:each="h : ${horarios}" th:if="${h != null and h.modalidade != null}" th:value="${h.id}"
+                      th:selected="${m.horario != null and m.horario.id != null and m.horario.id.equals(h.id)}"
+                      th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '') + h.modalidade.nome + ' | ' + h.diasSemana}">
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                  <label class="form-label fw-bold">Personalizado (Dias / Horas)</label>
+                  <input type="text" class="form-control" name="horarioPersonalizado"
+                    th:value="${m.horarioPersonalizado}" placeholder="Ex: Seg/Qua 10:00">
+                  <small class="text-muted" style="font-size:0.75rem;">Anula o horário do sistema acima caso
+                    preenchido</small>
+                </div>
+
+                <div class="col-12 mt-3 pt-3 border-top">
+                  <label class="form-label fw-bold text-primary small"><i class="bi bi-clipboard-data"></i> Datas do
+                    Contrato</label>
+                </div>
+
+                <div class="col-md-4 mb-2">
+                  <label class="form-label fw-bold small">Data Início</label>
+                  <input class="form-control form-control-sm" type="date" name="dataInicioMatricula"
+                    th:value="${m.dataInicio}" required>
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label fw-bold small">Data Fim</label>
+                  <input class="form-control form-control-sm" type="date" name="dataFimMatricula"
+                    th:value="${m.dataFim}">
+                </div>
+                <div class="col-md-4 mb-2">
+                  <label class="form-label fw-bold small">Vencimento (Dia)</label>
+                  <input class="form-control form-control-sm text-center fw-bold" type="number" name="diaVencimento"
+                    min="1" max="31" th:value="${m.diaVencimento}" required>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="submit" class="btn btn-warning text-dark fw-bold"><i class="bi bi-save"></i> Salvar
+                Alterações</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="mb-3">
-    <label class="form-label">Valor personalizado (opcional)</label>
-    <input class="form-control" th:field="*{valorPersonalizado}" placeholder="ex: 120.00">
-    <div class="form-text">Se vazio, o sistema usa o valor da modalidade.</div>
-  </div>
 
-  <div class="mb-3">
-    <label class="form-label">Modalidade</label>
-    <select class="form-select" th:field="*{modalidade}" required>
-      <option value="">Selecione</option>
-      <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}"></option>
-    </select>
-  </div>
 
-  <div class="mb-3">
-    <label class="form-label">Horário</label>
-    <select class="form-select" th:field="*{horario}" required>
-      <option value="">Selecione</option>
-      <option th:each="h : ${horarios}"
-              th:value="${h.id}"
-              th:text="${h.diaSemana + ' ' + h.horaInicio + ' - ' + h.horaFim}">
-      </option>
-    </select>
-  </div>
 
-  <div class="form-check mb-3">
-    <input class="form-check-input" type="checkbox" th:field="*{ativo}">
-    <label class="form-check-label">Ativo</label>
-  </div>
 
-  <button class="btn btn-success" type="submit">Salvar</button>
-  <a href="/alunos" class="btn btn-secondary">Cancelar</a>
-</form>
 
+  <script>
+    $(document).ready(function () {
+      // Máscaras
+      $('#telefone').mask('(00) 00000-0000');
+      $('#cpf').mask('000.000.000-00');
+      $('#cep').mask('00000-000');
+
+      // --- 1. BUSCA POR CEP (ViaCEP) ---
+      // Ação do Botão (Explicitamente previne submit)
+      $('#btnBuscarCep').on('click', function (e) {
+        e.preventDefault();
+        var cep = $('#cep').val();
+        buscarDadosDoCep(cep);
+      });
+
+      // Ação do Blur (Sair do campo)
+      $('#cep').on('blur', function () {
+        var cep = $(this).val();
+        buscarDadosDoCep(cep);
+      });
+
+      function buscarDadosDoCep(valor) {
+        var cep = valor.replace(/\D/g, '');
+
+        // Validação básica
+        if (cep === "") return;
+        if (cep.length !== 8) {
+          // Opcional: Feedback discreto ou ignorar se incompleto
+          return;
+        }
+
+        // Feedback visual
+        var $btn = $('#btnBuscarCep');
+        var originalIcon = $btn.html();
+        $btn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>').prop('disabled', true);
+        $("#logradouro").attr("placeholder", "Buscando CEP...");
+
+        $.getJSON("https://viacep.com.br/ws/" + cep + "/json/?callback=?", function (dados) {
+          if (!("erro" in dados)) {
+            $("#logradouro").val(dados.logradouro);
+            $("#bairro").val(dados.bairro);
+            $("#cidade").val(dados.localidade);
+            $("#uf").val(dados.uf);
+            $("#numero").focus();
+            $("#sugestoes-logradouro").hide(); // Esconde sugestões se houver
+          } else {
+            exibirErro("CEP não encontrado.");
+            limpaFormularioCep();
+          }
+        }).fail(function () {
+          exibirErro("Erro ao buscar CEP.");
+          limpaFormularioCep();
+        }).always(function () {
+          // Restaura botão
+          $btn.html(originalIcon).prop('disabled', false);
+          $("#logradouro").attr("placeholder", "Comece a digitar o nome da rua...");
+        });
+      }
+
+      function limpaFormularioCep() {
+        $("#logradouro").val("");
+        $("#bairro").val("");
+        // Não limpa Cidade/UF para manter contexto
+      }
+
+      function exibirErro(msg) {
+        if (typeof Swal !== 'undefined') Swal.fire('Atenção', msg, 'warning');
+        else alert(msg);
+      }
+
+
+      // --- 2. BUSCA "GOOGLE MAPS STYLE" (OSM Nominatim) ---
+      // Permite digitar "Rua X, Cidade" e achar resultados reais
+
+      var timeoutAutocomplete = null;
+
+      $('#logradouro').on('input', function () {
+        var query = $(this).val();
+        var $lista = $('#sugestoes-logradouro');
+
+        if (query.length < 4) {
+          $lista.hide();
+          return;
+        }
+
+        // Contexto ajuda (se tiver cidade preenchida, adiciona na busca)
+        var cidade = $('#cidade').val();
+        var uf = $('#uf').val();
+        var termoBusca = query;
+
+        // Se tiver cidade, refina a busca para o Brasil + Cidade
+        var viewbox = "";
+        // Nominatim é livre, mas pede User-Agent (o browser manda) e limite de uso.
+        // Vamos limitar a frequência com debounce.
+
+        clearTimeout(timeoutAutocomplete);
+        timeoutAutocomplete = setTimeout(function () {
+          $lista.html('<div class="list-group-item text-muted"><span class="spinner-border spinner-border-sm"></span> Buscando...</div>').show();
+
+          // Monta Query: Rua + Cidade + Brasil
+          var fullQuery = query;
+          if (cidade) fullQuery += ", " + cidade;
+          fullQuery += ", Brazil";
+
+          $.ajax({
+            url: "https://nominatim.openstreetmap.org/search",
+            dataType: "json",
+            data: {
+              q: fullQuery,
+              format: "json",
+              addressdetails: 1,
+              limit: 5,
+              countrycodes: 'br'
+            },
+            success: function (data) {
+              $lista.empty();
+              if (data.length === 0) {
+                $lista.html('<div class="list-group-item text-muted small">Nenhum endereço encontrado. Tente adicionar a cidade.</div>');
+              } else {
+                $.each(data, function (i, item) {
+                  var addr = item.address;
+                  // Tenta montar um label amigável
+                  var rua = addr.road || addr.pedestrian || addr.street || item.name || "";
+                  var num = addr.house_number || "";
+                  var bairro = addr.suburb || addr.neighbourhood || addr.city_district || "";
+                  var cid = addr.city || addr.town || addr.village || addr.municipality || "";
+                  var est = addr.state || "";
+                  var cep = addr.postcode || "";
+
+                  // Só mostra se tiver pelo menos rua ou cidade
+                  if (!rua && !cid) return;
+
+                  var labelMain = (rua + (num ? ", " + num : ""));
+                  var labelSub = (bairro ? bairro + " - " : "") + cid + "/" + est + (cep ? " (" + cep + ")" : "");
+
+                  // Cria elemento clicável
+                  var $link = $('<a href="#" class="list-group-item list-group-item-action">')
+                    .html('<strong>' + labelMain + '</strong><br><small class="text-muted">' + labelSub + '</small>')
+                    .data('dados', {
+                      rua: rua,
+                      bairro: bairro,
+                      cidade: cid,
+                      uf: converteEstadoParaSigla(est),
+                      cep: cep
+                    });
+
+                  $lista.append($link);
+                });
+              }
+            },
+            error: function () {
+              $lista.html('<div class="list-group-item text-danger small">Erro na busca automática.</div>');
+            }
+          });
+        }, 600); // 600ms de delay para não floodar
+      });
+
+      // Clique na sugestão do OSM
+      $('#sugestoes-logradouro').on('click', 'a', function (e) {
+        e.preventDefault();
+        var dados = $(this).data('dados');
+
+        if (dados) {
+          if (dados.rua) $('#logradouro').val(dados.rua);
+          if (dados.bairro) $('#bairro').val(dados.bairro);
+          if (dados.cidade) $('#cidade').val(dados.cidade);
+          if (dados.uf) $('#uf').val(dados.uf);
+          // CEP do OSM nem sempre é formatado ou preciso, mas se tiver, usamos
+          if (dados.cep) {
+            // Formata CEP 00000-000
+            var cepLimpo = dados.cep.replace(/\D/g, '');
+            if (cepLimpo.length === 8) {
+              $('#cep').val(cepLimpo.substring(0, 5) + '-' + cepLimpo.substring(5));
+            }
+          }
+        }
+        $('#sugestoes-logradouro').hide();
+        $('#numero').focus();
+      });
+
+      // Fecha lista ao clicar fora
+      $(document).click(function (e) {
+        if (!$(e.target).closest('#logradouro, #sugestoes-logradouro').length) {
+          $('#sugestoes-logradouro').hide();
+        }
+      });
+
+      // Helper: Nome do Estado -> Sigla (Nominatim retorna nome completo muitas vezes)
+      function converteEstadoParaSigla(nome) {
+        if (!nome) return "SP"; // Fallback
+        var map = {
+          "Acre": "AC", "Alagoas": "AL", "Amapá": "AP", "Amazonas": "AM", "Bahia": "BA", "Ceará": "CE",
+          "Distrito Federal": "DF", "Espírito Santo": "ES", "Goiás": "GO", "Maranhão": "MA", "Mato Grosso": "MT",
+          "Mato Grosso do Sul": "MS", "Minas Gerais": "MG", "Pará": "PA", "Paraíba": "PB", "Paraná": "PR",
+          "Pernambuco": "PE", "Piauí": "PI", "Rio de Janeiro": "RJ", "Rio Grande do Norte": "RN",
+          "Rio Grande do Sul": "RS", "Rondônia": "RO", "Roraima": "RR", "Santa Catarina": "SC",
+          "São Paulo": "SP", "Sergipe": "SE", "Tocantins": "TO"
+        };
+        return map[nome] || "SP"; // Tenta mapear ou devolve SP (ou o próprio nome se não achar, mas o select só aceita sigla)
+      }
+
+    });
+
+    // --- 3. LOGICA DE PREÇO DINÂMICO E HORARIO ---
+
+    // Funções Globais para o Toggle (acessíveis via onclick)
+    window.togglePersonalizadoManual = function () {
+      $('#horarioSelect').hide();
+      $('#btnTogglePersonalizado').hide();
+      $('#divHorarioPersonalizado').slideDown();
+      $('#horarioSelect').val(''); // Limpa seleção fixa
+    };
+
+    window.fecharPersonalizado = function () {
+      $('#divHorarioPersonalizado').slideUp(function () {
+        $('#horarioSelect').show();
+        $('#btnTogglePersonalizado').show();
+      });
+      // Limpa campos manuais
+      $('.dias-check').prop('checked', false);
+      $('#horaPersonalizada').val('');
+      $('#horaFimPersonalizada').val('');
+      $('#checkLivre').prop('checked', false).trigger('change');
+    };
+
+    $(document).ready(function () {
+
+      // --- EVENTOS DELEGADOS (Funciona para blocos existentes e clonados automaticamente) ---
+
+      $(document).on('change', '.modalidade-select', function () {
+        var $block = $(this).closest('.matricula-block');
+        var modId = $(this).val();
+        console.log("Modalidade selecionada! ID: " + modId);
+        var $option = $(this).find('option:selected');
+        var exige = $option.data('exige-horario') === true;
+
+        var $selectPreco = $block.find('.preco-select');
+        var $selectHorario = $block.find('.horario-select');
+        var $divPerson = $block.find('.div-horario-personalizado');
+        var $btnToggle = $block.find('.btn-toggle-personalizado');
+        var $checkLivre = $block.find('.check-livre');
+
+        $selectPreco.val('');
+        atualizarPrecoDisplayBlock($block);
+
+        // Filtra Horários
+        $selectHorario.find('option').hide();
+        $selectHorario.find('option[value=""]').show();
+        $selectHorario.find('option[value="custom"]').show();
+        if (modId) {
+          $selectHorario.find('option[data-modalidade="' + modId + '"]').show();
+        }
+
+        // Reset visual
+        if (exige) {
+          $selectHorario.hide();
+          $btnToggle.hide();
+          $divPerson.slideDown();
+          $selectHorario.val('');
+        } else {
+          $divPerson.slideUp(function () {
+            $selectHorario.show();
+            $btnToggle.show();
+          });
+          $block.find('.dias-check').prop('checked', false);
+          $block.find('.hora-inicio-pers').val('');
+          $block.find('.hora-fim-pers').val('');
+          $checkLivre.prop('checked', false).trigger('change');
+        }
+
+        if (modId) {
+          carregarPrecosAjaxContext($block, modId);
+        }
+      });
+
+      $(document).on('change', '.horario-select', function () {
+        var $block = $(this).closest('.matricula-block');
+        if ($(this).val() === 'custom') {
+          $(this).hide();
+          $block.find('.btn-toggle-personalizado').hide();
+          $block.find('.div-horario-personalizado').slideDown();
+          $(this).val('');
+        }
+      });
+
+      $(document).on('click', '.btn-toggle-personalizado', function () {
+        var $block = $(this).closest('.matricula-block');
+        $block.find('.horario-select').hide().val('');
+        $(this).hide();
+        $block.find('.div-horario-personalizado').slideDown();
+      });
+
+      $(document).on('click', '.btn-fechar-personalizado', function () {
+        var $block = $(this).closest('.matricula-block');
+        $block.find('.div-horario-personalizado').slideUp(function () {
+          $block.find('.horario-select').show();
+          $block.find('.btn-toggle-personalizado').show();
+        });
+        $block.find('.dias-check').prop('checked', false);
+        $block.find('.hora-inicio-pers').val('');
+        $block.find('.hora-fim-pers').val('');
+        $block.find('.check-livre').prop('checked', false).trigger('change');
+      });
+
+      $(document).on('change', '.check-livre', function () {
+        var $block = $(this).closest('.matricula-block');
+        var isChecked = $(this).is(':checked');
+        $block.find('.dias-check').prop('disabled', isChecked);
+        $block.find('.hora-inicio-pers').prop('disabled', isChecked);
+        $block.find('.hora-fim-pers').prop('disabled', isChecked);
+      });
+
+      $(document).on('change', '.preco-select', function () {
+        atualizarPrecoDisplayBlock($(this).closest('.matricula-block'));
+      });
+
+      $(document).on('change', '.input-data-inicio', function () {
+        var $block = $(this).closest('.matricula-block');
+        var dateVal = $(this).val();
+        if (dateVal) {
+          var day = parseInt(dateVal.split('-')[2], 10);
+          $block.find('.input-dia-vencimento').val(day);
+        }
+      });
+
+      $(document).on('click', '.btn-remover-matricula', function () {
+        var $block = $(this).closest('.matricula-block');
+        if ($('.matricula-block').length > 1) {
+          $block.slideUp(300, function () {
+            $(this).remove();
+            if ($('.matricula-block').length === 1) {
+              $('.btn-remover-matricula').hide();
+            }
+          });
+        }
+      });
+
+      function carregarPrecosAjaxContext($block, modalidadeId) {
+        console.log("Carregando precos localmente para modalidade: " + modalidadeId);
+        var $selectPreco = $block.find('.preco-select');
+        $selectPreco.empty();
+
+        if (!modalidadeId) {
+          $selectPreco.append('<option value="">Selecione a modalidade primeiro...</option>');
+          atualizarPrecoDisplayBlock($block);
+          return;
+        }
+
+        // Filter local data
+        var data = todosPrecos.filter(function (p) {
+          return p.modalidadeId == modalidadeId;
+        });
+
+        console.log("Filtro local concluído. Itens encontrados: " + data.length);
+
+        if (data.length === 0) {
+          $selectPreco.append('<option value="" selected>Sem planos cadastrados nesta Modalidade</option>');
+        } else {
+          $selectPreco.append('<option value="" selected>Selecione o Plano...</option>');
+          $.each(data, function (i, p) {
+            var valorFmt = parseFloat(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            var texto = p.descricao + " (R$ " + valorFmt + ")";
+            $selectPreco.append($('<option>', {
+              value: p.id,
+              text: texto,
+              'data-valor': valorFmt
+            }));
+          });
+        }
+        atualizarPrecoDisplayBlock($block);
+      }
+
+      function atualizarPrecoDisplayBlock($block) {
+        var $selected = $block.find('.preco-select option:selected');
+        var valor = $selected.data('valor');
+        if (valor) {
+          $block.find('.preco-display').text('Valor: R$ ' + valor);
+        } else {
+          $block.find('.preco-display').text('Valor: R$ 0,00');
+        }
+      }
+
+      // Helper for updating display value in new blocks
+      function atualizarNovaPrecoDisplayBlock($block) {
+        var $selected = $block.find('.nova-preco-select option:selected');
+        var valor = $selected.data('valor');
+        if (valor) {
+          $block.find('.nova-preco-display').text('Valor: R$ ' + valor);
+        } else {
+          $block.find('.nova-preco-display').text('Valor: R$ 0,00');
+        }
+      }
+
+      function carregarNovaPrecosAjaxContext($block, modalidadeId) {
+        console.log("Carregando novos precos localmente para modalidade: " + modalidadeId);
+        var $selectPreco = $block.find('.nova-preco-select');
+        $selectPreco.empty();
+
+        if (!modalidadeId) {
+          $selectPreco.append('<option value="">Selecione a modalidade primeiro...</option>');
+          atualizarNovaPrecoDisplayBlock($block);
+          return;
+        }
+
+        // Filter local data
+        var data = todosPrecos.filter(function (p) {
+          return p.modalidadeId == modalidadeId;
+        });
+
+        console.log("Filtro local concluído para nova matricula. Itens encontrados: " + data.length);
+
+        if (data.length === 0) {
+          $selectPreco.append('<option value="" selected>Sem planos cadastrados nesta Modalidade</option>');
+        } else {
+          $selectPreco.append('<option value="" selected>Selecione o Plano...</option>');
+          $.each(data, function (i, p) {
+            var valorFmt = parseFloat(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            var texto = p.descricao + " (R$ " + valorFmt + ")";
+            $selectPreco.append($('<option>', {
+              value: p.id,
+              text: texto,
+              'data-valor': valorFmt
+            }));
+          });
+        }
+        atualizarNovaPrecoDisplayBlock($block);
+      }
+
+      // NOVO BLOCO - Eventos
+      $(document).on('change', '.nova-modalidade-select', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        var modId = $(this).val();
+        console.log("Nova Modalidade selecionada! ID: " + modId);
+        var $option = $(this).find('option:selected');
+        var exige = $option.data('exige-horario') === true;
+
+        var $selectPreco = $block.find('.nova-preco-select');
+        var $selectHorario = $block.find('.nova-horario-select');
+        var $divPerson = $block.find('.div-novo-horario-personalizado');
+        var $btnToggle = $block.find('.btn-toggle-novo-personalizado');
+        var $checkLivre = $block.find('.nova-check-livre');
+
+        $selectPreco.val('');
+        atualizarNovaPrecoDisplayBlock($block);
+
+        $selectHorario.find('option').hide();
+        $selectHorario.find('option[value=""]').show();
+        $selectHorario.find('option[value="custom"]').show();
+        
+        if (modId) {
+          $selectHorario.find('option[data-modalidade="' + modId + '"]').show();
+        }
+
+        if (exige) {
+          $selectHorario.hide();
+          $btnToggle.hide();
+          $divPerson.slideDown();
+          $selectHorario.val('');
+        } else {
+          $divPerson.slideUp(function () {
+            $selectHorario.show();
+            $btnToggle.show();
+          });
+          $block.find('.nova-dias-check').prop('checked', false);
+          $block.find('.nova-hora-inicio-pers').val('');
+          $block.find('.nova-hora-fim-pers').val('');
+          $checkLivre.prop('checked', false).trigger('change');
+        }
+
+        if (modId) {
+          carregarNovaPrecosAjaxContext($block, modId);
+        } else {
+          carregarNovaPrecosAjaxContext($block, null);
+        }
+      });
+
+      $(document).on('change', '.nova-horario-select', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        if ($(this).val() === 'custom') {
+          $(this).hide();
+          $block.find('.btn-toggle-novo-personalizado').hide();
+          $block.find('.div-novo-horario-personalizado').slideDown();
+          $(this).val('');
+        }
+      });
+
+      $(document).on('click', '.btn-toggle-novo-personalizado', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        $block.find('.nova-horario-select').hide().val('');
+        $(this).hide();
+        $block.find('.div-novo-horario-personalizado').slideDown();
+      });
+
+      $(document).on('click', '.btn-fechar-novo-personalizado', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        $block.find('.div-novo-horario-personalizado').slideUp(function () {
+          $block.find('.nova-horario-select').show();
+          $block.find('.btn-toggle-novo-personalizado').show();
+        });
+        $block.find('.nova-dias-check').prop('checked', false);
+        $block.find('.nova-hora-inicio-pers').val('');
+        $block.find('.nova-hora-fim-pers').val('');
+        $block.find('.nova-check-livre').prop('checked', false).trigger('change');
+      });
+
+      $(document).on('change', '.nova-check-livre', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        var isChecked = $(this).is(':checked');
+        $block.find('.nova-dias-check').prop('disabled', isChecked);
+        $block.find('.nova-hora-inicio-pers').prop('disabled', isChecked);
+        $block.find('.nova-hora-fim-pers').prop('disabled', isChecked);
+      });
+
+      $(document).on('change', '.nova-preco-select', function () {
+        atualizarNovaPrecoDisplayBlock($(this).closest('.nova-matricula-block'));
+      });
+
+      $(document).on('change', '.nova-input-data-inicio', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        var dateVal = $(this).val();
+        if (dateVal) {
+          var day = parseInt(dateVal.split('-')[2], 10);
+          $block.find('.nova-input-dia-vencimento').val(day);
+        }
+      });
+
+      $(document).on('click', '.btn-remover-nova-matricula', function () {
+        var $block = $(this).closest('.nova-matricula-block');
+        if ($('.nova-matricula-block').length > 1) {
+          $block.slideUp(300, function () {
+            $(this).remove();
+            if ($('.nova-matricula-block').length === 1) {
+              $('.btn-remover-nova-matricula').hide();
+            }
+          });
+        }
+      });
+
+      // Initialize existing block initial DOM states
+      $('.matricula-block').each(function () {
+        var $block = $(this);
+        var $modSelect = $block.find('.modalidade-select');
+        var val = $modSelect.val();
+
+        if (val) {
+          $modSelect.trigger('change');
+        } else {
+          // Em caso de blocos vazios, ou se a opção escolhida for em branco
+          var $selectPreco = $block.find('.preco-select');
+          if ($selectPreco.find('option').length <= 1) { // Só tem a option default ou nenhuma
+            $selectPreco.html('<option value="">Selecione a modalidade primeiro...</option>');
+          }
+        }
+      });
+
+      // Clone block logic
+      // Clone block logic
+      $('#btnAdicionarModalidade').click(function () {
+        var $container = $('#matriculasContainer');
+        var $firstBlock = $container.find('.matricula-block').first();
+        var $newBlock = $firstBlock.clone();
+
+        $newBlock.find('.dias-check').each(function () {
+          $(this).removeAttr('id');
+          $(this).next('label').removeAttr('for');
+          var rId = 'chk_' + Math.floor(Math.random() * 1000000);
+          $(this).attr('id', rId);
+          $(this).next('label').attr('for', rId);
+        });
+
+        var checkLivreId = 'livre_' + Math.floor(Math.random() * 1000000);
+        $newBlock.find('.check-livre').attr('id', checkLivreId).next('label').attr('for', checkLivreId);
+
+        $newBlock.find('select').val('');
+        $newBlock.find('input[type="text"], input[type="hidden"], input[type="time"], input[type="date"]').val('');
+        $newBlock.find('input[type="checkbox"]').prop('checked', false).prop('disabled', false);
+        $newBlock.find('.preco-display').text('Valor: R$ 0,00');
+        $newBlock.find('.preco-select').find('option:not([value=""])').remove();
+
+        var hoje = new Date().toISOString().split('T')[0];
+        $newBlock.find('.input-data-inicio').val(hoje);
+        $newBlock.find('.input-dia-vencimento').val('10');
+
+        $newBlock.find('.horario-select').show();
+        $newBlock.find('.btn-toggle-personalizado').show();
+        $newBlock.find('.div-horario-personalizado').hide();
+
+        $newBlock.hide();
+        $container.append($newBlock);
+        $newBlock.slideDown();
+        $container.find('.btn-remover-matricula').show();
+      });
+
+      // Clone Novo block logic (Edit Page)
+      $('#btnAdicionarModalidadeNova').click(function () {
+        var $container = $('#matriculasContainerNova');
+        var $firstBlock = $container.find('.nova-matricula-block').first();
+        var $newBlock = $firstBlock.clone();
+
+        $newBlock.find('.nova-dias-check').each(function () {
+          $(this).removeAttr('id');
+          $(this).next('label').removeAttr('for');
+          var rId = 'nchk_' + Math.floor(Math.random() * 1000000);
+          $(this).attr('id', rId);
+          $(this).next('label').attr('for', rId);
+        });
+
+        var checkLivreId = 'nlivre_' + Math.floor(Math.random() * 1000000);
+        $newBlock.find('.nova-check-livre').attr('id', checkLivreId).next('label').attr('for', checkLivreId);
+
+        $newBlock.find('select').val('');
+        $newBlock.find('input[type="text"], input[type="hidden"], input[type="time"], input[type="date"]').val('');
+        $newBlock.find('input[type="checkbox"]').prop('checked', false).prop('disabled', false);
+        $newBlock.find('.nova-preco-display').text('Valor: R$ 0,00');
+        $newBlock.find('.nova-preco-select').find('option:not([value=""])').remove();
+
+        var hoje = new Date().toISOString().split('T')[0];
+        $newBlock.find('.nova-input-data-inicio').val(hoje);
+        $newBlock.find('.nova-input-dia-vencimento').val('10');
+
+        $newBlock.find('.nova-horario-select').show();
+        $newBlock.find('.btn-toggle-novo-personalizado').show();
+        $newBlock.find('.div-novo-horario-personalizado').hide();
+
+        $newBlock.hide();
+        $container.append($newBlock);
+        $newBlock.slideDown();
+        $container.find('.btn-remover-nova-matricula').show();
+      });
+
+      // Form Submit parsing
+      $('form').submit(function () {
+        $('.matricula-block').each(function () {
+          var $blk = $(this);
+          if ($blk.find('.div-horario-personalizado').is(':visible')) {
+            if ($blk.find('.check-livre').is(':checked')) {
+              $blk.find('.horario-personalizado-input').val("Horário Livre");
+            } else {
+              var dias = [];
+              $blk.find('.dias-check:checked').each(function () { dias.push($(this).val()); });
+              var horaIni = $blk.find('.hora-inicio-pers').val();
+              var horaFim = $blk.find('.hora-fim-pers').val();
+
+              if (dias.length > 0) {
+                var horarioStr = dias.join('/');
+                if (horaIni) horarioStr += ' ' + horaIni;
+                if (horaFim) horarioStr += '-' + horaFim;
+                $blk.find('.horario-personalizado-input').val(horarioStr);
+              }
+            }
+          } else {
+            $blk.find('.horario-personalizado-input').val("");
+          }
+        });
+
+        // Submit parsing para nova-matricula-block
+        $('.nova-matricula-block').each(function () {
+          var $blk = $(this);
+          if ($blk.find('.div-novo-horario-personalizado').is(':visible')) {
+            if ($blk.find('.nova-check-livre').is(':checked')) {
+              $blk.find('.novo-horario-personalizado-input').val("Horário Livre");
+            } else {
+              var dias = [];
+              $blk.find('.nova-dias-check:checked').each(function () { dias.push($(this).val()); });
+              var horaIni = $blk.find('.nova-hora-inicio-pers').val();
+              var horaFim = $blk.find('.nova-hora-fim-pers').val();
+
+              if (dias.length > 0) {
+                var horarioStr = dias.join('/');
+                if (horaIni) horarioStr += ' ' + horaIni;
+                if (horaFim) horarioStr += '-' + horaFim;
+                $blk.find('.novo-horario-personalizado-input').val(horarioStr);
+              }
+            }
+          } else {
+            $blk.find('.novo-horario-personalizado-input').val("");
+          }
+        });
+      });
+
+    });
+  </script>
+  <!-- Form hidden para encerrar matrícula (evita form aninhado) -->
+  <form id="formEncerrar" method="post" style="display:none;"></form>
+
+  <script>
+    function confirmarEncerramento(id) {
+      if (confirm('Tem certeza que deseja encerrar esta matrícula? A ação não pode ser desfeita.')) {
+        var form = document.getElementById('formEncerrar');
+        form.action = '/matriculas/' + id + '/encerrar';
+        form.submit();
+      }
+    }
+  </script>
 </body>
+
 </html>

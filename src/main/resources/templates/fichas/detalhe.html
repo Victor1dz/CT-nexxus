@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout :: head('Detalhe da Ficha')}"></head>
+
+<body>
+    <div th:replace="~{layout :: sidebar('alunos')}"></div>
+
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <span class="badge bg-primary mb-2">PLANO MENSAL</span>
+                <h1 class="h4 fw-bold mb-0">Ficha de Treino #<span th:text="${ficha.id}"></span></h1>
+                <p class="text-secondary small mb-0">Aluno: <span th:text="${ficha.aluno.nome}"></span></p>
+            </div>
+            <a th:href="@{/fichas/aluno/{id}(id=${ficha.aluno.id})}" class="btn btn-outline-secondary">Voltar</a>
+        </div>
+
+        <!-- AI Feedback Block -->
+        <div class="alert alert-info border-0 shadow-sm mb-4 animate__animated animate__fadeInDown">
+            <div class="d-flex gap-3 align-items-start">
+                <i class="bi bi-cpu fs-3"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">Análise da Inteligência Artificial</h6>
+                    <p class="mb-0 small" th:text="${ficha.observacoesIA}">Carregando análise...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treinos List -->
+        <div class="row g-4">
+            <div th:each="treino : ${ficha.treinos}" class="col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <strong th:text="${treino.diaSemana}">Dia 1</strong>
+                        <span class="badge bg-dark text-white" th:text="${treino.focoDoDia}">Foco</span>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/fichas/salvar-treino}" method="post">
+                            <input type="hidden" name="id" th:value="${treino.id}" />
+
+                            <textarea name="descricaoExercicios" class="form-control mb-3" rows="10"
+                                style="font-family: monospace; font-size: 0.9rem;"
+                                th:text="${treino.descricaoExercicios}"></textarea>
+
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-save"></i> Salvar Alterações Manuais
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{layout :: scripts}"></div>
+</body>
+
+</html>

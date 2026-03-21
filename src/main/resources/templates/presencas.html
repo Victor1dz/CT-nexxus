@@ -1,59 +1,58 @@
 <!doctype html>
 <html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
 <head>
   <meta charset="utf-8">
   <title>Presença - CT Nexxus</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
+
 <body class="container py-4">
 
-<h1 class="h4 mb-3">✅ Presença</h1>
+  <h1 class="h4 mb-3">✅ Presença</h1>
 
-<form method="get" action="/presencas" class="mb-3">
-  <label class="form-label">Data</label>
-  <div class="d-flex gap-2">
-    <input class="form-control" type="date" name="data" th:value="${dataSelecionada}">
-    <button class="btn btn-primary" type="submit">Carregar</button>
-  </div>
-</form>
-
-<form method="post" action="/presencas/salvar">
-  <!-- CSRF token (evita erro 403 Forbidden) -->
-  <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
-
-  <input type="hidden" name="data" th:value="${dataSelecionada}">
-
-  <div class="card">
-    <div class="card-body">
-
-      <div class="alert alert-secondary py-2 mb-3">
-        Marque os alunos presentes e clique em <b>Salvar</b>.
-      </div>
-
-      <div class="list-group">
-        <label class="list-group-item d-flex align-items-center"
-               th:each="p : ${presencas}">
-          <input class="form-check-input me-2"
-                 type="checkbox"
-                 name="presentes"
-                 th:value="${p.aluno.id}"
-                 th:checked="${p.presente}">
-          <div>
-            <div class="fw-semibold" th:text="${p.aluno.nome}"></div>
-            <div class="small text-muted"
-                 th:text="${(p.aluno.modalidade != null ? p.aluno.modalidade.nome : '-') + ' • ' + (p.aluno.horario != null ? (p.aluno.horario.diaSemana + ' ' + p.aluno.horario.horaInicio) : '-') }">
-            </div>
-          </div>
-        </label>
-      </div>
-
-      <button class="btn btn-success mt-3" type="submit">Salvar</button>
-      <a href="/dashboard" class="btn btn-secondary mt-3">Voltar</a>
-
+  <form method="get" action="/presencas" class="mb-3">
+    <label class="form-label">Data</label>
+    <div class="d-flex gap-2">
+      <input class="form-control" type="date" name="data" th:value="${dataSelecionada}">
+      <button class="btn btn-primary" type="submit">Carregar</button>
     </div>
-  </div>
-</form>
+  </form>
+
+  <form method="post" action="/presencas/salvar">
+    <!-- CSRF token (evita erro 403 Forbidden) -->
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+    <input type="hidden" name="data" th:value="${dataSelecionada}">
+
+    <div class="card">
+      <div class="card-body">
+
+        <div class="alert alert-secondary py-2 mb-3">
+          Marque os alunos presentes e clique em <b>Salvar</b>.
+        </div>
+
+        <div class="list-group">
+          <label class="list-group-item d-flex align-items-center" th:each="p : ${presencas}">
+            <input class="form-check-input me-2" type="checkbox" name="presentes" th:value="${p.matricula.id}"
+              th:checked="${p.presente}">
+            <div>
+              <div class="fw-semibold" th:text="${p.matricula.aluno.nome}"></div>
+              <div class="small text-muted"
+                th:text="${(p.matricula.modalidade != null ? p.matricula.modalidade.nome : '-') + ' • ' + (p.matricula.horario != null ? (p.matricula.horario.diasSemana + ' ' + p.matricula.horario.horaInicio) : 'Horário Personalizado') }">
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <button class="btn btn-success mt-3" type="submit">Salvar</button>
+        <a href="/dashboard" class="btn btn-secondary mt-3">Voltar</a>
+
+      </div>
+    </div>
+  </form>
 
 </body>
+
 </html>

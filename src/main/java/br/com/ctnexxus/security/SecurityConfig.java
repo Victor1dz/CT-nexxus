@@ -2,39 +2,58 @@ package br.com.ctnexxus.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableWebSecurity
 public class SecurityConfig {
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(csrf -> csrf.disable()) // Desabilitar CSRF temporariamente para facilitar testes
+                                                              // de API/Form
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers("/css/**", "/js/**", "/img/**", "/webjars/**")
+                                                .permitAll() // Recursos estáticos
+                                                .anyRequest().authenticated())
+                                .formLogin(form -> form
+                                                .loginPage("/login")
+                                                .defaultSuccessUrl("/", true)
+                                                .permitAll())
+                                .oauth2Login(oauth2 -> oauth2
+                                                .loginPage("/login")
+                                                .defaultSuccessUrl("/", true))
+                                .logout(logout -> logout
+                                                .logoutUrl("/logout")
+                                                .logoutSuccessUrl("/login?logout")
+                                                .permitAll());
 
-        http
-            // libera recursos estáticos
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
-                // libera o H2 Console (somente dev)
-                .requestMatchers("/h2-console/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            // define nossa tela de login
-            .formLogin(form -> form
-                .loginPage("/login")
-                .defaultSuccessUrl("/dashboard", true)
-                .permitAll()
-            )
-            .logout(logout -> logout
-                .logoutSuccessUrl("/login?logout")
-                .permitAll()
-            );
+                return http.build();
+        }
 
-        // necessário para funcionar o H2 Console
-        http.csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**"));
-        http.headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
+        @Bean
+        public UserDetailsService userDetailsService() {
+                // Usuário em Memória para Start Rápido (Segurança Robusta sem DB por enquanto)
+                UserDetails admin = User.builder()
+                                .username("admin")
+                                .password(passwordEncoder().encode("admin123"))
+                                .roles("ADMIN")
+                                .build();
 
-        return http.build();
-    }
+                return new InMemoryUserDetailsManager(admin);
+        }
+
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 }

@@ -17,10 +17,10 @@ public class PresencaService {
         this.repository = repository;
     }
 
-    public Presenca obterOuCriar(Aluno aluno, LocalDate data) {
-        return repository.findByAlunoAndData(aluno, data).orElseGet(() -> {
+    public Presenca obterOuCriar(br.com.ctnexxus.model.Matricula matricula, LocalDate data) {
+        return repository.findByMatriculaIdAndData(matricula.getId(), data).orElseGet(() -> {
             Presenca p = new Presenca();
-            p.setAluno(aluno);
+            p.setMatricula(matricula);
             p.setData(data);
             p.setPresente(false);
             return repository.save(p);

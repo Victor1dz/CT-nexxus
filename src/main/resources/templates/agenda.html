@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout :: head('Agenda - CT Nexxus')}"></head>
+
+<body>
+    <div th:replace="~{layout :: sidebar('horarios')}"></div>
+
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h4 fw-bold">Agenda de Treinos</h1>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 fw-bold">Calendário Geral</h5>
+                <!-- Botão para Agendar Aula -->
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgendamento">
+                    <i class="bi bi-plus-lg"></i> Agendar Aula Particular
+                </button>
+            </div>
+            <div class="card-body overflow-auto">
+                <div id='calendar' style="min-width: 800px;"></div>
+            </div>
+        </div>
+
+        <!-- Modal Agendamento -->
+        <div class="modal fade" id="modalAgendamento" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Novo Agendamento (Aula Particular)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form action="/agendamentos/salvar" method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Aluno</label>
+                                <!-- Aqui idealmente seria um select carregado via controller, mas vamos simplificar ou pedir ajuste no controller para passar lista de alunos -->
+                                <select name="aluno.id" class="form-select" required>
+                                    <option value="" selected disabled>Selecione um aluno...</option>
+                                    <option th:each="a : ${alunos}" th:value="${a.id}" th:text="${a.nome}"></option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Modalidade</label>
+                                <select name="modalidade.id" class="form-select" required>
+                                    <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}">
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Data</label>
+                                    <input type="date" name="data" class="form-control" required>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Valor (R$)</label>
+                                    <input type="number" step="0.01" name="valor" class="form-control"
+                                        placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Início</label>
+                                    <input type="time" name="horarioInicio" class="form-control" required>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <label class="form-label">Fim</label>
+                                    <input type="time" name="horarioFim" class="form-control">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">Confirmar Agendamento</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div th:replace="~{layout :: scripts}"></div>
+
+    <!-- FullCalendar CDN -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+    <!-- PopperJS per Tooltips (Required for Bootstrap 5 Tooltips) -->
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
+
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            var calendarEl = document.getElementById('calendar');
+            var events = /*[[${events}]]*/[];
+
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pt-br',
+                navLinks: true,
+                dayMaxEvents: 3,
+                editable: false,
+                selectable: false, // Desabilita o clique/destaque em blocos vazios
+
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,dayGridWeek,listWeek' // Adicionei lista também
+                },
+                buttonText: {
+                    today: 'Hoje',
+                    month: 'Mês',
+                    dayGridWeek: 'Semana (Blocos)',
+                    listWeek: 'Semana (Lista)'
+                },
+                views: {
+                    dayGridWeek: {
+                        titleFormat: { year: 'numeric', month: 'short', day: 'numeric' }
+                    }
+                },
+
+                events: events,
+
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    meridiem: false
+                },
+
+                // Tooltips
+                eventDidMount: function (info) {
+                    tippy(info.el, {
+                        content: `
+                            <div style="text-align: left;">
+                                <strong>Turma:</strong> ${info.event.title}<br>
+                                <strong>Horário:</strong> ${info.event.start ? info.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Dia todo'}
+                            </div>
+                        `,
+                        allowHTML: true,
+                        theme: 'light',
+                    });
+                },
+
+                eventClassNames: function (arg) {
+                    return ['fc-event-glass']; // Nova classe CSS
+                }
+            });
+            calendar.render();
+        });
+    </script>
+    <style>
+        /* Glassmorphism para eventos */
+        .fc-event-glass {
+            backdrop-filter: blur(4px);
+            border: none !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-radius: 6px !important;
+            padding: 2px 4px;
+        }
+
+        .fc-event-glass:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+            z-index: 50 !important;
+            cursor: pointer;
+        }
+
+        /* Ajuste do calendário para parecer mais clean */
+        .fc-theme-standard td,
+        .fc-theme-standard th {
+            border-color: #f0f0f0;
+        }
+
+        .fc-col-header-cell {
+            background-color: #f8f9fa;
+            padding: 10px 0;
+            color: #495057;
+        }
+
+        .fc-day-today {
+            background-color: rgba(52, 152, 219, 0.05) !important;
+        }
+    </style>
+</body>
+
+</html>

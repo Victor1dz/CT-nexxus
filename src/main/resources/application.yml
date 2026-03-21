@@ -2,26 +2,44 @@ server:
   port: 8080
 
 spring:
+  devtools:
+    restart:
+      enabled: true
+      additional-paths: src/main/resources/
   application:
     name: ct-nexxus
 
   datasource:
-    url: jdbc:h2:mem:ctnexxusdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    url: jdbc:postgresql://ep-icy-frost-acfazn43-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require
+    username: neondb_owner
+    password: npg_GVYyRM6uq9WK
+    driver-class-name: org.postgresql.Driver
 
   jpa:
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
+    defer-datasource-initialization: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  sql:
+    init:
+      mode: always
     show-sql: true
     open-in-view: false
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ""      # Substitua pelo ID do Google Cloud Console
+            client-secret: "" # Substitua pelo Secret do Google
+            scope:
+              - email
+              - profile
 
   thymeleaf:
     cache: false
@@ -30,8 +48,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: victorero348@gmail.com
-    password: yzhv fnnx sjlb xlrx
+    username: ctnexxus@gmail.com
+    password: ojhl biaw ujoy hefw
     properties:
       mail:
         smtp:

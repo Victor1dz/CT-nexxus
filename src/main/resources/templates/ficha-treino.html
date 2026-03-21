@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pt-br" xmlns:th="http://www.thymeleaf.org">
+
+<head th:replace="~{layout :: head('Histórico de Treinos - CT Nexxus')}"></head>
+
+<body>
+    <div th:replace="~{layout :: sidebar('alunos')}"></div>
+
+    <main class="main-content">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h4 fw-bold mb-0">Histórico de Treinos</h1>
+                <p class="text-muted mb-0" th:text="${'Aluno: ' + aluno.nome}"></p>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaFicha">
+                    <i class="bi bi-plus-lg"></i> Nova Ficha Manual
+                </button>
+                <form th:action="@{/fichas/aluno/{id}/gerar-ia(id=${aluno.id})}" method="post"
+                    onsubmit="return confirm('Isso criará uma NOVA ficha baseada na IA. Deseja continuar?');">
+                    <button type="submit" class="btn btn-info text-white"><i class="bi bi-robot"></i> Gerar IA</button>
+                </form>
+                <a href="/alunos" class="btn btn-outline-secondary">Voltar</a>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <!-- Alerta de Anamnese (Resumo Saúde) -->
+        <div class="card border-warning mb-4 shadow-sm" th:if="${anamnese != null}">
+            <div class="card-header bg-warning py-2 text-dark d-flex justify-content-between align-items-center cursor-pointer"
+                data-bs-toggle="collapse" data-bs-target="#collapseAnamnese" aria-expanded="true"
+                style="cursor: pointer;">
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-pulse"></i> Resumo de Saúde (Anamnese)</h5>
+                <i class="bi bi-chevron-down"></i>
+            </div>
+            <div id="collapseAnamnese" class="collapse show">
+                <div class="card-body bg-warning bg-opacity-10">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <small class="text-muted d-block fw-bold text-uppercase">Objetivo Principal</small>
+                            <span class="fw-bold text-dark" th:text="${anamnese.objetivoPrincipal}"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block fw-bold text-uppercase">Atividade Física</small>
+                            <span th:text="${anamnese.frequenciaAtividadeFisica}"></span>
+                        </div>
+                        <div class="col-md-6 border-start border-danger bg-danger bg-opacity-10 p-2 rounded">
+                            <small class="text-danger d-block fw-bold text-uppercase mb-1"><i
+                                    class="bi bi-exclamation-triangle-fill"></i> Pontos de Atenção & Observações</small>
+
+                            <span class="badge bg-danger ms-1 mb-1" th:if="${anamnese.possuiProblemaCardiaco}">Cardíaco:
+                                <span th:text="${anamnese.detalheProblemaCardiaco}"></span></span>
+                            <span class="badge bg-danger ms-1 mb-1"
+                                th:if="${anamnese.possuiProblemaRespiratorio}">Respiratório: <span
+                                    th:text="${anamnese.detalheProblemaRespiratorio}"></span></span>
+                            <span class="badge bg-warning text-dark ms-1 mb-1"
+                                th:if="${anamnese.possuiAlergia}">Alergias:
+                                <span th:text="${anamnese.quaisAlergias}"></span></span>
+                            <span class="badge bg-info text-dark ms-1 mb-1"
+                                th:if="${anamnese.fezCirurgiaRecente}">Cirurgia:
+                                <span th:text="${anamnese.quaisCirurgias}"></span></span>
+                            <span class="badge bg-secondary ms-1 mb-1"
+                                th:if="${anamnese.tomaMedicamentoContinuo}">Medicamentos: <span
+                                    th:text="${anamnese.quaisMedicamentos}"></span></span>
+                            <span class="badge bg-dark ms-1 mb-1" th:if="${anamnese.fuma}">Fumante</span>
+
+                            <div class="mt-2 text-danger fw-bold"
+                                th:if="${anamnese.observacoesGerais != null && !anamnese.observacoesGerais.isBlank()}">
+                                <i class="bi bi-chat-square-quote"></i> <span
+                                    th:text="${anamnese.observacoesGerais}"></span>
+                            </div>
+
+                            <div th:if="${!anamnese.possuiProblemaCardiaco && !anamnese.possuiProblemaRespiratorio && !anamnese.possuiAlergia && !anamnese.fezCirurgiaRecente && !anamnese.tomaMedicamentoContinuo && (anamnese.observacoesGerais == null || anamnese.observacoesGerais.isBlank())}"
+                                class="text-success small fw-bold mt-2"><i class="bi bi-check-circle-fill"></i> Nenhuma
+                                restrição ou observação informada.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${anamnese == null}" class="alert alert-danger shadow-sm mb-4">
+            <i class="bi bi-exclamation-octagon-fill"></i> Nenhuma anamnese preenchida para este aluno! <a
+                th:href="@{/anamneses/aluno/{id}(id=${aluno.id})}"
+                class="fw-bold text-danger text-decoration-underline">Preencher Agora</a>
+        </div>
+
+        <!-- Accordion de Fichas (Histórico) -->
+        <div class="accordion shadow-sm" id="accordionFichas" th:if="${not #lists.isEmpty(fichas)}">
+            <div class="accordion-item" th:each="ficha, iterStat : ${fichas}">
+                <h2 class="accordion-header" th:id="'heading' + ${ficha.id}">
+                    <button class="accordion-button"
+                        th:classappend="${!ficha.ativa} ? 'collapsed bg-light text-muted' : 'fw-bold bg-white text-primary'"
+                        type="button" data-bs-toggle="collapse" th:data-bs-target="'#collapse' + ${ficha.id}"
+                        th:aria-expanded="${ficha.ativa}" th:aria-controls="'collapse' + ${ficha.id}">
+                        <div class="d-flex w-100 justify-content-between align-items-center me-3">
+                            <div>
+                                <span class="fw-bold me-2 text-primary"
+                                    th:text="'Treino #' + ${iterStat.size - iterStat.index}">Treino #1</span>
+                                <span class="fw-bold me-2" th:text="'- ' + ${ficha.objetivoFicha}">- Objetivo</span>
+                                <span class="badge" th:classappend="${ficha.ativa} ? 'bg-success' : 'bg-secondary'"
+                                    th:text="${ficha.ativa} ? 'Ativa' : 'Arquivada'">Status</span>
+                            </div>
+                            <!-- Data e Ações de Clonagem -->
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="text-end" th:classappend="${ficha.ativa} ? 'text-primary' : 'text-muted'">
+                                    <small class="d-block text-uppercase fw-bold" style="font-size: 0.7rem;">Início do
+                                        Treino</small>
+                                    <span class="fw-bold"
+                                        th:text="${#temporals.format(ficha.dataInicio, 'dd/MM/yyyy')}">Data</span>
+                                </div>
+                                <form th:if="${!ficha.ativa}" th:action="@{/fichas/{id}/clonar(id=${ficha.id})}"
+                                    method="post" class="m-0 p-0"
+                                    onsubmit="return confirm('Isso criará uma NOVA ficha ATIVA hoje, usando as aulas desta ficha como base. Confirma?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-primary"
+                                        title="Usar como Base (Clonar)"><i class="bi bi-copy"></i> Copiar</button>
+                                </form>
+                                <form th:if="${ficha.ativa}" th:action="@{/fichas/{id}/clonar(id=${ficha.id})}"
+                                    method="post" class="m-0 p-0"
+                                    onsubmit="return confirm('Deseja copiar as aulas desta ficha atual para uma nova ficha começando hoje?');">
+                                    <button type="submit" class="btn btn-sm btn-primary"
+                                        title="Renovar Treino Baseado Neste"><i class="bi bi-arrow-repeat"></i> Renovar
+                                        Treino</button>
+                                </form>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div th:id="'collapse' + ${ficha.id}" class="accordion-collapse collapse"
+                    th:classappend="${ficha.ativa} ? 'show'" th:aria-labelledby="'heading' + ${ficha.id}"
+                    data-bs-parent="#accordionFichas">
+                    <div class="accordion-body bg-light">
+
+                        <!-- Observações IA -->
+                        <div th:if="${ficha.observacoesIA != null}" class="alert alert-info py-2 small mb-3">
+                            <i class="bi bi-cpu"></i> <strong>Nota da IA:</strong> <span
+                                th:text="${ficha.observacoesIA}"></span>
+                        </div>
+
+                        <!-- Lista de Aulas da Ficha -->
+                        <div class="row g-3">
+                            <div class="col-md-12 mb-3">
+                                <button class="btn btn-sm btn-outline-success" data-bs-toggle="modal"
+                                    th:data-bs-target="'#modalAddTreino' + ${ficha.id}">
+                                    <i class="bi bi-plus-circle"></i> Adicionar Aula Nesta Ficha
+                                </button>
+                                <form th:action="@{/fichas/{id}/excluir(id=${ficha.id})}" method="post"
+                                    class="d-inline float-end"
+                                    onsubmit="return confirm('Tem certeza que deseja excluir esta ficha inteira?');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i
+                                            class="bi bi-trash"></i> Excluir Ficha</button>
+                                </form>
+                            </div>
+
+                            <!-- Aulas Formatadas em Sanfona (Accordion) -->
+                            <div class="col-12">
+                                <div class="accordion accordion-flush border rounded bg-white shadow-sm"
+                                    th:id="'accordionAulas' + ${ficha.id}" th:if="${not #lists.isEmpty(ficha.treinos)}">
+                                    <div class="accordion-item" th:each="treino : ${ficha.treinos}">
+                                        <h2 class="accordion-header" th:id="'headingAula' + ${treino.id}">
+                                            <button class="accordion-button collapsed py-2" type="button"
+                                                data-bs-toggle="collapse"
+                                                th:data-bs-target="'#collapseAula' + ${treino.id}" aria-expanded="false"
+                                                th:aria-controls="'collapseAula' + ${treino.id}">
+                                                <div class="d-flex align-items-center w-100 me-2">
+                                                    <i class="bi bi-lightning-charge text-warning me-2"></i>
+                                                    <strong th:text="${treino.diaSemana}"
+                                                        class="me-auto text-uppercase">Aula X</strong>
+                                                    <span class="badge bg-light text-dark border ms-2"
+                                                        th:text="${treino.focoDoDia}">Foco</span>
+                                                </div>
+                                            </button>
+                                        </h2>
+                                        <div th:id="'collapseAula' + ${treino.id}" class="accordion-collapse collapse"
+                                            th:aria-labelledby="'headingAula' + ${treino.id}"
+                                            th:data-bs-parent="'#accordionAulas' + ${ficha.id}">
+                                            <div class="accordion-body px-3 py-3">
+                                                <pre class="mb-3 p-3 bg-light rounded border-start border-4 border-success text-dark"
+                                                    style="font-family: inherit; font-size: 0.95rem; white-space: pre-wrap;"
+                                                    th:text="${treino.descricaoExercicios}"></pre>
+
+                                                <div class="text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        th:data-bs-target="'#modalEditAula' + ${treino.id}">
+                                                        <i class="bi bi-pencil-square"></i> Editar Exercícios
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Modal Editar Aula -->
+                                        <div class="modal fade" th:id="'modalEditAula' + ${treino.id}" tabindex="-1">
+                                            <div class="modal-dialog modal-lg">
+                                                <div class="modal-content">
+                                                    <form
+                                                        th:action="@{/fichas/{fId}/treinos/{tId}/editar(fId=${ficha.id}, tId=${treino.id})}"
+                                                        method="post">
+                                                        <div class="modal-header bg-light">
+                                                            <h5 class="modal-title text-primary"><i
+                                                                    class="bi bi-pencil-square"></i> Editar Exercícios
+                                                            </h5>
+                                                            <button type="button" class="btn-close"
+                                                                data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="row g-3">
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label fw-bold">Nome da
+                                                                        Aula</label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="diaSemana" th:value="${treino.diaSemana}"
+                                                                        required>
+                                                                </div>
+                                                                <div class="col-md-8">
+                                                                    <label class="form-label fw-bold">Foco / Grupo
+                                                                        Muscular</label>
+                                                                    <input type="text" class="form-control"
+                                                                        name="focoDoDia" th:value="${treino.focoDoDia}">
+                                                                </div>
+                                                                <div class="col-12">
+                                                                    <label class="form-label fw-bold">Exercícios, Séries
+                                                                        e Repetições</label>
+                                                                    <textarea class="form-control font-monospace"
+                                                                        name="descricaoExercicios" rows="8" required
+                                                                        th:text="${treino.descricaoExercicios}"></textarea>
+                                                                    <small class="text-muted">Modifique livremente e
+                                                                        salve para atualizar as orientações desta
+                                                                        aula.</small>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary"
+                                                                data-bs-dismiss="modal">Calcelar</button>
+                                                            <button type="submit" class="btn btn-primary"><i
+                                                                    class="bi bi-floppy"></i> Salvar Alterações</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div th:if="${#lists.isEmpty(ficha.treinos)}"
+                                    class="col-12 text-center py-4 text-muted bg-white border rounded">
+                                    Nenhuma aula cadastrada nesta ficha. Use o botão "+ Adicionar Aula".
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal Adicionar Treino (Específico por Ficha) -->
+                <div class="modal fade" th:id="'modalAddTreino' + ${ficha.id}" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <form th:action="@{/fichas/{id}/treinos/novo(id=${ficha.id})}" method="post">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Adicionar Aula</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label">Nome da Aula</label>
+                                            <input type="text" class="form-control" name="diaSemana"
+                                                placeholder="Ex: Treino A" required>
+                                        </div>
+                                        <div class="col-md-8">
+                                            <label class="form-label">Foco / Grupo Muscular</label>
+                                            <input type="text" class="form-control" name="focoDoDia"
+                                                placeholder="Ex: Pernas e Ombros">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Exercícios</label>
+                                            <textarea class="form-control" name="descricaoExercicios" rows="6" required
+                                                placeholder="Digite os exercícios..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary"
+                                        data-bs-dismiss="modal">Cancelar</button>
+                                    <button type="submit" class="btn btn-success">Salvar Aula</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${#lists.isEmpty(fichas)}" class="text-center p-5">
+            <h4 class="text-muted">Nenhum histórico encontrado.</h4>
+            <p>Crie uma ficha manual ou use a IA para começar.</p>
+        </div>
+
+    </main>
+
+    <!-- Modal Nova Ficha -->
+    <div class="modal fade" id="modalNovaFicha" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form th:action="@{/fichas/aluno/{id}/nova(id=${aluno.id})}" th:object="${novaFicha}" method="post">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Criar Nova Ficha</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Objetivo da Ficha</label>
+                            <input type="text" class="form-control" th:field="*{objetivoFicha}"
+                                placeholder="Ex: Hipertrofia, Emagrecimento..." required>
+                        </div>
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Data Início</label>
+                                <input type="date" class="form-control" th:field="*{dataInicio}" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">Data Fim (Previsão)</label>
+                                <input type="date" class="form-control" th:field="*{dataFim}" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Criar Ficha</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div th:replace="~{layout :: scripts}"></div>
+</body>
+
+</html>

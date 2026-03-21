@@ -2,12 +2,14 @@ package br.com.ctnexxus.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
-import java.math.BigDecimal;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 import java.time.LocalDate;
+import java.util.List;
 
 @Entity
 @Data
+@Table(name = "alunos")
 public class Aluno {
 
     @Id
@@ -18,29 +20,42 @@ public class Aluno {
 
     private String telefone;
 
-    // Email será obrigatório na tela (required).
-    // No H2 com ddl-auto:update pode não aplicar NOT NULL em tabela já criada,
-    // mas o formulário vai obrigar.
     private String email;
 
-    // Data que começou
-    private LocalDate dataInicio = LocalDate.now();
+    @Column(unique = true)
+    private String cpf;
 
-    // Agora 1..31 (o sistema ajusta se o mês não tiver esse dia)
-    private Integer diaVencimento = 10;
+    // Endereço
+    private String cep;
+    private String logradouro;
+    private String numero;
+    private String bairro;
+    private String cidade;
+    private String uf;
 
-    // Valor opcional por aluno (se null, usa valor da modalidade)
-    private BigDecimal valorPersonalizado;
+    private LocalDate dataNascimento;
 
-    @ManyToOne
-    @JoinColumn(name = "modalidade_id")
-    private Modalidade modalidade;
-
-    @ManyToOne
-    @JoinColumn(name = "horario_id")
-    private Horario horario;
+    private LocalDate dataCadastro = LocalDate.now();
 
     private boolean ativo = true;
 
-    private LocalDate dataCadastro = LocalDate.now();
+    @OneToOne(mappedBy = "aluno", cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Anamnese anamnese;
+
+    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<Matricula> matriculas;
+
+    @OneToMany(mappedBy = "aluno", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<FichaTreino> fichas;
+
+    // Se tiver Presencas ou Financeiro solto, adicionar aqui também se nao
+    // estiverem ligados a Matricula
+    // Mas geralmente Financeiro é ligado a Matricula ou Aluno.
+    // Vamos garantir que tudo que depende de Aluno seja deletado.
 }

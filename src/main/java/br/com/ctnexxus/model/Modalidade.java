@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 @Entity
 @Data
+@Table(name = "modalidades")
 public class Modalidade {
 
     @Id
@@ -15,8 +16,9 @@ public class Modalidade {
 
     private String nome;
 
-    // Valor mensal (ex: 120.00)
-    private BigDecimal valorMensal;
+    private String descricao;
 
     private boolean ativa = true;
+
+    private boolean exigeHorario = false; // Se true, exige definição manual de dia/hora no cadastro
 }

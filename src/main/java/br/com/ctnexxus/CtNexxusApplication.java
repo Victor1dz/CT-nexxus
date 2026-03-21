@@ -10,5 +10,6 @@ public class CtNexxusApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(CtNexxusApplication.class, args);
+        // Reiniciando aplicação para aplicar correções de controllers...
     }
 }

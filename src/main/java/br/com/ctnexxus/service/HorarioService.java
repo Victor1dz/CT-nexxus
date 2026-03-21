@@ -19,6 +19,15 @@ public class HorarioService {
         return repository.findAll();
     }
 
+    public List<Horario> listarTodos(String ordem) {
+        if ("desc".equalsIgnoreCase(ordem)) {
+            return repository.findAll(org.springframework.data.domain.Sort
+                    .by(org.springframework.data.domain.Sort.Direction.DESC, "modalidade.nome"));
+        }
+        return repository.findAll(org.springframework.data.domain.Sort
+                .by(org.springframework.data.domain.Sort.Direction.ASC, "modalidade.nome"));
+    }
+
     public void salvar(Horario horario) {
         repository.save(horario);
     }

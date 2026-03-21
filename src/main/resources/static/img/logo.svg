@@ -1,0 +1,13 @@
+<svg width="150" height="150" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <circle cx="75" cy="75" r="70" fill="url(#grad1)" stroke="#3498db" stroke-width="4"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="bold" font-size="28" fill="#ecf0f1">
+    <tspan x="50%" dy="-10">CT</tspan>
+    <tspan x="50%" dy="30" font-size="20" fill="#bdc3c7">NEXXUS</tspan>
+  </text>
+</svg>
