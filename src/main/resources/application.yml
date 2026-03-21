@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   devtools:
@@ -35,8 +35,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ""      # Substitua pelo ID do Google Cloud Console
-            client-secret: "" # Substitua pelo Secret do Google
+            client-id: "seu-client-id"      # Substitua pelo ID do Google Cloud Console
+            client-secret: "seu-client-secret" # Substitua pelo Secret do Google
             scope:
               - email
               - profile
