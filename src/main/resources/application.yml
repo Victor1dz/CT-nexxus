@@ -30,17 +30,6 @@ spring:
     show-sql: true
     open-in-view: false
 
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ""      # Substitua pelo ID do Google Cloud Console
-            client-secret: "" # Substitua pelo Secret do Google
-            scope:
-              - email
-              - profile
-
   thymeleaf:
     cache: false
 
@@ -62,3 +51,12 @@ ctnexxus:
   lembrete:
     dias-antes: 2,1,0
     hora-envio: "09:00"
+  security:
+    admin-user: "admin"
+    admin-pass: "admin123" # IMPORTANTE: Altere esta senha para o ambiente de produção!
+
+logging:
+  level:
+    org.thymeleaf: DEBUG
+    org.springframework.web: TRACE
+    org.springframework.web.servlet: TRACE

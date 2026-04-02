@@ -1,5 +1,6 @@
 package br.com.ctnexxus.security;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,6 +17,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+        @Value("${ctnexxus.security.admin-user}")
+        private String adminUser;
+
+        @Value("${ctnexxus.security.admin-pass}")
+        private String adminPass;
+
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
                 http
@@ -29,9 +36,6 @@ public class SecurityConfig {
                                                 .loginPage("/login")
                                                 .defaultSuccessUrl("/", true)
                                                 .permitAll())
-                                .oauth2Login(oauth2 -> oauth2
-                                                .loginPage("/login")
-                                                .defaultSuccessUrl("/", true))
                                 .logout(logout -> logout
                                                 .logoutUrl("/logout")
                                                 .logoutSuccessUrl("/login?logout")
@@ -44,8 +48,8 @@ public class SecurityConfig {
         public UserDetailsService userDetailsService() {
                 // Usuário em Memória para Start Rápido (Segurança Robusta sem DB por enquanto)
                 UserDetails admin = User.builder()
-                                .username("admin")
-                                .password(passwordEncoder().encode("admin123"))
+                                .username(adminUser)
+                                .password(passwordEncoder().encode(adminPass))
                                 .roles("ADMIN")
                                 .build();
 

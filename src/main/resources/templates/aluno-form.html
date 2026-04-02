@@ -133,9 +133,15 @@
             <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
               <h5 class="card-title fw-bold text-success mb-0"><i class="bi bi-journal-check"></i> Matrículas Ativas
               </h5>
-              <a th:href="@{/fichas/aluno/{id}(id=${aluno.id})}" class="btn btn-outline-primary btn-sm">
-                <i class="bi bi-clipboard-data"></i> Acessar Ficha de Treino (Aulas)
-              </a>
+              <div>
+                <button type="button" class="btn btn-sm btn-primary me-2" data-bs-toggle="modal"
+                  data-bs-target="#modalNovaMatricula">
+                  <i class="bi bi-plus-circle"></i> Novo Plano
+                </button>
+                <a th:href="@{/fichas/aluno/{id}(id=${aluno.id})}" class="btn btn-outline-primary btn-sm">
+                  <i class="bi bi-clipboard-data"></i> Acessar Ficha de Treino (Aulas)
+                </a>
+              </div>
             </div>
             <div class="card-body p-0">
               <div class="table-responsive" th:if="${not #lists.isEmpty(aluno.matriculas)}">
@@ -416,175 +422,8 @@
           </div>
         </form>
 
-        <!-- Nova Matrícula (Para Alunos Já Cadastrados) -->
-        <div class="card mb-4 border-0 shadow-sm mt-4" th:if="${aluno.id != null}">
-          <div class="card-header bg-white py-3 border-bottom-0 d-flex justify-content-between align-items-center">
-            <h5 class="card-title fw-bold text-primary mb-0"><i class="bi bi-plus-circle"></i> Adicionar Nova(s)
-              Matrícula(s)
-            </h5>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdicionarModalidadeNova">
-              <i class="bi bi-plus-circle"></i> Adicionar Outro Plano
-            </button>
-          </div>
-          <div class="card-body bg-light">
-            <form th:action="@{/alunos/matricula/adicionar}" method="post">
-              <input type="hidden" name="alunoId" th:value="${aluno.id}" />
-
-              <div class="alert alert-light border py-2">
-                <small><i class="bi bi-info-circle"></i> Utilize esta seção para matricular o aluno em novas
-                  modalidades.</small>
-              </div>
-
-              <div id="matriculasContainerNova">
-                <!-- BLOCO DE MATRÍCULA -->
-                <div class="nova-matricula-block border border-primary border-opacity-25 rounded p-3 mb-4 bg-white"
-                  data-index="0">
-                  <div class="d-flex justify-content-end mb-2">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-remover-nova-matricula"
-                      style="display:none;" title="Remover este plano">
-                      <i class="bi bi-trash"></i> Remover Plano
-                    </button>
-                  </div>
-                  <div class="row">
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Modalidade <span class="text-danger">*</span></label>
-                      <select class="form-select nova-modalidade-select" name="modalidadeId" required
-                        autocomplete="off">
-                        <option value="">Selecione...</option>
-                        <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}"
-                          th:data-exige-horario="${m.exigeHorario}"></option>
-                      </select>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Plano / Frequência <span class="text-danger">*</span></label>
-                      <select class="form-select nova-preco-select" name="precoId" required>
-                        <option value="">Selecione a modalidade primeiro...</option>
-                      </select>
-                      <small class="text-primary fw-bold mt-1 d-block nova-preco-display">Valor: R$ 0,00</small>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Horário de Preferência</label>
-                      <select class="form-select nova-horario-select" name="horarioId">
-                        <option value="">Selecione...</option>
-                        <option th:each="h : ${horarios}" th:if="${h.modalidade != null}" th:value="${h.id}"
-                          th:data-modalidade="${h.modalidade.id}" th:data-hora-inicio="${h.horaInicio}"
-                          th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '(Agendar) ') + h.modalidade.nome + ' | ' + h.diasSemana}">
-                        </option>
-                        <option value="custom" class="fw-bold text-primary" data-modalidade="all">+ Definir Horário
-                          Manualmente / A Combinar</option>
-                      </select>
-
-                      <div class="mt-2 text-end">
-                        <button type="button"
-                          class="btn btn-sm btn-link text-decoration-none btn-toggle-novo-personalizado">
-                          <i class="bi bi-gear"></i> Horário Manual / Livre
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Área de Horário Personalizado -->
-                  <div class="div-novo-horario-personalizado mt-3 p-4 bg-light border rounded shadow-sm w-100"
-                    style="display:none; transition: all 0.3s ease;">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                      <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-calendar-check"></i>
-                        Configurar Horário Personalizado</label>
-                      <button type="button" class="btn-close btn-fechar-novo-personalizado" aria-label="Close"
-                        title="Cancelar Personalizado"></button>
-                    </div>
-
-                    <!-- Horizontal Layout for Custom Schedule -->
-                    <div class="row align-items-start">
-                      <div class="col-lg-5 mb-3 mb-lg-0 border-end">
-                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">1. Dias da
-                          Semana</label>
-                        <div class="d-flex flex-wrap gap-2">
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Seg" autocomplete="off"> SEG</label>
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Ter" autocomplete="off"> TER</label>
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Qua" autocomplete="off"> QUA</label>
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Qui" autocomplete="off"> QUI</label>
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Sex" autocomplete="off"> SEX</label>
-                          <label class="btn btn-outline-secondary px-2"><input type="checkbox"
-                              class="btn-check nova-dias-check" value="Sáb" autocomplete="off"> SÁB</label>
-                        </div>
-                      </div>
-
-                      <div class="col-lg-3 mb-3 mb-lg-0 border-end px-4">
-                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">2. Horário
-                          Exato</label>
-                        <div class="row g-2">
-                          <div class="col-12">
-                            <div class="input-group input-group-sm">
-                              <span class="input-group-text bg-light fw-bold" style="width: 50px;">Das</span>
-                              <input type="time" class="form-control fw-bold text-center nova-hora-inicio-pers">
-                            </div>
-                          </div>
-                          <div class="col-12">
-                            <div class="input-group input-group-sm">
-                              <span class="input-group-text bg-light fw-bold" style="width: 50px;">Às</span>
-                              <input type="time" class="form-control fw-bold text-center nova-hora-fim-pers">
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="col-lg-4 px-4">
-                        <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">3. Horário
-                          Livre</label>
-                        <div class="p-3 bg-white rounded border border-success d-flex align-items-center"
-                          style="min-height: 70px;">
-                          <input class="form-check-input nova-check-livre fs-4 m-0 me-2" type="checkbox"
-                            autocomplete="off">
-                          <label class="fw-bold small text-success m-0">Aluno tem horário flexível</label>
-                        </div>
-                      </div>
-                      <input type="hidden" name="horarioPersonalizado" class="novo-horario-personalizado-input">
-                    </div>
-                  </div>
-
-                  <!-- Detalhes do Contrato para esta Matricula -->
-                  <div class="row mt-4 pt-3 border-top">
-                    <div class="col-12 mb-3">
-                      <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clipboard-data"></i> Detalhes do Contrato
-                      </h6>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Data de Início <span class="text-danger">*</span></label>
-                      <input class="form-control nova-input-data-inicio" type="date" name="dataInicioMatricula"
-                        th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
-                    </div>
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Data de Fim (Opcional)</label>
-                      <input class="form-control" type="date" name="dataFimMatricula">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                      <label class="form-label fw-bold">Dia Vencimento <span class="text-danger">*</span></label>
-                      <div class="input-group">
-                        <span class="input-group-text bg-light text-secondary">Dia</span>
-                        <input class="form-control fw-bold text-center nova-input-dia-vencimento" type="number"
-                          name="diaVencimento" min="1" max="31" value="10" required>
-                      </div>
-                    </div>
-                  </div>
-                </div> <!-- Fim MATRICULA BLOCK -->
-              </div>
-
-              <div class="row">
-                <div class="col-12 text-end">
-                  <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salvar Adição de
-                    Planos</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
+        <form id="form-excluir" th:if="${aluno.id != null}" th:action="@{/alunos/excluir/{id}(id=${aluno.id})}"
+          method="post" style="display: none;"></form>
 
         <!-- Histórico de Presenças -->
         <div class="card mb-4 border-0 shadow-sm mt-4" id="historico-presencas" th:if="${aluno.id != null}">
@@ -651,7 +490,7 @@
                       </button>
 
                       <!-- Collapse Form -->
-                      <div class="collapse mt-2" th:id="'#obs' + ${p.id}">
+                      <div class="collapse mt-2" th:id="'obs' + ${p.id}">
                         <div th:if="${p.observacao != null and !p.observacao.isBlank()}"
                           class="mb-2 p-2 bg-light border border-info rounded text-dark small">
                           <i class="bi bi-chat-text text-info"></i> <strong th:text="${p.observacao}"></strong>
@@ -678,115 +517,198 @@
             </div>
           </div>
         </div>
-
-        <form id="form-excluir" th:if="${aluno.id != null}" th:action="@{/alunos/excluir/{id}(id=${aluno.id})}"
-          method="post" style="display: none;"></form>
-      </div>
-    </div>
+      </div> <!-- end col-lg-8 -->
+    </div> <!-- end row -->
   </main>
 
-  <!-- Script com todosPrecos movido para antes dos modais para garantir que seja carregado -->
-  <div th:replace="~{layout :: scripts}"></div>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-  <script th:inline="javascript">
-    /*<![CDATA[*/
-    var todosPrecos = /*[[${todosPrecos}]]*/ [];
-    if (!todosPrecos) todosPrecos = [];
-    console.log("CT-Nexxus: todosPrecos injetado com " + todosPrecos.length + " itens.");
-    /*]]>*/
-  </script>
-
-  <!-- MODAIS DE EDIÇÃO DE MATRÍCULA -->
-  <div th:if="${aluno.id != null and aluno.matriculas != null}" th:each="m : ${aluno.matriculas}">
-    <div th:if="${m != null and m.id != null}" class="modal fade" th:id="'modalEditarMatricula_' + ${m.id}" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <form th:action="@{/alunos/matricula/editar}" method="post">
-            <input type="hidden" name="alunoId" th:value="${aluno.id}" />
-            <input type="hidden" name="matriculaId" th:value="${m.id}" />
-
-            <div class="modal-header bg-warning py-2">
-              <h5 class="modal-title text-dark fw-bold"><i class="bi bi-pencil-square"></i> Editar Contrato Ativo</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  <!-- Modal Adicionar Nova Matrícula -->
+  <div class="modal fade" id="modalNovaMatricula" tabindex="-1" aria-labelledby="modalNovaMatriculaLabel"
+    aria-hidden="true" th:if="${aluno.id != null}">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <form th:action="@{/alunos/matricula/adicionar}" method="post">
+          <input type="hidden" name="alunoId" th:value="${aluno.id}" />
+          <div class="modal-header bg-primary text-white py-3">
+            <h5 class="modal-title fw-bold" id="modalNovaMatriculaLabel"><i class="bi bi-plus-circle"></i> Adicionar
+              Nova(s) Matrícula(s)</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body bg-light">
+            <div class="alert alert-info border py-2 d-flex justify-content-between align-items-center">
+              <small><i class="bi bi-info-circle"></i> Utilize esta seção para matricular o aluno em novas
+                modalidades.</small>
+              <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdicionarModalidadeNova">
+                <i class="bi bi-plus-circle"></i> Adicionar Outro Plano
+              </button>
             </div>
 
-            <div class="modal-body bg-light">
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Modalidade</label>
-                  <select class="form-select" name="modalidadeId" required>
-                    <option th:each="mod : ${modalidades}" th:value="${mod.id}" th:text="${mod.nome}"
-                      th:selected="${m.modalidade != null and m.modalidade.id != null and m.modalidade.id.equals(mod.id)}"></option>
-                  </select>
+            <div id="matriculasContainerNova">
+              <!-- BLOCO DE MATRÍCULA -->
+              <div class="nova-matricula-block border border-primary border-opacity-25 rounded p-3 mb-4 bg-white"
+                data-index="0">
+                <div class="d-flex justify-content-end mb-2">
+                  <button type="button" class="btn btn-sm btn-outline-danger btn-remover-nova-matricula"
+                    style="display:none;" title="Remover este plano">
+                    <i class="bi bi-trash"></i> Remover Plano
+                  </button>
                 </div>
-                <!-- Not fetching full precificacao to keep it simple, letting them re-select if needed or just maintaining -->
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold cursor-help"
-                    title="Abra este modal apenas para manter ou alterar o valor.">Plano Atual</label>
-                  <input type="hidden" name="precoId" th:value="${m.preco != null ? m.preco.id : ''}">
-                  <input type="text" class="form-control"
-                    th:value="${m.preco != null ? m.preco.descricao + ' - R$ ' + m.preco.valor : 'Indefinido'}" readonly
-                    disabled>
-                  <small class="text-muted" style="font-size:0.75rem;">(Para mudar o preço, recomenda-se criar nova
-                    matrícula, ou encerrar esta)</small>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Modalidade <span class="text-danger">*</span></label>
+                    <select class="form-select nova-modalidade-select" name="modalidadeId" required autocomplete="off">
+                      <option value="">Selecione...</option>
+                      <option th:each="m : ${modalidades}" th:value="${m.id}" th:text="${m.nome}"
+                        th:data-exige-horario="${m.exigeHorario}"></option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Plano / Frequência <span class="text-danger">*</span></label>
+                    <select class="form-select nova-preco-select" name="precoId" required>
+                      <option value="">Selecione a modalidade primeiro...</option>
+                    </select>
+                    <small class="text-primary fw-bold mt-1 d-block nova-preco-display">Valor: R$ 0,00</small>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Horário de Preferência</label>
+                    <select class="form-select nova-horario-select" name="horarioId">
+                      <option value="">Selecione...</option>
+                      <option th:each="h : ${horarios}" th:if="${h.modalidade != null}" th:value="${h.id}"
+                        th:data-modalidade="${h.modalidade.id}" th:data-hora-inicio="${h.horaInicio}"
+                        th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '(Agendar) ') + h.modalidade.nome + ' | ' + h.diasSemana}">
+                      </option>
+                      <option value="custom" class="fw-bold text-primary" data-modalidade="all">+ Definir Horário
+                        Manualmente / A Combinar</option>
+                    </select>
+
+                    <div class="mt-2 text-end">
+                      <button type="button"
+                        class="btn btn-sm btn-link text-decoration-none btn-toggle-novo-personalizado">
+                        <i class="bi bi-gear"></i> Horário Manual / Livre
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Alterar Horário</label>
-                  <select class="form-select" name="horarioId">
-                    <option value="">(Remover Horário Fixo / A Combinar)</option>
-                    <option th:each="h : ${horarios}" th:if="${h != null and h.modalidade != null}" th:value="${h.id}"
-                      th:selected="${m.horario != null and m.horario.id != null and m.horario.id.equals(h.id)}"
-                      th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '') + h.modalidade.nome + ' | ' + h.diasSemana}">
-                    </option>
-                  </select>
+                <!-- Área de Horário Personalizado -->
+                <div class="div-novo-horario-personalizado mt-3 p-4 bg-light border rounded shadow-sm w-100"
+                  style="display:none; transition: all 0.3s ease;">
+                  <div class="d-flex justify-content-between align-items-center mb-3">
+                    <label class="form-label fw-bold text-primary mb-0"><i class="bi bi-calendar-check"></i> Configurar
+                      Horário Personalizado</label>
+                    <button type="button" class="btn-close btn-fechar-novo-personalizado" aria-label="Close"
+                      title="Cancelar Personalizado"></button>
+                  </div>
+
+                  <div class="row align-items-start">
+                    <div class="col-lg-5 mb-3 mb-lg-0 border-end">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">1. Dias da
+                        Semana</label>
+                      <div class="d-flex flex-wrap gap-2">
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Seg" autocomplete="off"> SEG</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Ter" autocomplete="off"> TER</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Qua" autocomplete="off"> QUA</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Qui" autocomplete="off"> QUI</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Sex" autocomplete="off"> SEX</label>
+                        <label class="btn btn-outline-secondary px-2"><input type="checkbox"
+                            class="btn-check nova-dias-check" value="Sáb" autocomplete="off"> SÁB</label>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-3 mb-3 mb-lg-0 border-end px-4">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">2. Horário
+                        Exato</label>
+                      <div class="row g-2">
+                        <div class="col-12">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light fw-bold" style="width: 50px;">Das</span>
+                            <input type="time" class="form-control fw-bold text-center nova-hora-inicio-pers">
+                          </div>
+                        </div>
+                        <div class="col-12">
+                          <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light fw-bold" style="width: 50px;">Às</span>
+                            <input type="time" class="form-control fw-bold text-center nova-hora-fim-pers">
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-lg-4 px-4">
+                      <label class="form-label small text-muted fw-bold text-uppercase d-block mb-3">3. Horário
+                        Livre</label>
+                      <div class="p-3 bg-white rounded border border-success d-flex align-items-center"
+                        style="min-height: 70px;">
+                        <input class="form-check-input nova-check-livre fs-4 m-0 me-2" type="checkbox"
+                          autocomplete="off">
+                        <label class="fw-bold small text-success m-0">Aluno tem horário flexível</label>
+                      </div>
+                    </div>
+                    <input type="hidden" name="horarioPersonalizado" class="novo-horario-personalizado-input">
+                  </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-bold">Personalizado (Dias / Horas)</label>
-                  <input type="text" class="form-control" name="horarioPersonalizado"
-                    th:value="${m.horarioPersonalizado}" placeholder="Ex: Seg/Qua 10:00">
-                  <small class="text-muted" style="font-size:0.75rem;">Anula o horário do sistema acima caso
-                    preenchido</small>
+                <!-- Detalhes do Contrato para esta Matricula -->
+                <div class="row mt-4 pt-3 border-top">
+                  <div class="col-12 mb-3">
+                    <h6 class="fw-bold text-primary mb-0"><i class="bi bi-clipboard-data"></i> Detalhes do Contrato</h6>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Data de Início <span class="text-danger">*</span></label>
+                    <input class="form-control nova-input-data-inicio" type="date" name="dataInicioMatricula"
+                      th:value="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}" required>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Data de Fim (Opcional)</label>
+                    <input class="form-control" type="date" name="dataFimMatricula">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Dia Vencimento <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light text-secondary">Dia</span>
+                      <input class="form-control fw-bold text-center nova-input-dia-vencimento" type="number"
+                        name="diaVencimento" min="1" max="31" value="10" required>
+                    </div>
+                  </div>
                 </div>
-
-                <div class="col-12 mt-3 pt-3 border-top">
-                  <label class="form-label fw-bold text-primary small"><i class="bi bi-clipboard-data"></i> Datas do
-                    Contrato</label>
-                </div>
-
-                <div class="col-md-4 mb-2">
-                  <label class="form-label fw-bold small">Data Início</label>
-                  <input class="form-control form-control-sm" type="date" name="dataInicioMatricula"
-                    th:value="${m.dataInicio}" required>
-                </div>
-                <div class="col-md-4 mb-2">
-                  <label class="form-label fw-bold small">Data Fim</label>
-                  <input class="form-control form-control-sm" type="date" name="dataFimMatricula"
-                    th:value="${m.dataFim}">
-                </div>
-                <div class="col-md-4 mb-2">
-                  <label class="form-label fw-bold small">Vencimento (Dia)</label>
-                  <input class="form-control form-control-sm text-center fw-bold" type="number" name="diaVencimento"
-                    min="1" max="31" th:value="${m.diaVencimento}" required>
-                </div>
-              </div>
+              </div> <!-- Fim MATRICULA BLOCK -->
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-              <button type="submit" class="btn btn-warning text-dark fw-bold"><i class="bi bi-save"></i> Salvar
-                Alterações</button>
-            </div>
-          </form>
-        </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary fw-bold"><i class="bi bi-check-lg"></i> Confirmar
+              Matrículas</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
+  <!-- Fim Modal Adicionar Nova Matrícula -->
 
+  <!-- MODAL DE EDIÇÃO REMOVIDO PARA CORREÇÃO DE ERROS -->
 
+  <!-- Form hidden para encerrar matrícula (evita form aninhado) -->
+  <form id="formEncerrar" method="post" style="display:none;"></form>
 
-
-
+  <!-- SCRIPTS -->
+  <script th:inline="javascript">
+    /*<![CDATA[*/
+    var todosPrecos = [];
+    try {
+      var todosPrecosText = /*[[${todosPrecosJson}]]*/ '[]';
+      todosPrecos = JSON.parse(todosPrecosText);
+    } catch (e) {
+      console.warn("CT-Nexxus: Erro ao parsear precos do backend", e);
+    }
+    console.log("CT-Nexxus: todosPrecos injetado com " + todosPrecos.length + " itens.");
+    /*]]>*/
+  </script>
 
   <script>
     $(document).ready(function () {
@@ -1138,7 +1060,8 @@
 
         // Filter local data
         var data = todosPrecos.filter(function (p) {
-          return p.modalidadeId == modalidadeId;
+          var idMod = p.modalidadeId || (p.modalidade && p.modalidade.id);
+          return idMod == modalidadeId;
         });
 
         console.log("Filtro local concluído. Itens encontrados: " + data.length);
@@ -1194,7 +1117,8 @@
 
         // Filter local data
         var data = todosPrecos.filter(function (p) {
-          return p.modalidadeId == modalidadeId;
+          var idMod = p.modalidadeId || (p.modalidade && p.modalidade.id);
+          return idMod == modalidadeId;
         });
 
         console.log("Filtro local concluído para nova matricula. Itens encontrados: " + data.length);
@@ -1236,7 +1160,7 @@
         $selectHorario.find('option').hide();
         $selectHorario.find('option[value=""]').show();
         $selectHorario.find('option[value="custom"]').show();
-        
+
         if (modId) {
           $selectHorario.find('option[data-modalidade="' + modId + '"]').show();
         }
@@ -1419,51 +1343,34 @@
       });
 
       // Form Submit parsing
-      $('form').submit(function () {
-        $('.matricula-block').each(function () {
+      $('form').submit(function (e) {
+        $('.matricula-block, .nova-matricula-block').each(function () {
           var $blk = $(this);
-          if ($blk.find('.div-horario-personalizado').is(':visible')) {
-            if ($blk.find('.check-livre').is(':checked')) {
-              $blk.find('.horario-personalizado-input').val("Horário Livre");
+          // Determine if it's the 'new' or 'existing' block to use correct selectors
+          var isNova = $blk.hasClass('nova-matricula-block');
+          var diasChecks = isNova ? '.nova-dias-check:checked' : '.dias-check:checked';
+          var horaIniInput = isNova ? '.nova-hora-inicio-pers' : '.hora-inicio-pers';
+          var checkLivreInput = isNova ? '.nova-check-livre' : '.check-livre';
+          var hiddenInput = isNova ? '.novo-horario-personalizado-input' : '.horario-personalizado-input';
+          var divPersonalizado = isNova ? '.div-novo-horario-personalizado' : '.div-horario-personalizado';
+
+          if ($blk.find(divPersonalizado).is(':visible')) {
+            if ($blk.find(checkLivreInput).is(':checked')) {
+              $blk.find(hiddenInput).val("Horário Livre");
             } else {
               var dias = [];
-              $blk.find('.dias-check:checked').each(function () { dias.push($(this).val()); });
-              var horaIni = $blk.find('.hora-inicio-pers').val();
-              var horaFim = $blk.find('.hora-fim-pers').val();
+              $blk.find(diasChecks).each(function () { dias.push($(this).val()); });
+              var horaIni = $blk.find(horaIniInput).val();
 
-              if (dias.length > 0) {
-                var horarioStr = dias.join('/');
-                if (horaIni) horarioStr += ' ' + horaIni;
-                if (horaFim) horarioStr += '-' + horaFim;
-                $blk.find('.horario-personalizado-input').val(horarioStr);
+              // Format: Seg,Qua|10:00
+              var horarioStr = "";
+              if (dias.length > 0 && horaIni) {
+                horarioStr = dias.join(',') + '|' + horaIni;
               }
+              $blk.find(hiddenInput).val(horarioStr);
             }
           } else {
-            $blk.find('.horario-personalizado-input').val("");
-          }
-        });
-
-        // Submit parsing para nova-matricula-block
-        $('.nova-matricula-block').each(function () {
-          var $blk = $(this);
-          if ($blk.find('.div-novo-horario-personalizado').is(':visible')) {
-            if ($blk.find('.nova-check-livre').is(':checked')) {
-              $blk.find('.novo-horario-personalizado-input').val("Horário Livre");
-            } else {
-              var dias = [];
-              $blk.find('.nova-dias-check:checked').each(function () { dias.push($(this).val()); });
-              var horaIni = $blk.find('.nova-hora-inicio-pers').val();
-              var horaFim = $blk.find('.nova-hora-fim-pers').val();
-
-              if (dias.length > 0) {
-                var horarioStr = dias.join('/');
-                if (horaIni) horarioStr += ' ' + horaIni;
-                if (horaFim) horarioStr += '-' + horaFim;
-                $blk.find('.novo-horario-personalizado-input').val(horarioStr);
-              }
-            }
-          } else {
-            $blk.find('.novo-horario-personalizado-input').val("");
+            $blk.find(hiddenInput).val("");
           }
         });
       });
@@ -1471,7 +1378,6 @@
     });
   </script>
   <!-- Form hidden para encerrar matrícula (evita form aninhado) -->
-  <form id="formEncerrar" method="post" style="display:none;"></form>
 
   <script>
     function confirmarEncerramento(id) {
@@ -1482,6 +1388,8 @@
       }
     }
   </script>
+  <div th:replace="~{layout :: scripts}"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 </body>
 
 </html>

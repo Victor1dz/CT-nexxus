@@ -65,8 +65,8 @@ public class AlunoController {
         model.addAttribute("horarios", horarioService.listarTodos());
         model.addAttribute("mapaLivres", disponibilidadeService.getDisponibilidadeSemana());
 
-        // Pré-carrega todos os preços com modalidade carregada (JOIN FETCH)
-        model.addAttribute("todosPrecos", precoService.listarTodos().stream().map(p -> {
+        // Pre-carrega todos os preços com modalidade carregada (JOIN FETCH)
+        List<java.util.Map<String, Object>> precosNovoList = precoService.listarTodos().stream().map(p -> {
             java.util.Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", p.getId());
             map.put("valor", p.getValor() != null ? p.getValor().toString() : "0.00");
@@ -74,7 +74,15 @@ public class AlunoController {
             map.put("frequenciaSemanal", p.getFrequenciaSemanal());
             map.put("modalidadeId", p.getModalidade() != null ? p.getModalidade().getId() : null);
             return map;
-        }).collect(java.util.stream.Collectors.toList()));
+        }).collect(java.util.stream.Collectors.toList());
+
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            model.addAttribute("todosPrecosJson", mapper.writeValueAsString(precosNovoList));
+        } catch (Exception e) {
+            model.addAttribute("todosPrecosJson", "[]");
+            e.printStackTrace();
+        }
 
         return "aluno-form";
     }
@@ -280,7 +288,7 @@ public class AlunoController {
         model.addAttribute("corBotaoFinanceiro", corBotao);
 
         // Pre-load all prices formatted for JS
-        model.addAttribute("todosPrecos", precoService.listarTodos().stream().map(p -> {
+        List<java.util.Map<String, Object>> precosList = precoService.listarTodos().stream().map(p -> {
             java.util.Map<String, Object> map = new java.util.HashMap<>();
             map.put("id", p.getId());
             map.put("valor", p.getValor() != null ? p.getValor().toString() : "0.00");
@@ -288,7 +296,15 @@ public class AlunoController {
             map.put("frequenciaSemanal", p.getFrequenciaSemanal());
             map.put("modalidadeId", p.getModalidade() != null ? p.getModalidade().getId() : null);
             return map;
-        }).collect(java.util.stream.Collectors.toList()));
+        }).collect(java.util.stream.Collectors.toList());
+
+        try {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            model.addAttribute("todosPrecosJson", mapper.writeValueAsString(precosList));
+        } catch (Exception e) {
+            model.addAttribute("todosPrecosJson", "[]");
+            e.printStackTrace();
+        }
 
         // Histórico de Presenças puxando apenas do Mês Atual para os Cálculos de
         // dashboard
@@ -393,7 +409,6 @@ public class AlunoController {
         matricula.setDataInicio(dataInicio != null ? dataInicio : LocalDate.now());
         matricula.setDataFim(dataFim);
         matricula.setDiaVencimento(diaVencimento != null ? diaVencimento : 10); // Padrão 10 se não informado
-        matricula.setAtivo(true);
         matricula.setAtivo(true);
 
         matriculaService.salvar(matricula);
