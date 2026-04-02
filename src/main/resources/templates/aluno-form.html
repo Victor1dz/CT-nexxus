@@ -1267,6 +1267,22 @@
         }
       });
 
+      // Initialize EXISTING blocks for 'Nova Matrícula' section (Autofill restore patch)
+      $('.nova-matricula-block').each(function () {
+        var $block = $(this);
+        var $modSelect = $block.find('.nova-modalidade-select');
+        var val = $modSelect.val();
+
+        if (val) {
+          $modSelect.trigger('change');
+        } else {
+          var $selectPreco = $block.find('.nova-preco-select');
+          if ($selectPreco.find('option').length <= 1) {
+            $selectPreco.html('\x3Coption value=""\x3ESelecione a modalidade primeiro...\x3C/option\x3E');
+          }
+        }
+      });
+
       // Clone block logic
       // Clone block logic
       $('#btnAdicionarModalidade').click(function () {
