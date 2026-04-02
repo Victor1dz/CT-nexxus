@@ -691,7 +691,90 @@
   </div>
   <!-- Fim Modal Adicionar Nova Matrícula -->
 
-  <!-- MODAL DE EDIÇÃO REMOVIDO PARA CORREÇÃO DE ERROS -->
+  <!-- MODAIS DE EDIÇÃO DE MATRÍCULA REINTRODUZIDOS COM PROTEÇÃO NULL-SAFETY -->
+  <th:block th:if="${aluno.id != null and aluno.matriculas != null}">
+    <th:block th:each="m : ${aluno.matriculas}">
+      <div th:if="${m != null and m.id != null and m.ativo == true}" class="modal fade" th:id="'modalEditarMatricula_' + ${m.id}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <form th:action="@{/alunos/matricula/editar}" method="post">
+              <input type="hidden" name="alunoId" th:value="${aluno.id}" />
+              <input type="hidden" name="matriculaId" th:value="${m.id}" />
+
+              <div class="modal-header bg-warning py-2">
+                <h5 class="modal-title text-dark fw-bold"><i class="bi bi-pencil-square"></i> Editar Contrato Ativo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+
+              <div class="modal-body bg-light">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Modalidade</label>
+                    <select class="form-select" name="modalidadeId" required>
+                      <option th:each="mod : ${modalidades}" th:value="${mod.id}" th:text="${mod.nome}"
+                        th:selected="${m.modalidade != null and m.modalidade.id == mod.id}"></option>
+                    </select>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold cursor-help"
+                      title="Para alterar o valor, encerre esta matrícula e crie uma nova.">Plano Atual</label>
+                    <input type="hidden" name="precoId" th:value="${m.preco != null ? m.preco.id : ''}">
+                    <input type="text" class="form-control"
+                      th:value="${m.preco != null ? m.preco.descricao : 'Indefinido'}" readonly disabled>
+                    <small class="text-muted" style="font-size:0.75rem;">(Para mudar o preço, crie nova matrícula)</small>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Alterar Horário Fixo Centralizado</label>
+                    <select class="form-select" name="horarioId">
+                      <option value="">(Remover Horário Fixo / A Combinar)</option>
+                      <option th:each="h : ${horarios}" th:if="${h != null and h.modalidade != null}" th:value="${h.id}"
+                        th:selected="${m.horario != null and m.horario.id == h.id}"
+                        th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '') + h.modalidade.nome + ' | ' + h.diasSemana}">
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Horário Antigo Manual (Dias / Horas)</label>
+                    <input type="text" class="form-control" name="horarioPersonalizado"
+                      th:value="${m.horarioPersonalizado}" placeholder="Exemplo: Segunda 10:00 ou Livre">
+                    <small class="text-muted" style="font-size:0.75rem;">Substitui o horário selecionado acima se preenchido</small>
+                  </div>
+
+                  <div class="col-12 mt-3 pt-3 border-top">
+                    <label class="form-label fw-bold text-primary small"><i class="bi bi-clipboard-data"></i> Datas do
+                      Contrato</label>
+                  </div>
+
+                  <div class="col-md-4 mb-2">
+                    <label class="form-label fw-bold small">Data Início</label>
+                    <input class="form-control form-control-sm" type="date" name="dataInicioMatricula"
+                      th:value="${m.dataInicio}" required>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <label class="form-label fw-bold small">Data Fim</label>
+                    <input class="form-control form-control-sm" type="date" name="dataFimMatricula"
+                      th:value="${m.dataFim}">
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <label class="form-label fw-bold small">Vencimento (Dia)</label>
+                    <input class="form-control form-control-sm text-center fw-bold" type="number" name="diaVencimento"
+                      min="1" max="31" th:value="${m.diaVencimento}" required>
+                  </div>
+                </div>
+              </div>
+
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-warning text-dark fw-bold"><i class="bi bi-save"></i> Salvar Alterações</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </th:block>
+  </th:block>
 
   <!-- Form hidden para encerrar matrícula (evita form aninhado) -->
   <form id="formEncerrar" method="post" style="display:none;"></form>
@@ -701,8 +784,13 @@
     /*<![CDATA[*/
     var todosPrecos = [];
     try {
-      var todosPrecosText = /*[[${todosPrecosJson}]]*/ '[]';
-      todosPrecos = JSON.parse(todosPrecosText);
+      // Como o Spring envia a string pura de JSON, [(${...})] o joga cru direto pro array sem escapar quotes
+      var injection = /*[(${todosPrecosJson})]*/ [];
+      if(typeof injection === 'string') {
+          todosPrecos = JSON.parse(injection);
+      } else {
+          todosPrecos = injection || [];
+      }
     } catch (e) {
       console.warn("CT-Nexxus: Erro ao parsear precos do backend", e);
     }

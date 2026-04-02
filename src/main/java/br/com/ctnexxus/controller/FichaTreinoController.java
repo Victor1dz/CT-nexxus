@@ -175,10 +175,21 @@ public class FichaTreinoController {
     }
 
     @PostMapping("/{fichaId}/excluir")
-    public String excluirFicha(@PathVariable Long fichaId) {
+    public String excluirFicha(@PathVariable Long fichaId, RedirectAttributes redirectAttributes) {
         FichaTreino ficha = fichaRepository.findById(fichaId).orElseThrow();
         Long alunoId = ficha.getAluno().getId();
         fichaRepository.delete(ficha);
+        redirectAttributes.addFlashAttribute("success", "Ficha excluída definitivamente!");
+        return "redirect:/fichas/aluno/" + alunoId;
+    }
+
+    @PostMapping("/{fichaId}/arquivar")
+    public String arquivarFicha(@PathVariable Long fichaId, RedirectAttributes redirectAttributes) {
+        FichaTreino ficha = fichaRepository.findById(fichaId).orElseThrow();
+        Long alunoId = ficha.getAluno().getId();
+        ficha.setAtiva(false);
+        fichaRepository.save(ficha);
+        redirectAttributes.addFlashAttribute("success", "Ficha arquivada na lixeira/histórico com sucesso!");
         return "redirect:/fichas/aluno/" + alunoId;
     }
 
