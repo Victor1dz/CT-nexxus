@@ -706,12 +706,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
               </div>
 
-              <div class="modal-body bg-light">
+              <div class="modal-body bg-light matricula-block">
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Modalidade</label>
-                    <select class="form-select" name="modalidadeId" required>
+                    <select class="form-select modalidade-select" name="modalidadeId" required>
                       <option th:each="mod : ${modalidades}" th:value="${mod.id}" th:text="${mod.nome}"
+                        th:data-exige-horario="${mod.exigeHorario}"
                         th:selected="${m.modalidade != null and m.modalidade.id == mod.id}"></option>
                     </select>
                   </div>
@@ -726,9 +727,10 @@
 
                   <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Alterar Horário Fixo Centralizado</label>
-                    <select class="form-select" name="horarioId">
+                    <select class="form-select horario-select" name="horarioId">
                       <option value="">(Remover Horário Fixo / A Combinar)</option>
                       <option th:each="h : ${horarios}" th:if="${h != null and h.modalidade != null}" th:value="${h.id}"
+                        th:data-modalidade="${h.modalidade.id}"
                         th:selected="${m.horario != null and m.horario.id == h.id}"
                         th:text="${(h.horaInicio != null ? h.horaInicio + ' - ' : '') + h.modalidade.nome + ' | ' + h.diasSemana}">
                       </option>
@@ -782,22 +784,16 @@
   <!-- SCRIPTS -->
   <script th:inline="javascript">
     /*<![CDATA[*/
-    var todosPrecos = [];
-    try {
-      // Como o Spring envia a string pura de JSON, [(${...})] o joga cru direto pro array sem escapar quotes
-      var injection = /*[(${todosPrecosJson})]*/ [];
-      if(typeof injection === 'string') {
-          todosPrecos = JSON.parse(injection);
-      } else {
-          todosPrecos = injection || [];
-      }
-    } catch (e) {
-      console.warn("CT-Nexxus: Erro ao parsear precos do backend", e);
+    // Injeção puramente nativa pelo Thymeleaf. Sem aspas, sem parse, sem textarea.
+    var todosPrecos = /*[[${todosPrecosJson} != null ? ${todosPrecosJson} : '[]']]*/ [];
+    if(typeof todosPrecos === 'string') {
+        try { todosPrecos = JSON.parse(todosPrecos); } catch(e) { todosPrecos = []; }
     }
-    console.log("CT-Nexxus: todosPrecos injetado com " + todosPrecos.length + " itens.");
+    if(!todosPrecos) todosPrecos = [];
+    
+    console.log("CT-Nexxus: JS Boot ok. Planos = " + todosPrecos.length);
     /*]]>*/
   </script>
-
   <script>
     $(document).ready(function () {
       // Máscaras
@@ -1027,10 +1023,21 @@
 
       // --- EVENTOS DELEGADOS (Funciona para blocos existentes e clonados automaticamente) ---
 
+      // Backup original options for Safari hide() bypass
+      if (!window.horariosOriginais) {
+        window.horariosOriginais = [];
+        $('.horario-select option').each(function() {
+          window.horariosOriginais.push({
+            value: $(this).val(),
+            text: $(this).text(),
+            modId: $(this).data('modalidade')
+          });
+        });
+      }
+
       $(document).on('change', '.modalidade-select', function () {
         var $block = $(this).closest('.matricula-block');
         var modId = $(this).val();
-        console.log("Modalidade selecionada! ID: " + modId);
         var $option = $(this).find('option:selected');
         var exige = $option.data('exige-horario') === true;
 
@@ -1043,12 +1050,28 @@
         $selectPreco.val('');
         atualizarPrecoDisplayBlock($block);
 
-        // Filtra Horários
-        $selectHorario.find('option').hide();
-        $selectHorario.find('option[value=""]').show();
-        $selectHorario.find('option[value="custom"]').show();
+        // Bypass Bug do Safari onde hide() não funciona em Options: 
+        // Vamos recriar o select inteiro baseado no array original.
+        var selectedHorarioPrev = $selectHorario.val();
+        $selectHorario.empty();
+        $selectHorario.append('<option value="">Selecione...</option>');
+        
         if (modId) {
-          $selectHorario.find('option[data-modalidade="' + modId + '"]').show();
+          $.each(window.horariosOriginais, function(i, opt) {
+             // Retorna os options vazios (custom, etc) ou que correspondam a modalidade
+             if (opt.value === "custom" || opt.value === "" || opt.modId == modId) {
+                 if(opt.value !== "") {
+                     var isSelected = (opt.value === selectedHorarioPrev) ? ' selected' : '';
+                     $selectHorario.append('<option value="' + opt.value + '" data-modalidade="' + opt.modId + '"' + isSelected + '>' + opt.text + '</option>');
+                 }
+             }
+          });
+          // Adiciona hardcoded caso nao esteja no backup global original
+          if ($selectHorario.find('option[value="custom"]').length === 0) {
+              $selectHorario.append('<option value="custom">A Combinar / Horário Livre</option>');
+          }
+        } else {
+          $selectHorario.append('<option value="custom">A Combinar / Horário Livre</option>');
         }
 
         // Reset visual
@@ -1070,6 +1093,10 @@
 
         if (modId) {
           carregarPrecosAjaxContext($block, modId);
+        } else {
+          $selectPreco.empty();
+          $selectPreco.append('<option value="">Selecione a modalidade primeiro...</option>');
+          atualizarPrecoDisplayBlock($block);
         }
       });
 
@@ -1229,10 +1256,21 @@
       }
 
       // NOVO BLOCO - Eventos
+      // Backup original options for Nova section Safari bypass
+      if (!window.novosHorariosOriginais) {
+        window.novosHorariosOriginais = [];
+        $('.nova-horario-select option').each(function() {
+          window.novosHorariosOriginais.push({
+            value: $(this).val(),
+            text: $(this).text(),
+            modId: $(this).data('modalidade')
+          });
+        });
+      }
+
       $(document).on('change', '.nova-modalidade-select', function () {
         var $block = $(this).closest('.nova-matricula-block');
         var modId = $(this).val();
-        console.log("Nova Modalidade selecionada! ID: " + modId);
         var $option = $(this).find('option:selected');
         var exige = $option.data('exige-horario') === true;
 
@@ -1245,12 +1283,25 @@
         $selectPreco.val('');
         atualizarNovaPrecoDisplayBlock($block);
 
-        $selectHorario.find('option').hide();
-        $selectHorario.find('option[value=""]').show();
-        $selectHorario.find('option[value="custom"]').show();
-
+        // Bypass Safari Option Hide() bug
+        var selectedHorarioPrev = $selectHorario.val();
+        $selectHorario.empty();
+        $selectHorario.append('<option value="">Selecione...</option>');
+        
         if (modId) {
-          $selectHorario.find('option[data-modalidade="' + modId + '"]').show();
+          $.each(window.novosHorariosOriginais, function(i, opt) {
+             if (opt.value === "custom" || opt.value === "" || opt.modId == modId) {
+                 if(opt.value !== "") {
+                     var isSelected = (opt.value === selectedHorarioPrev) ? ' selected' : '';
+                     $selectHorario.append('<option value="' + opt.value + '" data-modalidade="' + opt.modId + '"' + isSelected + '>' + opt.text + '</option>');
+                 }
+             }
+          });
+          if ($selectHorario.find('option[value="custom"]').length === 0) {
+              $selectHorario.append('<option value="custom">A Combinar / Horário Livre</option>');
+          }
+        } else {
+          $selectHorario.append('<option value="custom">A Combinar / Horário Livre</option>');
         }
 
         if (exige) {

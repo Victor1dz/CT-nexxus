@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model agendamentos {
+  data           DateTime?    @db.Date
+  horario_fim    DateTime?    @db.Time(6)
+  horario_inicio DateTime?    @db.Time(6)
+  valor          Decimal?     @db.Decimal(38, 2)
+  aluno_id       BigInt?
+  id             BigInt       @id @default(autoincrement())
+  modalidade_id  BigInt?
+  status         String?      @db.VarChar(255)
+  alunos         alunos?      @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk866vkcxpp8dvo85m8bokhtxnj")
+  modalidades    modalidades? @relation(fields: [modalidade_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkfo1xn65phj9dijbu3a2o7k24x")
+}
+
+model alunos {
+  ativo           Boolean
+  data_cadastro   DateTime?       @db.Date
+  data_nascimento DateTime?       @db.Date
+  id              BigInt          @id @default(autoincrement())
+  bairro          String?         @db.VarChar(255)
+  cep             String?         @db.VarChar(255)
+  cidade          String?         @db.VarChar(255)
+  cpf             String?         @unique @db.VarChar(255)
+  email           String?         @db.VarChar(255)
+  logradouro      String?         @db.VarChar(255)
+  nome            String?         @db.VarChar(255)
+  numero          String?         @db.VarChar(255)
+  telefone        String?         @db.VarChar(255)
+  uf              String?         @db.VarChar(255)
+  agendamentos    agendamentos[]
+  anamneses       anamneses?
+  fichas_treino   fichas_treino[]
+  matriculas      matriculas[]
+  mensalidades    mensalidades[]
+}
+
+model anamneses {
+  altura                        Float?
+  bebe_alcool                   Boolean
+  fez_cirurgia_recente          Boolean
+  fuma                          Boolean
+  peso                          Float?
+  possui_alergia                Boolean
+  possui_problema_cardiaco      Boolean
+  possui_problema_respiratorio  Boolean
+  toma_medicamento_continuo     Boolean
+  aluno_id                      BigInt?   @unique
+  data_atualizacao              DateTime? @db.Timestamp(6)
+  id                            BigInt    @id @default(autoincrement())
+  detalhe_problema_cardiaco     String?
+  detalhe_problema_respiratorio String?
+  frequencia_atividade_fisica   String?
+  objetivo_principal            String?
+  observacoes_gerais            String?
+  quais_alergias                String?
+  quais_cirurgias               String?
+  quais_medicamentos            String?
+  sugestao_treino_gerada        String?
+  alunos                        alunos?   @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fknv795uvcqvbb6ilrkvgt2608l")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model despesas {
+  data_pagamento  DateTime? @db.Date
+  data_vencimento DateTime? @db.Date
+  valor           Decimal?  @db.Decimal(38, 2)
+  id              BigInt    @id @default(autoincrement())
+  categoria       String?   @db.VarChar(255)
+  descricao       String?   @db.VarChar(255)
+  status          String?   @db.VarChar(255)
+}
+
+model fichas_treino {
+  ativa          Boolean
+  data_criacao   DateTime?     @db.Date
+  data_fim       DateTime?     @db.Date
+  data_inicio    DateTime?     @db.Date
+  aluno_id       BigInt?
+  id             BigInt        @id @default(autoincrement())
+  objetivo_ficha String?       @db.VarChar(255)
+  observacoesia  String?
+  alunos         alunos?       @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkpjb461gwhyxr6uvm17ck2wxqh")
+  treinos_dia    treinos_dia[]
+}
+
+model horarios {
+  ativo         Boolean
+  hora_fim      DateTime?    @db.Time(6)
+  hora_inicio   DateTime?    @db.Time(6)
+  id            BigInt       @id @default(autoincrement())
+  modalidade_id BigInt?
+  dias_semana   String?      @db.VarChar(255)
+  modalidades   modalidades? @relation(fields: [modalidade_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk2mxgftr17euri53luytrvfgtn")
+  matriculas    matriculas[]
+}
+
+model matriculas {
+  ativo                     Boolean
+  data_fim                  DateTime?      @db.Date
+  data_inicio               DateTime?      @db.Date
+  dia_vencimento            Int?
+  hora_fim_personalizada    DateTime?      @db.Time(6)
+  hora_inicio_personalizada DateTime?      @db.Time(6)
+  aluno_id                  BigInt?
+  horario_id                BigInt?
+  id                        BigInt         @id @default(autoincrement())
+  modalidade_id             BigInt?
+  preco_id                  BigInt?
+  dias_personalizados       String?        @db.VarChar(255)
+  horario_personalizado     String?        @db.VarChar(255)
+  precos                    precos?        @relation(fields: [preco_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkhth36xyxotj635dmsfogxlhmg")
+  horarios                  horarios?      @relation(fields: [horario_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkoyj32lwl8p0b06x3kfc2i53br")
+  modalidades               modalidades?   @relation(fields: [modalidade_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkreji8d6wwii66v7crd086gm7u")
+  alunos                    alunos?        @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkrwsrt4qf6q7fghkawume7g1ya")
+  mensalidades              mensalidades[]
+  presenca                  presenca[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model mensalidades {
+  data_pagamento    DateTime?           @db.Date
+  valor             Decimal?            @db.Decimal(38, 2)
+  vencimento        DateTime?           @db.Date
+  aluno_id          BigInt?
+  id                BigInt              @id @default(autoincrement())
+  matricula_id      BigInt?
+  competencia       String?             @db.VarChar(255)
+  forma_pagamento   String?             @db.VarChar(255)
+  status            String?             @db.VarChar(255)
+  alunos            alunos?             @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkcsxg04ldb9ovhoyweby6sgoc3")
+  matriculas        matriculas?         @relation(fields: [matricula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkfdbv7xwnvljmkil4eldb4ju4h")
+  notificacao_email notificacao_email[]
+
+  @@unique([matricula_id, competencia])
+  @@unique([matricula_id, competencia], map: "ukenactmnffkeaqhdvvo68s91ly")
+}
+
+model modalidades {
+  ativa         Boolean
+  exige_horario Boolean
+  id            BigInt         @id @default(autoincrement())
+  descricao     String?        @db.VarChar(255)
+  nome          String?        @db.VarChar(255)
+  agendamentos  agendamentos[]
+  horarios      horarios[]
+  matriculas    matriculas[]
+  precos        precos[]
+}
+
+model notificacao_email {
+  data_envio     DateTime?     @db.Date
+  id             BigInt        @id @default(autoincrement())
+  mensalidade_id BigInt?
+  tipo           String?       @db.VarChar(255)
+  mensalidades   mensalidades? @relation(fields: [mensalidade_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkecb0excp8c44elf364iakk7k8")
+
+  @@unique([mensalidade_id, tipo])
+  @@unique([mensalidade_id, tipo], map: "ukkfvlly3hmvn8rct07hl0ogodo")
+}
+
+model precos {
+  frequencia_semanal Int?
+  valor              Decimal?     @db.Decimal(38, 2)
+  id                 BigInt       @id @default(autoincrement())
+  modalidade_id      BigInt?
+  descricao          String?      @db.VarChar(255)
+  matriculas         matriculas[]
+  modalidades        modalidades? @relation(fields: [modalidade_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk2ryt7imrf2hmq0tw7oxwc676")
+}
+
+model presenca {
+  data         DateTime   @db.Date
+  presente     Boolean
+  id           BigInt     @id @default(autoincrement())
+  matricula_id BigInt
+  observacao   String?    @db.VarChar(255)
+  matriculas   matriculas @relation(fields: [matricula_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkjagb381oo6pejchhchp9u7uym")
+}
+
+model presencas {
+  data         DateTime @db.Date
+  presente     Boolean
+  id           BigInt   @id @default(autoincrement())
+  matricula_id BigInt
+
+  @@unique([matricula_id, data])
+  @@unique([matricula_id, data], map: "ukk88rboabxl2ppi7wkknmktueg")
+}
+
+model treinos_dia {
+  ficha_treino_id      BigInt?
+  id                   BigInt         @id @default(autoincrement())
+  descricao_exercicios String?
+  dia_semana           String?        @db.VarChar(255)
+  foco_do_dia          String?        @db.VarChar(255)
+  fichas_treino        fichas_treino? @relation(fields: [ficha_treino_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fko2huml1rjsnr6fhc9hok55s4n")
+}
