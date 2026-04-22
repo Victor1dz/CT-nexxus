@@ -3,13 +3,17 @@
 import prisma from "@/lib/prisma"
 import { Modalidade, Preco, Horario } from "@/types"
 
-export async function getModalidades(): Promise<Modalidade[]> {
+export async function getModalidades() {
   try {
-    const mods = await prisma.modalidades.findMany()
+    const mods = await prisma.modalidades.findMany({
+      orderBy: { nome: 'asc' }
+    })
     return mods.map((m: any) => ({
       id: Number(m.id),
       nome: m.nome,
-      exigeHorario: m.exigeHorario
+      descricao: m.descricao,
+      ativa: m.ativa,
+      exigeHorario: m.exige_horario
     }))
   } catch (e) {
     console.error("Erro getModalidades: ", e)
@@ -75,5 +79,27 @@ export async function getAlunos() {
   } catch (error) {
     console.error('Erro ao buscar alunos:', error)
     return []
+  }
+}
+
+export async function salvarModalidade(formData: FormData) {
+  const nome = formData.get('nome') as string
+  const descricao = formData.get('descricao') as string
+  const ativa = formData.get('ativa') === 'on'
+  const exigeHorario = formData.get('exigeHorario') === 'on'
+
+  try {
+    await prisma.modalidades.create({
+      data: {
+        nome,
+        descricao,
+        ativa,
+        exige_horario: exigeHorario
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro ao salvar modalidade:', error)
+    return { success: false, error: 'Erro ao salvar modalidade' }
   }
 }
