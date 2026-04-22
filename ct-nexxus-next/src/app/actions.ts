@@ -103,3 +103,112 @@ export async function salvarModalidade(formData: FormData) {
     return { success: false, error: 'Erro ao salvar modalidade' }
   }
 }
+
+export async function getDashboardStats() {
+  try {
+    const totalAlunos = await prisma.alunos.count({
+      where: { ativo: true }
+    })
+
+    const now = new Date()
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+
+    const recebidoAgregado = await prisma.mensalidades.aggregate({
+      _sum: { valor: true },
+      where: {
+        status: 'PAGO',
+        data_pagamento: {
+          gte: firstDay,
+          lte: lastDay
+        }
+      }
+    })
+
+    const inadimplentesCount = await prisma.mensalidades.count({
+      where: {
+        status: 'PENDENTE',
+        vencimento: {
+          lt: now
+        }
+      }
+    })
+
+    return {
+      totalAlunos,
+      receitaMensal: recebidoAgregado._sum.valor ? Number(recebidoAgregado._sum.valor) : 0,
+      totalInadimplentes: inadimplentesCount
+    }
+  } catch (error) {
+    console.error('Erro ao buscar stats:', error)
+    return { totalAlunos: 0, receitaMensal: 0, totalInadimplentes: 0 }
+  }
+}
+
+export async function getFinanceiroData(mesString?: string) {
+  try {
+    const now = new Date()
+    let year = now.getFullYear()
+    let month = now.getMonth()
+
+    if (mesString) {
+      const parts = mesString.split('-')
+      if (parts.length === 2) {
+        year = parseInt(parts[0], 10)
+        month = parseInt(parts[1], 10) - 1
+      }
+    }
+
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+
+    const mensalidades = await prisma.mensalidades.findMany({
+      where: {
+        vencimento: {
+          gte: firstDay,
+          lte: lastDay
+        }
+      },
+      include: {
+        alunos: true
+      },
+      orderBy: { vencimento: 'asc' }
+    })
+
+    const despesas = await prisma.despesas.findMany({
+      where: {
+        data_vencimento: {
+          gte: firstDay,
+          lte: lastDay
+        }
+      },
+      orderBy: { data_vencimento: 'asc' }
+    })
+
+    let totalEntradas = 0
+    mensalidades.forEach((m: any) => {
+      if (m.status === 'PAGO' && m.valor) {
+        totalEntradas += Number(m.valor)
+      }
+    })
+
+    let totalSaidas = 0
+    despesas.forEach((d: any) => {
+      if (d.status === 'PAGO' && d.valor) {
+        totalSaidas += Number(d.valor)
+      }
+    })
+
+    return {
+      mensalidades,
+      despesas,
+      totalEntradas,
+      totalSaidas,
+      saldo: totalEntradas - totalSaidas,
+      mesString: `${year}-${String(month + 1).padStart(2, '0')}`
+    }
+  } catch (error) {
+    console.error('Erro ao buscar dados financeiros:', error)
+    return { mensalidades: [], despesas: [], totalEntradas: 0, totalSaidas: 0, saldo: 0, mesString: '' }
+  }
+}

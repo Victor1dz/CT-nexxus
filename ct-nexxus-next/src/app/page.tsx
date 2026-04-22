@@ -1,4 +1,10 @@
-export default function Dashboard() {
+import { getDashboardStats } from '@/app/actions'
+
+export const dynamic = "force-dynamic"
+
+export default async function Dashboard() {
+  const stats = await getDashboardStats()
+
   return (
     <div className="w-full text-slate-800 font-sans">
       <header className="mb-8">
@@ -10,27 +16,40 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col gap-2">
-          <h3 className="text-slate-500 font-semibold">Total de Alunos</h3>
-          <p className="text-4xl font-bold text-blue-600">--</p>
+          <h3 className="text-slate-500 font-semibold">Alunos Ativos</h3>
+          <p className="text-4xl font-bold text-blue-600">{stats.totalAlunos}</p>
         </div>
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col gap-2">
-          <h3 className="text-slate-500 font-semibold">Mensalidades (Mês)</h3>
-          <p className="text-4xl font-bold text-emerald-600">R$ --</p>
+          <h3 className="text-slate-500 font-semibold">Receitas (Mês)</h3>
+          <p className="text-4xl font-bold text-emerald-600">R$ {stats.receitaMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm flex flex-col gap-2">
-          <h3 className="text-slate-500 font-semibold">Presenças Hoje</h3>
-          <p className="text-4xl font-bold text-amber-500">--</p>
+          <h3 className="text-slate-500 font-semibold">Inadimplentes</h3>
+          <p className="text-4xl font-bold text-red-500">{stats.totalInadimplentes}</p>
         </div>
       </div>
       
-      <div className="mt-8 bg-white border border-slate-100 rounded-2xl p-8 shadow-sm text-center">
-        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <i className="bi bi-tools text-2xl"></i>
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm">
+          <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><i className="bi bi-bell text-amber-500"></i> Avisos Importantes</h2>
+          {stats.totalInadimplentes > 0 ? (
+            <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 flex items-start gap-3">
+              <i className="bi bi-exclamation-triangle-fill mt-1"></i>
+              <div>
+                <p className="font-bold">Atenção Financeira</p>
+                <p className="text-sm">Você possui {stats.totalInadimplentes} mensalidade(s) em atraso. Vá até a tela Financeiro para cobrar.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 flex items-start gap-3">
+              <i className="bi bi-check-circle-fill mt-1"></i>
+              <div>
+                <p className="font-bold">Tudo em dia!</p>
+                <p className="text-sm">Nenhum aluno inadimplente no momento.</p>
+              </div>
+            </div>
+          )}
         </div>
-        <h2 className="text-xl font-bold text-slate-800">Em construção...</h2>
-        <p className="text-slate-500 max-w-md mx-auto mt-2">
-          Estamos migrando o dashboard do sistema antigo para a nova plataforma Next.js.
-        </p>
       </div>
     </div>
   )
