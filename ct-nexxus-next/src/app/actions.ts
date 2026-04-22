@@ -58,3 +58,22 @@ export async function getHorarios(): Promise<Horario[]> {
     return []
   }
 }
+
+export async function getAlunos() {
+  try {
+    const alunos = await prisma.alunos.findMany({
+      orderBy: { nome: 'asc' },
+      include: {
+        matriculas: {
+          include: {
+            modalidades: true
+          }
+        }
+      }
+    })
+    return alunos
+  } catch (error) {
+    console.error('Erro ao buscar alunos:', error)
+    return []
+  }
+}
