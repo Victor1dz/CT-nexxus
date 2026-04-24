@@ -349,3 +349,183 @@ export async function getHorariosAgrupados() {
     return {}
   }
 }
+
+export async function getRelatoriosData() {
+  try {
+    const mensalidades = await prisma.mensalidades.findMany({
+      where: { status: 'PAGO' },
+      include: {
+        alunos: {
+          include: {
+            matriculas: {
+              where: { ativo: true },
+              include: { modalidades: true }
+            }
+          }
+        }
+      }
+    })
+
+    const receitaMod: Record<string, number> = {}
+    mensalidades.forEach((m: any) => {
+      let modName = 'Outros'
+      if (m.alunos && m.alunos.matriculas && m.alunos.matriculas.length > 0) {
+        modName = m.alunos.matriculas[0].modalidades?.nome || 'Outros'
+      }
+      if (!receitaMod[modName]) receitaMod[modName] = 0
+      receitaMod[modName] += Number(m.valor || 0)
+    })
+
+    const matriculas = await prisma.matriculas.findMany({
+      where: { ativo: true },
+      include: { modalidades: true }
+    })
+
+    const alunosMod: Record<string, number> = {}
+    matriculas.forEach((m: any) => {
+      const modName = m.modalidades?.nome || 'Outros'
+      if (!alunosMod[modName]) alunosMod[modName] = 0
+      alunosMod[modName]++
+    })
+
+    const presencas = await prisma.presenca.findMany({
+      where: { presente: true }
+    })
+
+    const freqDia: Record<string, number> = { 'Seg': 0, 'Ter': 0, 'Qua': 0, 'Qui': 0, 'Sex': 0, 'Sáb': 0, 'Dom': 0 }
+    const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    presencas.forEach((p: any) => {
+      const date = new Date(p.data)
+      const dia = diasMap[date.getUTCDay()]
+      freqDia[dia]++
+    })
+
+    return {
+      receitaLabels: Object.keys(receitaMod),
+      receitaData: Object.values(receitaMod),
+      alunosLabels: Object.keys(alunosMod),
+      alunosData: Object.values(alunosMod),
+      diasLabels: Object.keys(freqDia),
+      diasData: Object.values(freqDia)
+    }
+  } catch (error) {
+    console.error('Erro getRelatoriosData:', error)
+    return {
+      receitaLabels: [], receitaData: [],
+      alunosLabels: [], alunosData: [],
+      diasLabels: [], diasData: []
+    }
+  }
+
+export async function salvarAnamnese(formData: FormData) {
+  try {
+    const aluno_id = Number(formData.get('aluno_id'))
+    const peso = formData.get('peso') ? Number(formData.get('peso')) : null
+    const altura = formData.get('altura') ? Number(formData.get('altura')) : null
+    
+    const possui_problema_cardiaco = formData.get('possui_problema_cardiaco') === 'on'
+    const detalhe_problema_cardiaco = formData.get('detalhe_problema_cardiaco') as string
+    
+    const possui_problema_respiratorio = formData.get('possui_problema_respiratorio') === 'on'
+    const detalhe_problema_respiratorio = formData.get('detalhe_problema_respiratorio') as string
+    
+    const toma_medicamento_continuo = formData.get('toma_medicamento_continuo') === 'on'
+    const quais_medicamentos = formData.get('quais_medicamentos') as string
+    
+    const possui_alergia = formData.get('possui_alergia') === 'on'
+    const quais_alergias = formData.get('quais_alergias') as string
+    
+    const fez_cirurgia_recente = formData.get('fez_cirurgia_recente') === 'on'
+    const quais_cirurgias = formData.get('quais_cirurgias') as string
+    
+    const objetivo_principal = formData.get('objetivo_principal') as string
+    const frequencia_atividade_fisica = formData.get('frequencia_atividade_fisica') as string
+    
+    const fuma = formData.get('fuma') === 'on'
+    const bebe_alcool = formData.get('bebe_alcool') === 'on'
+    const observacoes_gerais = formData.get('observacoes_gerais') as string
+
+    // Logic for IA Sugestao
+    let sugestao = ""
+    let focos = []
+    let cuidados = []
+
+    const obj = objetivo_principal ? objetivo_principal.toLowerCase() : ""
+    if (obj.includes("emagrecimento") || obj.includes("perder peso")) {
+      focos.push("Alta Intensidade (HIIT)", "Circuitos Funcionais")
+      sugestao += "<strong>Foco Principal:</strong> Queima Calórica e Condicionamento.<br>"
+    } else if (obj.includes("hipertrofia") || obj.includes("massa") || obj.includes("musculo")) {
+      focos.push("Treino de Força (Cargas Progressivas)", "Descanso Controlado")
+      sugestao += "<strong>Foco Principal:</strong> Ganho de Massa Muscular e Força.<br>"
+    } else {
+      focos.push("Condicionamento Geral", "Mobilidade")
+      sugestao += "<strong>Foco Principal:</strong> Saúde e Bem-estar Geral.<br>"
+    }
+
+    if (possui_problema_cardiaco) {
+      cuidados.push("Monitorar Frequência Cardíaca (Manter na Zona 2/3)")
+      cuidados.push("Evitar picos extremos de esforço sem aquecimento longo")
+    }
+    if (possui_problema_respiratorio) {
+      cuidados.push("Aumentar tempo de descanso entre séries")
+      cuidados.push("Ambiente bem ventilado")
+    }
+
+    sugestao += "<br>📋 <strong>Estrutura Sugerida:</strong><br><ul>"
+    sugestao += "<li><strong>Aquecimento (10-15min):</strong> "
+    if (possui_problema_respiratorio) {
+      sugestao += "Caminhada progressiva ou Elíptico (menor impacto cardio inicial).</li>"
+    } else {
+      sugestao += "Pular corda (ritmo leve) ou Polichinelos + Mobilidade Articular.</li>"
+    }
+
+    sugestao += "<li><strong>Bloco Principal (30-40min):</strong> "
+    if (focos.includes("Alta Intensidade (HIIT)")) {
+      sugestao += "Treino intervalado. Ex: 3 min Boxe/Muay Thai intenso + 1 min descanso ativo (agachamentos).</li>"
+    } else if (focos.includes("Treino de Força (Cargas Progressivas)")) {
+      sugestao += "Foco em técnica e força. Séries de 8-12 repetições. Ex: Sequências de golpes com peso ou Funcional com carga.</li>"
+    } else {
+      sugestao += "Treino misto (Técnica + Aeróbico moderado). Manter constância.</li>"
+    }
+
+    sugestao += "<li><strong>Volta à Calma (5-10min):</strong> Alongamento estático e respiração diafragmática.</li></ul>"
+
+    if (cuidados.length > 0) {
+      sugestao += "<div class='p-3 bg-amber-50 text-amber-800 rounded-lg mt-3 border border-amber-200'><strong><i class='bi bi-exclamation-triangle'></i> Atenção / Cuidados Especiais:</strong><ul class='mb-0 mt-1 pl-4'>"
+      cuidados.forEach(c => {
+        sugestao += `<li>${c}</li>`
+      })
+      sugestao += "</ul></div>"
+    }
+
+    if (frequencia_atividade_fisica && frequencia_atividade_fisica.toLowerCase().includes("sedent")) {
+      sugestao += "<div class='mt-3 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200'><i class='bi bi-lightbulb-fill'></i> <em>Dica da IA: Aluno iniciante/sedentário. Começar com volume baixo e focar na adaptação nas primeiras 2 semanas.</em></div>"
+    }
+
+    const dataObj = {
+      aluno_id,
+      peso, altura,
+      possui_problema_cardiaco, detalhe_problema_cardiaco,
+      possui_problema_respiratorio, detalhe_problema_respiratorio,
+      toma_medicamento_continuo, quais_medicamentos,
+      possui_alergia, quais_alergias,
+      fez_cirurgia_recente, quais_cirurgias,
+      objetivo_principal, frequencia_atividade_fisica,
+      fuma, bebe_alcool, observacoes_gerais,
+      sugestao_treino_gerada: sugestao,
+      data_atualizacao: new Date()
+    }
+
+    const existing = await prisma.anamneses.findUnique({ where: { aluno_id } })
+    if (existing) {
+      await prisma.anamneses.update({ where: { id: existing.id }, data: dataObj })
+    } else {
+      await prisma.anamneses.create({ data: dataObj })
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Erro salvarAnamnese:', error)
+    return { success: false }
+  }
+}}
