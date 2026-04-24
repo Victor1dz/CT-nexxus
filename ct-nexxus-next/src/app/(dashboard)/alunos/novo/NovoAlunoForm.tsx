@@ -15,6 +15,9 @@ interface MatriculaBlockState {
   selectedPreco: number | ""
   selectedHorario: number | "custom" | ""
   isCustomHorario: boolean
+  customDias: string[]
+  customHoraInicio: string
+  customHoraFim: string
 }
 
 const PlusIcon = () => (
@@ -27,11 +30,35 @@ const TrashIcon = () => (
 
 export default function NovoAlunoForm({ initialModalidades, initialPrecos, initialHorarios }: Props) {
   const [blocks, setBlocks] = useState<MatriculaBlockState[]>([
-    { id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false }
+    { id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }
   ])
 
+  const [address, setAddress] = useState({
+    cep: "", logradouro: "", numero: "", cidade: "", uf: "", telefone: "", cpf: ""
+  })
+
+  const fetchCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '')
+    if (cleanCep.length === 8) {
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`)
+        const data = await res.json()
+        if (!data.erro) {
+          setAddress(prev => ({
+            ...prev,
+            logradouro: data.logradouro,
+            cidade: data.localidade,
+            uf: data.uf
+          }))
+        }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
+
   const addBlock = () => {
-    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false }])
+    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }])
   }
 
   const removeBlock = (id: string) => {
@@ -76,8 +103,29 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
               <input type="text" placeholder="Ex: João da Silva" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">CPF</label>
-              <input type="text" placeholder="000.000.000-00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              <label className="text-sm font-semibold text-slate-600">Telefone <span className="text-red-500">*</span></label>
+              <input type="text" name="telefone" required placeholder="(00) 00000-0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600">CPF <span className="text-slate-400 font-normal">(Opcional)</span></label>
+              <input type="text" name="cpf" placeholder="000.000.000-00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600">CEP</label>
+              <input type="text" name="cep" placeholder="00000-000" 
+                value={address.cep}
+                onChange={e => {
+                  setAddress(prev => ({...prev, cep: e.target.value}))
+                  fetchCep(e.target.value)
+                }}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-600">Endereço (Rua, Número)</label>
+              <div className="flex gap-2">
+                <input type="text" name="logradouro" value={address.logradouro} onChange={e => setAddress(prev => ({...prev, logradouro: e.target.value}))} placeholder="Logradouro" className="w-2/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+                <input type="text" name="numero" placeholder="Nº" className="w-1/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              </div>
             </div>
           </div>
         </div>
@@ -198,14 +246,14 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                     ) : null}
 
                     {(block.isCustomHorario || exigeHorario) && (
-                      <div className="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-300">
+                      <div className="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
                         <div className="flex justify-between items-center">
                           <span className="text-blue-700 font-bold text-sm flex items-center gap-2">
                             <span className="relative flex h-2 w-2">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                             </span>
-                            Horário Flexível Ativado
+                            Horário Personalizado / A Combinar
                           </span>
                           {!exigeHorario && (
                             <button onClick={() => { updateBlock(block.id, "isCustomHorario", false); updateBlock(block.id, "selectedHorario", "") }} className="text-blue-400 hover:text-blue-700 transition-colors">
@@ -213,7 +261,40 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                             </button>
                           )}
                         </div>
-                        <p className="text-xs text-blue-600/80 font-medium">O aluno não terá um horário fixo alocado pelo sistema.</p>
+                        
+                        <div>
+                          <label className="text-xs font-bold text-blue-800 mb-2 block uppercase tracking-wider">Dias da Semana</label>
+                          <div className="flex flex-wrap gap-2">
+                            {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(dia => (
+                              <button 
+                                key={dia}
+                                type="button"
+                                onClick={() => {
+                                  const dias = block.customDias.includes(dia) 
+                                    ? block.customDias.filter(d => d !== dia)
+                                    : [...block.customDias, dia]
+                                  updateBlock(block.id, "customDias", dias)
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${block.customDias.includes(dia) ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-100'}`}
+                              >
+                                {dia.toUpperCase()}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="flex gap-4">
+                          <div className="flex-1">
+                            <label className="text-xs font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Início</label>
+                            <input type="time" value={block.customHoraInicio} onChange={e => updateBlock(block.id, "customHoraInicio", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-xs font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Fim</label>
+                            <input type="time" value={block.customHoraFim} onChange={e => updateBlock(block.id, "customHoraFim", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                          </div>
+                        </div>
+                        
+                        <p className="text-xs text-blue-600/80 font-medium italic mt-1">Se os horários ficarem vazios, será considerado "Livre / A Combinar".</p>
                       </div>
                     )}
                   </div>

@@ -212,3 +212,23 @@ export async function getFinanceiroData(mesString?: string) {
     return { mensalidades: [], despesas: [], totalEntradas: 0, totalSaidas: 0, saldo: 0, mesString: '' }
   }
 }
+
+export async function getPrecosPorModalidade(modalidadeId: number) {
+  try {
+    const modalidade = await prisma.modalidades.findUnique({
+      where: { id: modalidadeId }
+    })
+    
+    if (!modalidade) return null
+
+    const precos = await prisma.precos.findMany({
+      where: { modalidade_id: modalidadeId },
+      orderBy: { frequencia_semanal: 'asc' }
+    })
+
+    return { modalidade, precos }
+  } catch (error) {
+    console.error('Erro getPrecosPorModalidade:', error)
+    return null
+  }
+}
