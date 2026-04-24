@@ -416,6 +416,7 @@ export async function getRelatoriosData() {
       diasLabels: [], diasData: []
     }
   }
+}
 
 export async function salvarAnamnese(formData: FormData) {
   try {
@@ -528,4 +529,4 @@ export async function salvarAnamnese(formData: FormData) {
     console.error('Erro salvarAnamnese:', error)
     return { success: false }
   }
-}}
+}
