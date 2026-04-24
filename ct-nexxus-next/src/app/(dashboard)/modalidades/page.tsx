@@ -11,7 +11,7 @@ export default async function ModalidadesPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50]">Modalidades</h1>
         <Link 
-          href="/modalidades/nova" 
+          href="/modalidades/form" 
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#2980b9] text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5"
         >
           <i className="bi bi-plus-lg"></i> Nova Modalidade
@@ -49,7 +49,7 @@ export default async function ModalidadesPage() {
                         ) : (
                           <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-md border border-slate-200">Inativa</span>
                         )}
-                        {m.exigeHorario && (
+                        {m.exige_horario && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-md border border-amber-100">
                             <i className="bi bi-clock"></i> A Combinar
                           </span>
@@ -61,7 +61,7 @@ export default async function ModalidadesPage() {
                         <Link href={`/precos/modalidade/${m.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-md hover:bg-cyan-100 transition-colors" title="Gerenciar Preços">
                           <i className="bi bi-currency-dollar"></i> Preços
                         </Link>
-                        <Link href={`/modalidades/editar/${m.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors" title="Editar">
+                        <Link href={`/modalidades/form?id=${m.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors" title="Editar">
                           <i className="bi bi-pencil"></i>
                         </Link>
                       </div>

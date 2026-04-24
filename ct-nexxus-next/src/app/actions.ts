@@ -320,7 +320,7 @@ export async function togglePresenca(matriculaId: number, dateStr: string, prese
   }
 }
 
-export async function getHorariosAgrupados() {
+export async function getHorariosEDisponibilidade() {
   try {
     const horarios = await prisma.horarios.findMany({
       include: {
@@ -329,10 +329,49 @@ export async function getHorariosAgrupados() {
       orderBy: { hora_inicio: 'asc' }
     })
 
+    const matriculas = await prisma.matriculas.findMany({
+      where: { ativo: true }
+    })
+
     const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const agrupados: Record<string, any[]> = {}
+    const mapaLivres: Record<string, any[]> = {}
     
-    diasSemana.forEach(d => { agrupados[d] = [] })
+    diasSemana.forEach(d => { 
+      agrupados[d] = []
+      mapaLivres[d] = [{ inicio: "06:00", fim: "22:00" }]
+    })
+
+    // Subtrair ocupacoes function
+    const subtrairIntervalo = (livres: any[], ocupado: any) => {
+      const resultado: any[] = []
+      const oInicio = new Date(`1970-01-01T${ocupado.inicio}:00Z`).getTime()
+      const oFim = new Date(`1970-01-01T${ocupado.fim}:00Z`).getTime()
+
+      for (const livre of livres) {
+        const lInicio = new Date(`1970-01-01T${livre.inicio}:00Z`).getTime()
+        const lFim = new Date(`1970-01-01T${livre.fim}:00Z`).getTime()
+
+        if (oFim <= lInicio || oInicio >= lFim) {
+          resultado.push(livre)
+          continue
+        }
+
+        if (oInicio > lInicio) {
+          const novoLivreFim = new Date(oInicio).toISOString().substr(11, 5)
+          resultado.push({ inicio: livre.inicio, fim: novoLivreFim })
+        }
+
+        if (oFim < lFim) {
+          const novoLivreInicio = new Date(oFim).toISOString().substr(11, 5)
+          resultado.push({ inicio: novoLivreInicio, fim: livre.fim })
+        }
+      }
+      return resultado.sort((a, b) => a.inicio.localeCompare(b.inicio))
+    }
+
+    const ocupadosMap: Record<string, any[]> = {}
+    diasSemana.forEach(d => { ocupadosMap[d] = [] })
 
     horarios.forEach((h: any) => {
       const dias = h.dias_semana ? h.dias_semana.split(',').map((d: string) => d.trim()) : []
@@ -340,13 +379,38 @@ export async function getHorariosAgrupados() {
         if (agrupados[dia]) {
           agrupados[dia].push(h)
         }
+        if (ocupadosMap[dia] && h.hora_inicio && h.hora_fim) {
+          const inicio = new Date(h.hora_inicio).toISOString().substr(11, 5)
+          const fim = new Date(h.hora_fim).toISOString().substr(11, 5)
+          ocupadosMap[dia].push({ inicio, fim })
+        }
       })
     })
 
-    return agrupados
+    matriculas.forEach((m: any) => {
+      if (m.hora_inicio_personalizada && m.hora_fim_personalizada) {
+        const dias = m.dias_personalizados ? m.dias_personalizados.split(',').map((d: string) => d.trim()) : (m.horario_personalizado ? m.horario_personalizado.split(',').map((d: string) => d.trim()) : [])
+        dias.forEach((dia: string) => {
+          if (ocupadosMap[dia]) {
+            const inicio = new Date(m.hora_inicio_personalizada).toISOString().substr(11, 5)
+            const fim = new Date(m.hora_fim_personalizada).toISOString().substr(11, 5)
+            ocupadosMap[dia].push({ inicio, fim })
+          }
+        })
+      }
+    })
+
+    diasSemana.forEach(dia => {
+      const ocupados = ocupadosMap[dia]
+      for (const ocupado of ocupados) {
+        mapaLivres[dia] = subtrairIntervalo(mapaLivres[dia], ocupado)
+      }
+    })
+
+    return { horarios, agrupados, mapaLivres }
   } catch (error) {
     console.error('Erro getHorarios:', error)
-    return {}
+    return { horarios: [], agrupados: {}, mapaLivres: {} }
   }
 }
 
@@ -530,3 +594,114 @@ export async function salvarAnamnese(formData: FormData) {
     return { success: false }
   }
 }
+
+export async function salvarPreco(formData: FormData) {
+  try {
+    const id = formData.get('id') ? Number(formData.get('id')) : null
+    const modalidade_id = Number(formData.get('modalidade_id'))
+    const frequencia_semanal = Number(formData.get('frequencia_semanal'))
+    const valorStr = formData.get('valor') as string
+    const valor = parseFloat(valorStr.replace(',', '.'))
+    const descricao = formData.get('descricao') as string
+
+    if (id) {
+      await prisma.precos.update({
+        where: { id },
+        data: { modalidade_id, frequencia_semanal, valor, descricao }
+      })
+    } else {
+      await prisma.precos.create({
+        data: { modalidade_id, frequencia_semanal, valor, descricao }
+      })
+    }
+    return { success: true, modalidade_id }
+  } catch (error) {
+    console.error('Erro salvarPreco:', error)
+    return { success: false, error }
+  }
+}
+
+export async function excluirPreco(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    await prisma.precos.delete({ where: { id } })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro excluirPreco:', error)
+    return { success: false }
+  }
+}
+
+export async function bloquearVagaLivre(formData: FormData) {
+  try {
+    const diaAbrev = formData.get('diaAbrev') as string
+    const inicioStr = formData.get('inicio') as string
+    const fimStr = formData.get('fim') as string
+
+    const dataObj = {
+      dias_semana: diaAbrev,
+      hora_inicio: new Date(`1970-01-01T${inicioStr}:00.000Z`),
+      hora_fim: new Date(`1970-01-01T${fimStr}:00.000Z`),
+      ativo: true
+    }
+
+    await prisma.horarios.create({ data: dataObj })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro bloquearVagaLivre:', error)
+    return { success: false }
+  }
+}
+
+export async function salvarHorario(formData: FormData) {
+  try {
+    const id = formData.get('id') ? Number(formData.get('id')) : null
+    const modalidade_id = formData.get('modalidade_id') ? Number(formData.get('modalidade_id')) : null
+    
+    // Pegar checkboxes de dias marcados (pode vir como array dependendo de como o NextFormData lida)
+    const diasArray = formData.getAll('dias_semana') as string[]
+    const dias_semana = diasArray.join(', ')
+
+    const inicioStr = formData.get('hora_inicio') as string
+    const fimStr = formData.get('hora_fim') as string
+
+    const hora_inicio = inicioStr ? new Date(`1970-01-01T${inicioStr}:00.000Z`) : null
+    const hora_fim = fimStr ? new Date(`1970-01-01T${fimStr}:00.000Z`) : null
+    const ativo = formData.get('ativo') === 'on'
+
+    const dataObj = { modalidade_id, dias_semana, hora_inicio, hora_fim, ativo }
+
+    if (id) {
+      await prisma.horarios.update({ where: { id }, data: dataObj })
+    } else {
+      await prisma.horarios.create({ data: dataObj })
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('Erro salvarHorario:', error)
+    return { success: false }
+  }
+}
+
+export async function salvarModalidade(formData: FormData) {
+  try {
+    const id = formData.get('id') ? Number(formData.get('id')) : null
+    const nome = formData.get('nome') as string
+    const descricao = formData.get('descricao') as string
+    const ativa = formData.get('ativa') === 'on'
+    const exige_horario = formData.get('exige_horario') === 'on'
+
+    const dataObj = { nome, descricao, ativa, exige_horario }
+
+    if (id) {
+      await prisma.modalidades.update({ where: { id }, data: dataObj })
+    } else {
+      await prisma.modalidades.create({ data: dataObj })
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('Erro salvarModalidade:', error)
+    return { success: false }
+  }
+}
+

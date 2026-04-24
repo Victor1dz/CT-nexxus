@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { getPrecosPorModalidade } from '@/app/actions'
+import { getPrecosPorModalidade, excluirPreco } from '@/app/actions'
 import { notFound } from 'next/navigation'
 
 export const dynamic = "force-dynamic"
 
 export default async function PrecosModalidadePage({ params }: { params: { id: string } }) {
-  const data = await getPrecosPorModalidade(Number(params.id))
+  const modalidadeId = Number(params.id)
+  const data = await getPrecosPorModalidade(modalidadeId)
 
   if (!data) {
     notFound()
@@ -21,9 +22,9 @@ export default async function PrecosModalidadePage({ params }: { params: { id: s
           <p className="text-slate-500 mt-2">Gerenciando preços para: <strong className="text-blue-600">{data.modalidade.nome}</strong></p>
         </div>
         
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#2980b9] text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 w-fit">
+        <Link href={`/precos/form?modalidade=${modalidadeId}`} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-[#2980b9] text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 w-fit">
           <i className="bi bi-plus-lg"></i> Novo Preço
-        </button>
+        </Link>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden mt-6">
@@ -66,12 +67,15 @@ export default async function PrecosModalidadePage({ params }: { params: { id: s
                       <td className="py-4 px-6 text-slate-600">{p.descricao}</td>
                       <td className="py-4 px-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="w-8 h-8 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" title="Editar">
+                          <Link href={`/precos/form?modalidade=${modalidadeId}&preco=${p.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" title="Editar">
                             <i className="bi bi-pencil"></i>
-                          </button>
-                          <button className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
-                            <i className="bi bi-trash"></i>
-                          </button>
+                          </Link>
+                          <form action={excluirPreco}>
+                            <input type="hidden" name="id" value={p.id} />
+                            <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </form>
                         </div>
                       </td>
                     </tr>
