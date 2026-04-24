@@ -120,7 +120,7 @@ export default async function HorariosPage() {
                       </div>
                       <div className="flex items-center gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <Link href={`/horarios/form?inicio=${h.inicio}&fim=${h.fim}&dia=${dia}`} className="text-amber-500 hover:text-amber-600" title="Editar"><i className="bi bi-pencil-fill text-xs"></i></Link>
-                        <form action={bloquearVagaLivre}>
+                        <form action={async (formData) => { "use server"; await bloquearVagaLivre(formData); }}>
                           <input type="hidden" name="diaAbrev" value={dia} />
                           <input type="hidden" name="inicio" value={h.inicio} />
                           <input type="hidden" name="fim" value={h.fim} />

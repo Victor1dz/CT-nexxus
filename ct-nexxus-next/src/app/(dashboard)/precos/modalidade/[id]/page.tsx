@@ -70,7 +70,7 @@ export default async function PrecosModalidadePage({ params }: { params: { id: s
                           <Link href={`/precos/form?modalidade=${modalidadeId}&preco=${p.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors" title="Editar">
                             <i className="bi bi-pencil"></i>
                           </Link>
-                          <form action={excluirPreco}>
+                          <form action={async (formData) => { "use server"; await excluirPreco(formData); }}>
                             <input type="hidden" name="id" value={p.id} />
                             <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
                               <i className="bi bi-trash"></i>

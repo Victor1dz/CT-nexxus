@@ -83,24 +83,23 @@ export async function getAlunos() {
 }
 
 export async function salvarModalidade(formData: FormData) {
+  const id = formData.get('id') ? Number(formData.get('id')) : null
   const nome = formData.get('nome') as string
   const descricao = formData.get('descricao') as string
   const ativa = formData.get('ativa') === 'on'
-  const exigeHorario = formData.get('exigeHorario') === 'on'
+  const exige_horario = formData.get('exige_horario') === 'on'
 
   try {
-    await prisma.modalidades.create({
-      data: {
-        nome,
-        descricao,
-        ativa,
-        exige_horario: exigeHorario
-      }
-    })
+    const dataObj = { nome, descricao, ativa, exige_horario }
+    if (id) {
+      await prisma.modalidades.update({ where: { id }, data: dataObj })
+    } else {
+      await prisma.modalidades.create({ data: dataObj })
+    }
     return { success: true }
   } catch (error) {
-    console.error('Erro ao salvar modalidade:', error)
-    return { success: false, error: 'Erro ao salvar modalidade' }
+    console.error('Erro salvarModalidade:', error)
+    return { success: false }
   }
 }
 
@@ -683,25 +682,4 @@ export async function salvarHorario(formData: FormData) {
   }
 }
 
-export async function salvarModalidade(formData: FormData) {
-  try {
-    const id = formData.get('id') ? Number(formData.get('id')) : null
-    const nome = formData.get('nome') as string
-    const descricao = formData.get('descricao') as string
-    const ativa = formData.get('ativa') === 'on'
-    const exige_horario = formData.get('exige_horario') === 'on'
-
-    const dataObj = { nome, descricao, ativa, exige_horario }
-
-    if (id) {
-      await prisma.modalidades.update({ where: { id }, data: dataObj })
-    } else {
-      await prisma.modalidades.create({ data: dataObj })
-    }
-    return { success: true }
-  } catch (error) {
-    console.error('Erro salvarModalidade:', error)
-    return { success: false }
-  }
-}
 
