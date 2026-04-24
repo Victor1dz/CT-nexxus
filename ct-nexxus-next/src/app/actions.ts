@@ -232,3 +232,120 @@ export async function getPrecosPorModalidade(modalidadeId: number) {
     return null
   }
 }
+
+export async function getDiarioData(dateStr: string, busca?: string) {
+  try {
+    const dataObj = new Date(dateStr)
+    // Offset timezone if needed or just use UTC day to avoid timezone shifts
+    const diaNum = dataObj.getUTCDay()
+    const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    const diaTermo = diasMap[diaNum]
+
+    const matriculas = await prisma.matriculas.findMany({
+      where: { ativo: true },
+      include: {
+        alunos: true,
+        horarios: true,
+        modalidades: true
+      }
+    })
+
+    const doDia = matriculas.filter((m: any) => {
+      const fixo = m.horarios?.dias_semana?.includes(diaTermo)
+      const custom = m.dias_personalizados?.includes(diaTermo)
+      const livre = m.horario_personalizado?.toLowerCase().includes('livre')
+      
+      const ehDoDia = fixo || custom || livre
+      if (!ehDoDia) return false
+      
+      if (busca) {
+        return m.alunos?.nome?.toLowerCase().includes(busca.toLowerCase())
+      }
+      return true
+    })
+
+    const presencas = await prisma.presenca.findMany({
+      where: {
+        data: dataObj
+      }
+    })
+    
+    const mapaPresencas: Record<number, boolean> = {}
+    presencas.forEach((p: any) => {
+      mapaPresencas[Number(p.matricula_id)] = p.presente
+    })
+
+    const agrupados: Record<string, any[]> = {}
+    doDia.forEach((m: any) => {
+      const modNome = m.modalidades?.nome || 'Outros'
+      if (!agrupados[modNome]) agrupados[modNome] = []
+      agrupados[modNome].push(m)
+    })
+
+    return { agrupados, mapaPresencas, diaTermo }
+  } catch (error) {
+    console.error('Erro getDiarioData:', error)
+    return { agrupados: {}, mapaPresencas: {}, diaTermo: '' }
+  }
+}
+
+export async function togglePresenca(matriculaId: number, dateStr: string, presente: boolean) {
+  try {
+    const dataDate = new Date(dateStr)
+    const existing = await prisma.presenca.findFirst({
+      where: {
+        matricula_id: matriculaId,
+        data: dataDate
+      }
+    })
+
+    if (existing) {
+      await prisma.presenca.update({
+        where: { id: existing.id },
+        data: { presente }
+      })
+    } else {
+      await prisma.presenca.create({
+        data: {
+          matricula_id: matriculaId,
+          data: dataDate,
+          presente
+        }
+      })
+    }
+    return { success: true }
+  } catch (error) {
+    console.error('Erro togglePresenca:', error)
+    return { success: false }
+  }
+}
+
+export async function getHorariosAgrupados() {
+  try {
+    const horarios = await prisma.horarios.findMany({
+      include: {
+        modalidades: true
+      },
+      orderBy: { hora_inicio: 'asc' }
+    })
+
+    const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    const agrupados: Record<string, any[]> = {}
+    
+    diasSemana.forEach(d => { agrupados[d] = [] })
+
+    horarios.forEach((h: any) => {
+      const dias = h.dias_semana ? h.dias_semana.split(',').map((d: string) => d.trim()) : []
+      dias.forEach((dia: string) => {
+        if (agrupados[dia]) {
+          agrupados[dia].push(h)
+        }
+      })
+    })
+
+    return agrupados
+  } catch (error) {
+    console.error('Erro getHorarios:', error)
+    return {}
+  }
+}
