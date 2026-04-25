@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation'
 
 export const dynamic = "force-dynamic"
 
-export default async function PrecosModalidadePage({ params }: { params: { id: string } }) {
+export default async function PrecosModalidadePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
   const modalidadeId = Number(params.id)
   const data = await getPrecosPorModalidade(modalidadeId)
 

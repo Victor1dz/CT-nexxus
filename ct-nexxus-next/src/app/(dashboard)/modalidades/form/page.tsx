@@ -5,7 +5,8 @@ import { salvarModalidade } from '@/app/actions'
 
 export const dynamic = "force-dynamic"
 
-export default async function ModalidadesFormPage({ searchParams }: { searchParams: { id?: string } }) {
+export default async function ModalidadesFormPage(props: { searchParams: Promise<{ id?: string }> }) {
+  const searchParams = await props.searchParams
   const modalidadeId = searchParams.id ? Number(searchParams.id) : null
 
   let modalidade = null

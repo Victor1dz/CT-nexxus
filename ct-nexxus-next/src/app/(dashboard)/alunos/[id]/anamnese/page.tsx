@@ -5,7 +5,8 @@ import { salvarAnamnese } from '@/app/actions'
 
 export const dynamic = "force-dynamic"
 
-export default async function AnamnesePage({ params }: { params: { id: string } }) {
+export default async function AnamnesePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params
   const alunoId = Number(params.id)
   if (!alunoId) notFound()
 

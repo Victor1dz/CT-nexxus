@@ -5,7 +5,8 @@ import { salvarPreco } from '@/app/actions'
 
 export const dynamic = "force-dynamic"
 
-export default async function PrecoFormPage({ searchParams }: { searchParams: { modalidade?: string, preco?: string } }) {
+export default async function PrecoFormPage(props: { searchParams: Promise<{ modalidade?: string, preco?: string }> }) {
+  const searchParams = await props.searchParams
   const modalidadeId = searchParams.modalidade ? Number(searchParams.modalidade) : null
   const precoId = searchParams.preco ? Number(searchParams.preco) : null
 

@@ -5,7 +5,8 @@ import { salvarHorario } from '@/app/actions'
 
 export const dynamic = "force-dynamic"
 
-export default async function HorariosFormPage({ searchParams }: { searchParams: { id?: string, inicio?: string, fim?: string, dia?: string } }) {
+export default async function HorariosFormPage(props: { searchParams: Promise<{ id?: string, inicio?: string, fim?: string, dia?: string }> }) {
+  const searchParams = await props.searchParams
   const horarioId = searchParams.id ? Number(searchParams.id) : null
   const inicioLivre = searchParams.inicio
   const fimLivre = searchParams.fim

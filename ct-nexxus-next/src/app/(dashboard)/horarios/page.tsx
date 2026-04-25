@@ -1,4 +1,4 @@
-import { getHorariosEDisponibilidade, bloquearVagaLivre } from '@/app/actions'
+import { getHorariosEDisponibilidade, bloquearVagaLivre, excluirHorario } from '@/app/actions'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -37,16 +37,16 @@ export default async function HorariosPage() {
                 <th className="py-4 px-6">Dias</th>
                 <th className="py-4 px-6">Horário</th>
                 <th className="py-4 px-6">Status</th>
-                <th className="py-4 px-6">Ações</th>
+                <th className="py-4 px-6 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {horarios.length === 0 ? (
+              {horarios.filter((h: any) => h.modalidades).length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-slate-500">Nenhum horário cadastrado.</td>
                 </tr>
               ) : (
-                horarios.map((h: any) => {
+                horarios.filter((h: any) => h.modalidades).map((h: any) => {
                   const hasHorario = h.hora_inicio && h.hora_fim
                   let horarioDisplay = "A combinar"
                   if (hasHorario) {
@@ -57,7 +57,7 @@ export default async function HorariosPage() {
 
                   return (
                     <tr key={h.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="py-4 px-6 font-bold text-[#2980b9]">{h.modalidades?.nome || '-'}</td>
+                      <td className="py-4 px-6 font-bold text-[#2980b9]">{h.modalidades.nome}</td>
                       <td className="py-4 px-6 text-slate-700">{h.dias_semana || '-'}</td>
                       <td className="py-4 px-6">
                         <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-700 text-xs font-medium">
@@ -65,14 +65,22 @@ export default async function HorariosPage() {
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <span className="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold">
+                        <span className={`px-2 py-1 text-white rounded text-xs font-bold ${h.ativo ? 'bg-emerald-600' : 'bg-slate-500'}`}>
                           {h.ativo ? 'Ativo' : 'Inativo'}
                         </span>
                       </td>
                       <td className="py-4 px-6">
-                        <Link href={`/horarios/form?id=${h.id}`} className="w-8 h-8 flex items-center justify-center rounded border border-slate-300 text-slate-500 hover:bg-slate-100 transition-colors" title="Editar">
-                          <i className="bi bi-pencil"></i>
-                        </Link>
+                        <div className="flex justify-end gap-2">
+                          <Link href={`/horarios/form?id=${h.id}`} className="w-8 h-8 flex items-center justify-center rounded border border-slate-300 text-slate-500 hover:bg-slate-100 transition-colors" title="Editar">
+                            <i className="bi bi-pencil"></i>
+                          </Link>
+                          <form action={async (formData) => { "use server"; await excluirHorario(formData); }}>
+                            <input type="hidden" name="id" value={h.id} />
+                            <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
+                              <i className="bi bi-trash"></i>
+                            </button>
+                          </form>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -82,6 +90,53 @@ export default async function HorariosPage() {
           </table>
         </div>
       </div>
+
+      {horarios.filter((h: any) => !h.modalidades).length > 0 && (
+        <div className="mb-12">
+          <h3 className="text-xl font-bold text-rose-600 mb-4 flex items-center gap-2">
+            <i className="bi bi-lock-fill"></i> Bloqueios Manuais (Vagas Fechadas)
+          </h3>
+          <div className="bg-rose-50 border border-rose-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-rose-100 border-b border-rose-200 text-rose-800 font-bold text-sm">
+                    <th className="py-3 px-6">Dias</th>
+                    <th className="py-3 px-6">Horário Bloqueado</th>
+                    <th className="py-3 px-6 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-rose-100 text-sm">
+                  {horarios.filter((h: any) => !h.modalidades).map((h: any) => {
+                    const hI = new Date(h.hora_inicio).toISOString().substring(11, 16)
+                    const hF = new Date(h.hora_fim).toISOString().substring(11, 16)
+                    return (
+                      <tr key={h.id} className="hover:bg-rose-100/50 transition-colors">
+                        <td className="py-3 px-6 text-rose-900 font-medium">{h.dias_semana}</td>
+                        <td className="py-3 px-6">
+                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-white border border-rose-200 text-rose-700 rounded-full text-xs font-bold">
+                            <i className="bi bi-clock"></i> {hI} - {hF}
+                          </span>
+                        </td>
+                        <td className="py-3 px-6">
+                          <div className="flex justify-end gap-2">
+                            <form action={async (formData) => { "use server"; await excluirHorario(formData); }}>
+                              <input type="hidden" name="id" value={h.id} />
+                              <button type="submit" className="px-3 py-1.5 flex items-center gap-2 rounded bg-rose-600 text-white hover:bg-rose-700 transition-colors text-xs font-bold shadow-sm" title="Desbloquear">
+                                <i className="bi bi-unlock-fill"></i> Desbloquear
+                              </button>
+                            </form>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-start gap-4 mb-8">
         <div className="bg-[#198754] text-white p-3 rounded-lg shadow-sm">

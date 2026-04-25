@@ -682,4 +682,14 @@ export async function salvarHorario(formData: FormData) {
   }
 }
 
+export async function excluirHorario(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    await prisma.horarios.delete({ where: { id } })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro excluirHorario:', error)
+    return { success: false }
+  }
+}
 
