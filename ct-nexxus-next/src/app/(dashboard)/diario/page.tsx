@@ -3,11 +3,8 @@ import DiarioClient from './DiarioClient'
 
 export const dynamic = "force-dynamic"
 
-export default async function DiarioPage({
-  searchParams,
-}: {
-  searchParams: { data?: string, busca?: string }
-}) {
+export default async function DiarioPage(props: { searchParams: Promise<{ data?: string, busca?: string }> }) {
+  const searchParams = await props.searchParams
   const dataAtual = searchParams.data || new Date().toISOString().split('T')[0]
   const termoBusca = searchParams.busca || ""
   

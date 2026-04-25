@@ -373,7 +373,7 @@ export async function getHorariosEDisponibilidade() {
     diasSemana.forEach(d => { ocupadosMap[d] = [] })
 
     horarios.forEach((h: any) => {
-      const dias = h.dias_semana ? h.dias_semana.split(',').map((d: string) => d.trim()) : []
+      const dias = h.dias_semana ? h.dias_semana.split(/[\/,]+/).map((d: string) => d.trim()) : []
       dias.forEach((dia: string) => {
         if (agrupados[dia]) {
           agrupados[dia].push(h)
@@ -388,7 +388,7 @@ export async function getHorariosEDisponibilidade() {
 
     matriculas.forEach((m: any) => {
       if (m.hora_inicio_personalizada && m.hora_fim_personalizada) {
-        const dias = m.dias_personalizados ? m.dias_personalizados.split(',').map((d: string) => d.trim()) : (m.horario_personalizado ? m.horario_personalizado.split(',').map((d: string) => d.trim()) : [])
+        const dias = m.dias_personalizados ? m.dias_personalizados.split(/[\/,]+/).map((d: string) => d.trim()) : (m.horario_personalizado ? m.horario_personalizado.split(/[\/,]+/).map((d: string) => d.trim()) : [])
         dias.forEach((dia: string) => {
           if (ocupadosMap[dia]) {
             const inicio = new Date(m.hora_inicio_personalizada).toISOString().substr(11, 5)
@@ -401,8 +401,12 @@ export async function getHorariosEDisponibilidade() {
 
     diasSemana.forEach(dia => {
       const ocupados = ocupadosMap[dia]
-      for (const ocupado of ocupados) {
-        mapaLivres[dia] = subtrairIntervalo(mapaLivres[dia], ocupado)
+      if (ocupados.length > 0) {
+        for (const ocupado of ocupados) {
+          mapaLivres[dia] = subtrairIntervalo(mapaLivres[dia], ocupado)
+        }
+      } else {
+        delete mapaLivres[dia]
       }
     })
 
