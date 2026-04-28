@@ -1,4 +1,5 @@
 import { getFinanceiroData } from '@/app/actions'
+import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
 

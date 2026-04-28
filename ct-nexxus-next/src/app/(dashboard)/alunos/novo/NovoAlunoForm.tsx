@@ -34,7 +34,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   ])
 
   const [address, setAddress] = useState({
-    cep: "", logradouro: "", numero: "", cidade: "", uf: "", telefone: "", cpf: ""
+    cep: "", logradouro: "", numero: "", bairro: "", cidade: "", uf: "", telefone: "", cpf: ""
   })
 
   const fetchCep = async (cep: string) => {
@@ -47,6 +47,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
           setAddress(prev => ({
             ...prev,
             logradouro: data.logradouro,
+            bairro: data.bairro,
             cidade: data.localidade,
             uf: data.uf
           }))
@@ -120,11 +121,16 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                 }}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">Endereço (Rua, Número)</label>
-              <div className="flex gap-2">
-                <input type="text" name="logradouro" value={address.logradouro} onChange={e => setAddress(prev => ({...prev, logradouro: e.target.value}))} placeholder="Logradouro" className="w-2/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
-                <input type="text" name="numero" placeholder="Nº" className="w-1/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm font-semibold text-slate-600">Endereço Completo</label>
+              <div className="flex flex-col md:flex-row gap-2">
+                <input type="text" name="logradouro" value={address.logradouro} onChange={e => setAddress(prev => ({...prev, logradouro: e.target.value}))} placeholder="Rua / Avenida" className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+                <input type="text" name="numero" placeholder="Nº" className="w-full md:w-24 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+                <input type="text" name="bairro" value={address.bairro} onChange={e => setAddress(prev => ({...prev, bairro: e.target.value}))} placeholder="Bairro" className="w-full md:w-1/4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              </div>
+              <div className="flex gap-2 mt-2">
+                <input type="text" name="cidade" value={address.cidade} onChange={e => setAddress(prev => ({...prev, cidade: e.target.value}))} placeholder="Cidade" className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+                <input type="text" name="uf" value={address.uf} onChange={e => setAddress(prev => ({...prev, uf: e.target.value}))} placeholder="UF" maxLength={2} className="w-20 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 text-center focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
               </div>
             </div>
           </div>
