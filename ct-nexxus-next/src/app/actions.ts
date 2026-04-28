@@ -405,8 +405,6 @@ export async function getHorariosEDisponibilidade() {
         for (const ocupado of ocupados) {
           mapaLivres[dia] = subtrairIntervalo(mapaLivres[dia], ocupado)
         }
-      } else {
-        delete mapaLivres[dia]
       }
     })
 
@@ -693,6 +691,53 @@ export async function excluirHorario(formData: FormData) {
     return { success: true }
   } catch (error) {
     console.error('Erro excluirHorario:', error)
+    return { success: false }
+  }
+}
+
+export async function pagarMensalidade(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    const forma_pagamento = formData.get('forma') as string
+    await prisma.mensalidades.update({
+      where: { id },
+      data: {
+        status: 'PAGO',
+        data_pagamento: new Date(),
+        forma_pagamento
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro pagarMensalidade:', error)
+    return { success: false }
+  }
+}
+
+export async function pagarDespesa(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    await prisma.despesas.update({
+      where: { id },
+      data: {
+        status: 'PAGO',
+        data_pagamento: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro pagarDespesa:', error)
+    return { success: false }
+  }
+}
+
+export async function excluirDespesa(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    await prisma.despesas.delete({ where: { id } })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro excluirDespesa:', error)
     return { success: false }
   }
 }

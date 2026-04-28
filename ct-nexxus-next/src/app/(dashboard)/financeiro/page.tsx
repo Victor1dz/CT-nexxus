@@ -1,4 +1,4 @@
-import { getFinanceiroData } from '@/app/actions'
+import { getFinanceiroData, pagarMensalidade, pagarDespesa, excluirDespesa } from '@/app/actions'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -131,7 +131,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                               </a>
                             )}
                             {m.status === 'PENDENTE' && (
-                              <form action="/financeiro/pagar" method="post" className="flex items-center gap-2">
+                              <form action={async (formData) => { "use server"; await pagarMensalidade(formData) }} className="flex items-center gap-2">
                                 <input type="hidden" name="id" value={m.id} />
                                 <select name="forma" required className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-sm text-slate-700 outline-none w-24">
                                   <option value="">Forma...</option>
@@ -196,14 +196,14 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                               <i className="bi bi-pencil"></i>
                             </button>
                             {d.status === 'PENDENTE' && (
-                              <form action="/financeiro/despesa/pagar" method="post">
+                              <form action={async (formData) => { "use server"; await pagarDespesa(formData) }} className="flex items-center gap-2">
                                 <input type="hidden" name="id" value={d.id} />
                                 <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition-colors" title="Marcar como Pago">
                                   <i className="bi bi-check-lg"></i>
                                 </button>
                               </form>
                             )}
-                            <form action="/financeiro/despesa/excluir" method="post">
+                            <form action={async (formData) => { "use server"; await excluirDespesa(formData) }}>
                               <input type="hidden" name="id" value={d.id} />
                               <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
                                 <i className="bi bi-trash"></i>
