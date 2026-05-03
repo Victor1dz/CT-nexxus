@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { salvarHorario } from '@/app/actions'
+import { SubmitButton } from '@/components/SubmitButton'
 
 export const dynamic = "force-dynamic"
 
@@ -99,9 +100,7 @@ export default async function HorariosFormPage(props: { searchParams: Promise<{ 
           <Link href={`/horarios`} className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-100 transition-colors">
             Cancelar
           </Link>
-          <button type="submit" className="px-6 py-2.5 bg-[#2980b9] hover:bg-[#206a99] text-white font-bold rounded-xl shadow-sm transition-colors">
-            Salvar Horário
-          </button>
+          <SubmitButton text="Salvar Horário" className="px-6 py-2.5 bg-[#2980b9] hover:bg-[#206a99] text-white font-bold rounded-xl shadow-sm transition-colors" />
         </div>
       </form>
     </div>

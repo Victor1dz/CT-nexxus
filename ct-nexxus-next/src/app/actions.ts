@@ -1,5 +1,6 @@
 "use server"
 
+import { redirect } from "next/navigation"
 import prisma from "@/lib/prisma"
 import { Modalidade, Preco, Horario } from "@/types"
 
@@ -741,4 +742,70 @@ export async function excluirDespesa(formData: FormData) {
     return { success: false }
   }
 }
+export async function salvarNovoAluno(formData: FormData) {
+  try {
+    const nome = formData.get('nome') as string
+    const telefone = formData.get('telefone') as string
+    const cpf = formData.get('cpf') as string
+    const cep = formData.get('cep') as string
+    const logradouro = formData.get('logradouro') as string
+    const numero = formData.get('numero') as string
+    const bairro = formData.get('bairro') as string
+    const cidade = formData.get('cidade') as string
+    const uf = formData.get('uf') as string
+    const blocksJson = formData.get('blocks_json') as string
 
+    // 1. Create Aluno
+    const aluno = await prisma.alunos.create({
+      data: {
+        nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo: true
+      }
+    })
+
+    // 2. Process blocks
+    if (blocksJson) {
+      const blocks = JSON.parse(blocksJson)
+      for (const block of blocks) {
+        if (!block.selectedMod) continue;
+        
+        let customDiasStr = block.customDias.join(', ')
+        let horarioPersonalizado = null
+        if (block.isCustomHorario && customDiasStr) {
+          const hInicio = block.customHoraInicio || ''
+          const hFim = block.customHoraFim || ''
+          if (hInicio || hFim) {
+            horarioPersonalizado = `${hInicio} - ${hFim}`
+          } else {
+            horarioPersonalizado = "Livre"
+          }
+        }
+
+        // Add matricula
+        const matriculaData: any = {
+          aluno_id: aluno.id,
+          modalidade_id: Number(block.selectedMod),
+          preco_id: block.selectedPreco ? Number(block.selectedPreco) : null,
+          data_inicio: new Date(),
+          ativo: true
+        }
+
+        if (block.isCustomHorario) {
+          matriculaData.dias_personalizados = customDiasStr
+          matriculaData.horario_personalizado = horarioPersonalizado
+          if (block.customHoraInicio) matriculaData.hora_inicio_personalizada = new Date(`1970-01-01T${block.customHoraInicio}:00Z`)
+          if (block.customHoraFim) matriculaData.hora_fim_personalizada = new Date(`1970-01-01T${block.customHoraFim}:00Z`)
+        } else if (block.selectedHorario) {
+          matriculaData.horario_id = Number(block.selectedHorario)
+        }
+
+        await prisma.matriculas.create({
+          data: matriculaData
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Erro salvarNovoAluno:', error)
+    return { success: false }
+  }
+  redirect('/alunos')
+}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { SubmitButton } from "@/components/SubmitButton"
 import { Modalidade, Preco, Horario } from "@/types"
 
 interface Props {
@@ -27,6 +28,8 @@ const PlusIcon = () => (
 const TrashIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
 )
+
+import { salvarNovoAluno } from "@/app/actions"
 
 export default function NovoAlunoForm({ initialModalidades, initialPrecos, initialHorarios }: Props) {
   const [blocks, setBlocks] = useState<MatriculaBlockState[]>([
@@ -81,7 +84,8 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   }
 
   return (
-    <div className="w-full text-slate-800 font-sans">
+    <form action={salvarNovoAluno} className="w-full text-slate-800 font-sans">
+      <input type="hidden" name="blocks_json" value={JSON.stringify(blocks)} />
       <div className="max-w-5xl mx-auto space-y-8">
         
         <header className="mb-8">
@@ -101,7 +105,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">Nome Completo</label>
-              <input type="text" placeholder="Ex: João da Silva" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              <input type="text" name="nome" required placeholder="Ex: João da Silva" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">Telefone <span className="text-red-500">*</span></label>
@@ -312,12 +316,10 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
 
         {/* Footer Actions */}
         <div className="flex justify-end pt-4">
-          <button className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-[#2980b9] hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-1 active:translate-y-0">
-            Salvar Matrícula
-          </button>
+          <SubmitButton text="Salvar Matrícula" className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-[#2980b9] hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-1 active:translate-y-0" />
         </div>
 
       </div>
-    </div>
+    </form>
   )
 }
