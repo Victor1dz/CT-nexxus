@@ -84,7 +84,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   }
 
   return (
-    <form action={salvarNovoAluno} className="w-full text-slate-800 font-sans">
+    <form action={async (formData) => { await salvarNovoAluno(formData) }} className="w-full text-slate-800 font-sans">
       <input type="hidden" name="blocks_json" value={JSON.stringify(blocks)} />
       <div className="max-w-5xl mx-auto space-y-8">
         
