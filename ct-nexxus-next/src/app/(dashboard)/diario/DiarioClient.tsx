@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { togglePresenca } from "@/app/actions"
 
 export default function DiarioClient({ agrupados, mapaPresencas: initialMapa, dataAtual, diaTermo }: any) {
@@ -97,12 +98,12 @@ export default function DiarioClient({ agrupados, mapaPresencas: initialMapa, da
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex justify-end gap-2">
-                            <button className="px-3 py-1.5 text-xs font-bold rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors flex items-center gap-1">
-                              <i className="bi bi-card-checklist"></i> Ficha
-                            </button>
-                            <button className="px-3 py-1.5 text-xs font-bold rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1">
-                              <i className="bi bi-clock-history"></i> Histórico
-                            </button>
+                            <Link href={`/alunos/${m.alunos?.id}/anamnese`} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-cyan-200 text-cyan-700 hover:bg-cyan-50 transition-colors flex items-center gap-1">
+                              <i className="bi bi-clipboard2-pulse"></i> Anamnese
+                            </Link>
+                            <Link href={`/alunos/editar/${m.alunos?.id}`} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1">
+                              <i className="bi bi-person"></i> Aluno
+                            </Link>
                           </div>
                         </td>
                       </tr>

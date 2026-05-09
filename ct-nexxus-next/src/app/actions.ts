@@ -1,6 +1,7 @@
 "use server"
 
 import { redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
 import prisma from "@/lib/prisma"
 import { Modalidade, Preco, Horario } from "@/types"
 
@@ -97,6 +98,7 @@ export async function salvarModalidade(formData: FormData) {
     } else {
       await prisma.modalidades.create({ data: dataObj })
     }
+    revalidatePath('/modalidades')
     return { success: true }
   } catch (error) {
     console.error('Erro salvarModalidade:', error)
@@ -590,6 +592,7 @@ export async function salvarAnamnese(formData: FormData) {
       await prisma.anamneses.create({ data: dataObj })
     }
 
+    revalidatePath(`/alunos/${aluno_id}/anamnese`)
     return { success: true }
   } catch (error) {
     console.error('Erro salvarAnamnese:', error)
@@ -616,6 +619,7 @@ export async function salvarPreco(formData: FormData) {
         data: { modalidade_id, frequencia_semanal, valor, descricao }
       })
     }
+    revalidatePath(`/precos/modalidade/${modalidade_id}`)
     return { success: true, modalidade_id }
   } catch (error) {
     console.error('Erro salvarPreco:', error)
@@ -627,6 +631,7 @@ export async function excluirPreco(formData: FormData) {
   try {
     const id = Number(formData.get('id'))
     await prisma.precos.delete({ where: { id } })
+    revalidatePath('/precos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro excluirPreco:', error)
@@ -648,6 +653,7 @@ export async function bloquearVagaLivre(formData: FormData) {
     }
 
     await prisma.horarios.create({ data: dataObj })
+    revalidatePath('/horarios')
     return { success: true }
   } catch (error) {
     console.error('Erro bloquearVagaLivre:', error)
@@ -678,6 +684,7 @@ export async function salvarHorario(formData: FormData) {
     } else {
       await prisma.horarios.create({ data: dataObj })
     }
+    revalidatePath('/horarios')
     return { success: true }
   } catch (error) {
     console.error('Erro salvarHorario:', error)
@@ -689,6 +696,7 @@ export async function excluirHorario(formData: FormData) {
   try {
     const id = Number(formData.get('id'))
     await prisma.horarios.delete({ where: { id } })
+    revalidatePath('/horarios')
     return { success: true }
   } catch (error) {
     console.error('Erro excluirHorario:', error)
@@ -708,6 +716,7 @@ export async function pagarMensalidade(formData: FormData) {
         forma_pagamento
       }
     })
+    revalidatePath('/financeiro')
     return { success: true }
   } catch (error) {
     console.error('Erro pagarMensalidade:', error)
@@ -725,6 +734,7 @@ export async function pagarDespesa(formData: FormData) {
         data_pagamento: new Date()
       }
     })
+    revalidatePath('/financeiro')
     return { success: true }
   } catch (error) {
     console.error('Erro pagarDespesa:', error)
@@ -736,6 +746,7 @@ export async function excluirDespesa(formData: FormData) {
   try {
     const id = Number(formData.get('id'))
     await prisma.despesas.delete({ where: { id } })
+    revalidatePath('/financeiro')
     return { success: true }
   } catch (error) {
     console.error('Erro excluirDespesa:', error)
@@ -807,5 +818,6 @@ export async function salvarNovoAluno(formData: FormData) {
     console.error('Erro salvarNovoAluno:', error)
     return { success: false }
   }
+  revalidatePath('/alunos')
   redirect('/alunos')
 }

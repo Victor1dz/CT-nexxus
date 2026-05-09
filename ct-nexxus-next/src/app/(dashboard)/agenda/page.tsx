@@ -1,28 +1,105 @@
-import Link from 'next/link'
+import prisma from '@/lib/prisma'
+import { AgendaCalendar } from './AgendaCalendar'
 
 export const dynamic = "force-dynamic"
 
-export default function AgendaPage() {
+export default async function AgendaPage() {
+  // We need to fetch all matriculas to map them to weekly events
+  const matriculas = await prisma.matriculas.findMany({
+    where: { ativo: true },
+    include: {
+      alunos: true,
+      modalidades: true,
+      horarios: true
+    }
+  })
+
+  // Convert matriculas into events for FullCalendar
+  // FullCalendar recurring events format:
+  // { title: 'Boxe - João', daysOfWeek: [1, 3], startTime: '10:00', endTime: '11:00' }
+  const events: any[] = []
+
+  const diaMap: Record<string, number> = {
+    'Dom': 0, 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sab': 6,
+    'Dom.': 0, 'Seg.': 1, 'Ter.': 2, 'Qua.': 3, 'Qui.': 4, 'Sex.': 5, 'Sab.': 6,
+    'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6
+  }
+
+  matriculas.forEach((m: any) => {
+    let diasStr = ""
+    let hInicio = ""
+    let hFim = ""
+    let title = `${m.modalidades?.nome || 'Treino'} - ${m.alunos?.nome || '?'}`
+
+    if (m.horarios) {
+      diasStr = m.horarios.dias_semana || ""
+      if (m.horarios.hora_inicio) {
+        hInicio = new Date(m.horarios.hora_inicio).toISOString().substring(11, 16)
+      }
+      if (m.horarios.hora_fim) {
+        hFim = new Date(m.horarios.hora_fim).toISOString().substring(11, 16)
+      }
+    } else if (m.dias_personalizados || m.horario_personalizado) {
+      diasStr = m.dias_personalizados || ""
+      if (m.hora_inicio_personalizada) {
+        hInicio = new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16)
+      }
+      if (m.hora_fim_personalizada) {
+        hFim = new Date(m.hora_fim_personalizada).toISOString().substring(11, 16)
+      }
+    }
+
+    if (diasStr && hInicio) {
+      const daysOfWeek = diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+      if (daysOfWeek.length > 0) {
+        events.push({
+          title,
+          daysOfWeek,
+          startTime: hInicio,
+          endTime: hFim || undefined,
+          extendedProps: {
+            aluno: m.alunos?.nome,
+            modalidade: m.modalidades?.nome,
+            telefone: m.alunos?.telefone
+          }
+        })
+      }
+    }
+  })
+
+  // We should also fetch "horarios livres" (bloqueios)
+  const bloqueios = await prisma.horarios.findMany({
+    where: { modalidade_id: null }
+  })
+
+  bloqueios.forEach((b: any) => {
+    if (b.dias_semana && b.hora_inicio) {
+      const daysOfWeek = b.dias_semana.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+      if (daysOfWeek.length > 0) {
+        const hIn = new Date(b.hora_inicio).toISOString().substring(11, 16)
+        const hFi = b.hora_fim ? new Date(b.hora_fim).toISOString().substring(11, 16) : undefined
+        events.push({
+          title: 'Vaga Livre (Bloqueio)',
+          daysOfWeek,
+          startTime: hIn,
+          endTime: hFi,
+          color: '#e2e8f0', // slate-200
+          textColor: '#475569', // slate-600
+        })
+      }
+    }
+  })
+
   return (
     <div className="w-full text-slate-800 font-sans">
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] flex items-center gap-3">
           <i className="bi bi-calendar-week text-blue-600"></i> Agenda Geral
         </h1>
-        <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-sm transition-colors flex items-center gap-2">
-          <i className="bi bi-plus-lg"></i> Novo Agendamento
-        </button>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-12 text-center">
-        <div className="w-24 h-24 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
-          <i className="bi bi-tools"></i>
-        </div>
-        <h2 className="text-2xl font-bold text-slate-700 mb-2">Módulo em Construção</h2>
-        <p className="text-slate-500 max-w-lg mx-auto">
-          A interface visual do calendário dinâmico (FullCalendar) está sendo migrada para a nova plataforma.
-          Em breve você poderá visualizar e arrastar seus agendamentos diretamente por aqui.
-        </p>
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
+        <AgendaCalendar initialEvents={events} />
       </div>
     </div>
   )
