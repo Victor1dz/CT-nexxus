@@ -755,6 +755,8 @@ export async function excluirDespesa(formData: FormData) {
 }
 export async function salvarNovoAluno(formData: FormData) {
   try {
+    const aluno_id_form = formData.get('aluno_id')
+    const aluno_id = aluno_id_form ? Number(aluno_id_form) : null
     const nome = formData.get('nome') as string
     const telefone = formData.get('telefone') as string
     const cpf = formData.get('cpf') as string
@@ -766,16 +768,37 @@ export async function salvarNovoAluno(formData: FormData) {
     const uf = formData.get('uf') as string
     const blocksJson = formData.get('blocks_json') as string
 
-    // 1. Create Aluno
-    const aluno = await prisma.alunos.create({
-      data: {
-        nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo: true
-      }
-    })
+    // 1. Create or Update Aluno
+    let aluno;
+    const alunoData = { nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo: true }
+    
+    if (aluno_id) {
+      aluno = await prisma.alunos.update({
+        where: { id: aluno_id },
+        data: alunoData
+      })
+    } else {
+      aluno = await prisma.alunos.create({
+        data: alunoData
+      })
+    }
 
     // 2. Process blocks
     if (blocksJson) {
       const blocks = JSON.parse(blocksJson)
+      
+      const incomingMatriculaIds = blocks.filter((b: any) => b.matricula_id).map((b: any) => Number(b.matricula_id))
+      if (aluno_id) {
+        // Inactivate matriculas that were removed
+        await prisma.matriculas.updateMany({
+          where: {
+            aluno_id: aluno.id,
+            id: { notIn: incomingMatriculaIds }
+          },
+          data: { ativo: false }
+        })
+      }
+
       for (const block of blocks) {
         if (!block.selectedMod) continue;
         
@@ -791,13 +814,17 @@ export async function salvarNovoAluno(formData: FormData) {
           }
         }
 
-        // Add matricula
+        // Prepare matricula
         const matriculaData: any = {
           aluno_id: aluno.id,
           modalidade_id: Number(block.selectedMod),
           preco_id: block.selectedPreco ? Number(block.selectedPreco) : null,
-          data_inicio: new Date(),
-          ativo: true
+          ativo: true,
+          horario_id: null,
+          dias_personalizados: null,
+          horario_personalizado: null,
+          hora_inicio_personalizada: null,
+          hora_fim_personalizada: null
         }
 
         if (block.isCustomHorario) {
@@ -809,9 +836,17 @@ export async function salvarNovoAluno(formData: FormData) {
           matriculaData.horario_id = Number(block.selectedHorario)
         }
 
-        await prisma.matriculas.create({
-          data: matriculaData
-        })
+        if (block.matricula_id) {
+          await prisma.matriculas.update({
+            where: { id: Number(block.matricula_id) },
+            data: matriculaData
+          })
+        } else {
+          matriculaData.data_inicio = new Date()
+          await prisma.matriculas.create({
+            data: matriculaData
+          })
+        }
       }
     }
   } catch (error) {
@@ -820,4 +855,68 @@ export async function salvarNovoAluno(formData: FormData) {
   }
   revalidatePath('/alunos')
   redirect('/alunos')
+}
+
+export async function salvarFichaTreino(formData: FormData) {
+  try {
+    const aluno_id = Number(formData.get('aluno_id'))
+    const ficha_id = formData.get('ficha_id') ? Number(formData.get('ficha_id')) : null
+    const objetivo_ficha = formData.get('objetivo_ficha') as string
+    const observacoesia = formData.get('observacoesia') as string
+    const ativa = formData.get('ativa') === 'on'
+    const treinosJson = formData.get('treinos_json') as string
+
+    let fichaIdToUse = ficha_id
+
+    if (fichaIdToUse) {
+      await prisma.fichas_treino.update({
+        where: { id: fichaIdToUse },
+        data: { objetivo_ficha, observacoesia, ativa }
+      })
+      // Clear old treinos to insert new ones
+      await prisma.treinos_dia.deleteMany({
+        where: { ficha_treino_id: fichaIdToUse }
+      })
+    } else {
+      const novaFicha = await prisma.fichas_treino.create({
+        data: {
+          aluno_id,
+          objetivo_ficha,
+          observacoesia,
+          ativa,
+          data_criacao: new Date(),
+          data_inicio: new Date()
+        }
+      })
+      fichaIdToUse = Number(novaFicha.id)
+    }
+
+    if (treinosJson && fichaIdToUse) {
+      const treinos = JSON.parse(treinosJson)
+      for (const t of treinos) {
+        await prisma.treinos_dia.create({
+          data: {
+            ficha_treino_id: fichaIdToUse,
+            dia_semana: t.dia_semana,
+            foco_do_dia: t.foco_do_dia,
+            descricao_exercicios: t.descricao_exercicios
+          }
+        })
+      }
+    }
+  } catch (error) {
+    console.error('Erro salvarFichaTreino:', error)
+  }
+  revalidatePath('/fichas/aluno/[id]', 'page')
+}
+
+export async function excluirFichaTreino(formData: FormData) {
+  try {
+    const ficha_id = Number(formData.get('ficha_id'))
+    await prisma.treinos_dia.deleteMany({ where: { ficha_treino_id: ficha_id } })
+    await prisma.fichas_treino.delete({ where: { id: ficha_id } })
+  } catch (error) {
+    console.error('Erro excluirFichaTreino:', error)
+  }
+  revalidatePath('/fichas/aluno/[id]', 'page')
 }

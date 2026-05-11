@@ -8,6 +8,7 @@ interface Props {
   initialModalidades: Modalidade[]
   initialPrecos: Preco[]
   initialHorarios: Horario[]
+  initialAluno?: any
 }
 
 interface MatriculaBlockState {
@@ -31,13 +32,32 @@ const TrashIcon = () => (
 
 import { salvarNovoAluno } from "@/app/actions"
 
-export default function NovoAlunoForm({ initialModalidades, initialPrecos, initialHorarios }: Props) {
-  const [blocks, setBlocks] = useState<MatriculaBlockState[]>([
-    { id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }
-  ])
+export default function NovoAlunoForm({ initialModalidades, initialPrecos, initialHorarios, initialAluno }: Props) {
+  const [blocks, setBlocks] = useState<MatriculaBlockState[]>(
+    initialAluno?.matriculas?.length ? 
+      initialAluno.matriculas.map((m: any, i: number) => ({
+        id: String(i + 1),
+        selectedMod: m.modalidade_id || "",
+        selectedPreco: m.preco_id || "",
+        selectedHorario: m.horario_id ? m.horario_id : (m.horario_personalizado ? "custom" : ""),
+        isCustomHorario: !!m.horario_personalizado,
+        customDias: m.dias_personalizados ? m.dias_personalizados.split(',').map((s: string) => s.trim()) : [],
+        customHoraInicio: m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : "",
+        customHoraFim: m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : "",
+        matricula_id: m.id
+      }))
+    : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }]
+  )
 
   const [address, setAddress] = useState({
-    cep: "", logradouro: "", numero: "", bairro: "", cidade: "", uf: "", telefone: "", cpf: ""
+    cep: initialAluno?.cep || "",
+    logradouro: initialAluno?.logradouro || "",
+    numero: initialAluno?.numero || "",
+    bairro: initialAluno?.bairro || "",
+    cidade: initialAluno?.cidade || "",
+    uf: initialAluno?.uf || "",
+    telefone: initialAluno?.telefone || "",
+    cpf: initialAluno?.cpf || ""
   })
 
   const fetchCep = async (cep: string) => {
@@ -85,14 +105,17 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
 
   return (
     <form action={async (formData) => { await salvarNovoAluno(formData) }} className="w-full text-slate-800 font-sans">
+      {initialAluno && <input type="hidden" name="aluno_id" value={initialAluno.id} />}
       <input type="hidden" name="blocks_json" value={JSON.stringify(blocks)} />
       <div className="max-w-5xl mx-auto space-y-8">
         
         <header className="mb-8">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-[#2c3e50]">
-            Nova Matrícula
+            {initialAluno ? 'Editar Matrícula' : 'Nova Matrícula'}
           </h1>
-          <p className="text-slate-500 mt-2 text-lg">Cadastre um novo aluno e gerencie seus planos.</p>
+          <p className="text-slate-500 mt-2 text-lg">
+            {initialAluno ? 'Atualize os dados e planos do aluno.' : 'Cadastre um novo aluno e gerencie seus planos.'}
+          </p>
         </header>
 
         {/* Global Form Data */}
@@ -105,15 +128,15 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">Nome Completo</label>
-              <input type="text" name="nome" required placeholder="Ex: João da Silva" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              <input type="text" name="nome" defaultValue={initialAluno?.nome || ''} required placeholder="Ex: João da Silva" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">Telefone <span className="text-red-500">*</span></label>
-              <input type="text" name="telefone" required placeholder="(00) 00000-0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              <input type="text" name="telefone" defaultValue={initialAluno?.telefone || ''} onChange={e => setAddress(prev => ({...prev, telefone: e.target.value}))} required placeholder="(00) 00000-0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">CPF <span className="text-slate-400 font-normal">(Opcional)</span></label>
-              <input type="text" name="cpf" placeholder="000.000.000-00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              <label className="text-sm font-semibold text-slate-600">CPF</label>
+              <input type="text" name="cpf" defaultValue={initialAluno?.cpf || ''} onChange={e => setAddress(prev => ({...prev, cpf: e.target.value}))} placeholder="000.000.000-00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">CEP</label>
