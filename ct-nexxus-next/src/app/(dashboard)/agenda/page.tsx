@@ -25,47 +25,72 @@ export default async function AgendaPage() {
     'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6
   }
 
-  matriculas.forEach((m: any) => {
-    let diasStr = ""
-    let hInicio = ""
-    let hFim = ""
-    let title = `${m.modalidades?.nome || 'Treino'} - ${m.alunos?.nome || '?'}`
+  // Map for Horarios
+  const horarioMap = new Map<number, {
+    modalidade: string,
+    diasStr: string,
+    hInicio: string,
+    hFim: string,
+    alunos: { nome: string, telefone: string }[]
+  }>()
 
-    if (m.horarios) {
-      diasStr = m.horarios.dias_semana || ""
-      if (m.horarios.hora_inicio) {
-        hInicio = new Date(m.horarios.hora_inicio).toISOString().substring(11, 16)
+  // Custom events
+  const customEvents: any[] = []
+
+  matriculas.forEach((m: any) => {
+    if (m.horario_id && m.horarios) {
+      if (!horarioMap.has(m.horario_id)) {
+        horarioMap.set(m.horario_id, {
+          modalidade: m.modalidades?.nome || 'Treino',
+          diasStr: m.horarios.dias_semana || "",
+          hInicio: m.horarios.hora_inicio ? new Date(m.horarios.hora_inicio).toISOString().substring(11, 16) : "",
+          hFim: m.horarios.hora_fim ? new Date(m.horarios.hora_fim).toISOString().substring(11, 16) : "",
+          alunos: []
+        })
       }
-      if (m.horarios.hora_fim) {
-        hFim = new Date(m.horarios.hora_fim).toISOString().substring(11, 16)
+      if (m.alunos) {
+        horarioMap.get(m.horario_id)?.alunos.push({ nome: m.alunos.nome, telefone: m.alunos.telefone || '' })
       }
     } else if (m.dias_personalizados || m.horario_personalizado) {
-      diasStr = m.dias_personalizados || ""
-      if (m.hora_inicio_personalizada) {
-        hInicio = new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16)
-      }
-      if (m.hora_fim_personalizada) {
-        hFim = new Date(m.hora_fim_personalizada).toISOString().substring(11, 16)
-      }
-    }
-
-    if (diasStr && hInicio) {
-      const daysOfWeek = diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
-      if (daysOfWeek.length > 0) {
-        events.push({
-          title,
-          daysOfWeek,
-          startTime: hInicio,
-          endTime: hFim || undefined,
-          extendedProps: {
-            aluno: m.alunos?.nome,
-            modalidade: m.modalidades?.nome,
-            telefone: m.alunos?.telefone
-          }
-        })
+      const diasStr = m.dias_personalizados || ""
+      const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : ""
+      const hFim = m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : undefined
+      if (diasStr && hInicio) {
+        const daysOfWeek = diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+        if (daysOfWeek.length > 0) {
+          customEvents.push({
+            title: `${m.modalidades?.nome || 'Treino'} - ${m.alunos?.nome}`,
+            daysOfWeek,
+            startTime: hInicio,
+            endTime: hFim,
+            color: '#10b981', // emerald-500
+            extendedProps: {
+              isCustom: true,
+              telefone: m.alunos?.telefone
+            }
+          })
+        }
       }
     }
   })
+
+  Array.from(horarioMap.values()).forEach(h => {
+    const daysOfWeek = h.diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+    if (daysOfWeek.length > 0 && h.hInicio) {
+      events.push({
+        title: `${h.modalidade} (${h.alunos.length} Alunos)`,
+        daysOfWeek,
+        startTime: h.hInicio,
+        endTime: h.hFim || undefined,
+        extendedProps: {
+          modalidade: h.modalidade,
+          alunosList: h.alunos
+        }
+      })
+    }
+  })
+
+  events.push(...customEvents)
 
   // We should also fetch "horarios livres" (bloqueios)
   const bloqueios = await prisma.horarios.findMany({

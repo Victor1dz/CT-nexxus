@@ -32,11 +32,37 @@ export function AgendaCalendar({ initialEvents }: Props) {
         slotMaxTime="23:00:00"
         events={initialEvents}
         eventContent={(arg) => {
+          const { title, extendedProps } = arg.event
           return (
-            <div className="p-1 overflow-hidden">
-              <div className="font-bold text-xs truncate">{arg.event.title}</div>
-              {arg.event.extendedProps?.telefone && (
-                <div className="text-[10px] opacity-80 truncate">{arg.event.extendedProps.telefone}</div>
+            <div className="p-1.5 overflow-hidden flex flex-col gap-1 h-full cursor-pointer hover:bg-black/5 rounded transition-colors group">
+              <div className="font-bold text-[11px] uppercase tracking-wide leading-tight line-clamp-2">
+                {title}
+              </div>
+              
+              {extendedProps?.isCustom && extendedProps?.telefone && (
+                <div className="text-[10px] opacity-90 truncate bg-white/20 px-1 py-0.5 rounded w-fit mt-auto">
+                  <i className="bi bi-telephone-fill mr-1"></i>
+                  {extendedProps.telefone}
+                </div>
+              )}
+
+              {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && (
+                <div className="mt-1 flex-1 overflow-hidden">
+                  <div className="text-[9px] font-medium opacity-80 mb-0.5 border-b border-white/20 pb-0.5">Alunos:</div>
+                  <div className="flex flex-col gap-0.5">
+                    {extendedProps.alunosList.slice(0, 5).map((aluno: any, i: number) => (
+                      <div key={i} className="text-[10px] truncate leading-tight opacity-95 flex items-center gap-1">
+                        <span className="w-1 h-1 rounded-full bg-white/60 shrink-0"></span>
+                        {aluno.nome.split(' ')[0]} {aluno.nome.split(' ')[1] ? aluno.nome.split(' ')[1][0] + '.' : ''}
+                      </div>
+                    ))}
+                    {extendedProps.alunosList.length > 5 && (
+                      <div className="text-[9px] italic opacity-80 mt-0.5">
+                        +{extendedProps.alunosList.length - 5} mais...
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )
