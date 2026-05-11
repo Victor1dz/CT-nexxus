@@ -22,7 +22,8 @@ export default async function AgendaPage() {
   const diaMap: Record<string, number> = {
     'Dom': 0, 'Seg': 1, 'Ter': 2, 'Qua': 3, 'Qui': 4, 'Sex': 5, 'Sab': 6,
     'Dom.': 0, 'Seg.': 1, 'Ter.': 2, 'Qua.': 3, 'Qui.': 4, 'Sex.': 5, 'Sab.': 6,
-    'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6
+    'Domingo': 0, 'Segunda': 1, 'Terça': 2, 'Quarta': 3, 'Quinta': 4, 'Sexta': 5, 'Sábado': 6,
+    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6
   }
 
   // Map for Horarios
@@ -36,6 +37,12 @@ export default async function AgendaPage() {
 
   // Custom events
   const customEvents: any[] = []
+
+  const parseDays = (diasStr: string) => {
+    // Pode vir como "Seg, Qua, Sex" ou "Seg/Qua/Sex"
+    const separator = diasStr.includes('/') ? '/' : ','
+    return diasStr.split(separator).map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+  }
 
   matriculas.forEach((m: any) => {
     if (m.horario_id && m.horarios) {
@@ -56,7 +63,7 @@ export default async function AgendaPage() {
       const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : ""
       const hFim = m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : undefined
       if (diasStr && hInicio) {
-        const daysOfWeek = diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+        const daysOfWeek = parseDays(diasStr)
         if (daysOfWeek.length > 0) {
           customEvents.push({
             title: `${m.modalidades?.nome || 'Treino'} - ${m.alunos?.nome}`,
@@ -75,7 +82,7 @@ export default async function AgendaPage() {
   })
 
   Array.from(horarioMap.values()).forEach(h => {
-    const daysOfWeek = h.diasStr.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+    const daysOfWeek = parseDays(h.diasStr)
     if (daysOfWeek.length > 0 && h.hInicio) {
       events.push({
         title: `${h.modalidade} (${h.alunos.length} Alunos)`,
@@ -99,7 +106,7 @@ export default async function AgendaPage() {
 
   bloqueios.forEach((b: any) => {
     if (b.dias_semana && b.hora_inicio) {
-      const daysOfWeek = b.dias_semana.split(',').map((d: string) => diaMap[d.trim()]).filter((d: number | undefined) => d !== undefined)
+      const daysOfWeek = parseDays(b.dias_semana)
       if (daysOfWeek.length > 0) {
         const hIn = new Date(b.hora_inicio).toISOString().substring(11, 16)
         const hFi = b.hora_fim ? new Date(b.hora_fim).toISOString().substring(11, 16) : undefined

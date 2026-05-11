@@ -75,7 +75,7 @@ export default async function AlunosPage() {
                       {a.telefone || '-'}
                     </td>
                     <td className="py-4 px-4">
-                      <Link href={`/anamneses/aluno/${a.id}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-md hover:bg-cyan-100 transition-colors">
+                      <Link href={`/alunos/${a.id}/anamnese`} className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-md hover:bg-cyan-100 transition-colors">
                         <i className="bi bi-clipboard2-pulse"></i> Ficha
                       </Link>
                     </td>
