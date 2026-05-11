@@ -20,6 +20,9 @@ interface MatriculaBlockState {
   customDias: string[]
   customHoraInicio: string
   customHoraFim: string
+  matricula_id?: number
+  data_inicio?: string
+  ativo: boolean
 }
 
 const PlusIcon = () => (
@@ -44,9 +47,11 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
         customDias: m.dias_personalizados ? m.dias_personalizados.split(',').map((s: string) => s.trim()) : [],
         customHoraInicio: m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : "",
         customHoraFim: m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : "",
-        matricula_id: m.id
+        matricula_id: m.id,
+        data_inicio: m.data_inicio ? new Date(m.data_inicio).toLocaleDateString('pt-BR') : "",
+        ativo: m.ativo
       }))
-    : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }]
+    : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true }]
   )
 
   const [address, setAddress] = useState({
@@ -57,7 +62,8 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
     cidade: initialAluno?.cidade || "",
     uf: initialAluno?.uf || "",
     telefone: initialAluno?.telefone || "",
-    cpf: initialAluno?.cpf || ""
+    cpf: initialAluno?.cpf || "",
+    ativo: initialAluno?.ativo ?? true
   })
 
   const fetchCep = async (cep: string) => {
@@ -82,7 +88,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   }
 
   const addBlock = () => {
-    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "" }])
+    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true }])
   }
 
   const removeBlock = (id: string) => {
@@ -106,6 +112,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   return (
     <form action={async (formData) => { await salvarNovoAluno(formData) }} className="w-full text-slate-800 font-sans">
       {initialAluno && <input type="hidden" name="aluno_id" value={initialAluno.id} />}
+      <input type="hidden" name="ativo" value={address.ativo ? 'on' : 'off'} />
       <input type="hidden" name="blocks_json" value={JSON.stringify(blocks)} />
       <div className="max-w-5xl mx-auto space-y-8">
         
@@ -161,6 +168,27 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
               </div>
             </div>
           </div>
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+            <label className="flex items-center gap-3 cursor-pointer w-fit">
+              <input type="checkbox" checked={address.ativo} onChange={e => setAddress(prev => ({...prev, ativo: e.target.checked}))} className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" />
+              <span className="font-bold text-slate-700">Aluno Ativo no Sistema</span>
+            </label>
+            {initialAluno && (
+              <button 
+                type="button" 
+                onClick={async () => {
+                  if (confirm("Tem certeza que deseja excluir permanentemente este aluno e todas as suas fichas, presenças e matrículas?")) {
+                    const form = new FormData()
+                    form.append('id', String(initialAluno.id))
+                    import('@/app/actions').then(m => m.excluirAluno(initialAluno.id))
+                  }
+                }}
+                className="px-4 py-2 text-rose-600 bg-rose-50 hover:bg-rose-100 font-bold rounded-lg transition-colors text-sm flex items-center gap-2"
+              >
+                <i className="bi bi-trash3-fill"></i> Excluir Aluno
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Matriculas Blocks */}
@@ -170,7 +198,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
               <span className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">2</span>
               Planos e Modalidades
             </h2>
-            <button onClick={addBlock} className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-medium transition-all hover:scale-105 active:scale-95 shadow-sm">
+            <button type="button" onClick={addBlock} className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-100 text-blue-600 font-medium transition-all hover:scale-105 active:scale-95 shadow-sm">
               <PlusIcon /> Adicionar Plano
             </button>
           </div>
@@ -184,11 +212,27 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
             const displayValor = currentPreco ? `R$ ${currentPreco.valor}` : "R$ 0,00"
 
             return (
-              <div key={block.id} className="relative bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm group hover:border-blue-300 hover:shadow-md transition-all duration-300">
+              <div key={block.id} className={`relative border rounded-2xl p-6 md:p-8 shadow-sm group transition-all duration-300 ${block.ativo ? 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
                 
-                {blocks.length > 1 && (
-                  <button onClick={() => removeBlock(block.id)} className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-colors p-2 bg-slate-50 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100">
+                {block.data_inicio && (
+                  <div className="absolute top-6 left-6 text-xs font-bold text-slate-400">
+                    Início: {block.data_inicio}
+                  </div>
+                )}
+
+                {block.ativo ? (
+                  <button type="button" onClick={() => {
+                    if (block.matricula_id) {
+                      updateBlock(block.id, "ativo", false)
+                    } else {
+                      removeBlock(block.id)
+                    }
+                  }} className="absolute top-6 right-6 text-slate-400 hover:text-red-500 transition-colors p-2 bg-slate-50 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100" title="Encerrar/Remover Plano">
                     <TrashIcon />
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => updateBlock(block.id, "ativo", true)} className="absolute top-6 right-6 px-3 py-1 bg-emerald-100 text-emerald-700 font-bold text-xs rounded-lg hover:bg-emerald-200 transition-colors">
+                    Reativar Plano
                   </button>
                 )}
 

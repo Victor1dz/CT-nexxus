@@ -819,7 +819,7 @@ export async function salvarNovoAluno(formData: FormData) {
           aluno_id: aluno.id,
           modalidade_id: Number(block.selectedMod),
           preco_id: block.selectedPreco ? Number(block.selectedPreco) : null,
-          ativo: true,
+          ativo: block.ativo ?? true,
           horario_id: null,
           dias_personalizados: null,
           horario_personalizado: null,
@@ -837,6 +837,10 @@ export async function salvarNovoAluno(formData: FormData) {
         }
 
         if (block.matricula_id) {
+          // Se foi desativado agora, registrar data_fim
+          if (block.ativo === false) {
+             matriculaData.data_fim = new Date()
+          }
           await prisma.matriculas.update({
             where: { id: Number(block.matricula_id) },
             data: matriculaData
@@ -851,6 +855,28 @@ export async function salvarNovoAluno(formData: FormData) {
     }
   } catch (error) {
     console.error('Erro salvarNovoAluno:', error)
+    return { success: false }
+  }
+  revalidatePath('/alunos')
+  redirect('/alunos')
+}
+
+export async function excluirAluno(id: number) {
+  try {
+    // Apaga dependencias
+    await prisma.treinos_dia.deleteMany({
+      where: { fichas_treino: { aluno_id: id } }
+    })
+    await prisma.fichas_treino.deleteMany({ where: { aluno_id: id } })
+    await prisma.mensalidades.deleteMany({ where: { aluno_id: id } })
+    await prisma.presenca.deleteMany({ where: { matriculas: { aluno_id: id } } })
+    await prisma.matriculas.deleteMany({ where: { aluno_id: id } })
+    await prisma.anamneses.deleteMany({ where: { aluno_id: id } })
+    
+    // Apaga o aluno
+    await prisma.alunos.delete({ where: { id } })
+  } catch (e) {
+    console.error(e)
     return { success: false }
   }
   revalidatePath('/alunos')
