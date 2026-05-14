@@ -53,8 +53,8 @@ export async function getHorarios(): Promise<Horario[]> {
     return horarios.map((h: any) => ({
       id: Number(h.id),
       diasSemana: h.dias_semana,
-      horaInicio: h.hora_inicio || "",
-      horaFim: h.hora_fim || "",
+      horaInicio: h.hora_inicio ? new Date(h.hora_inicio).toISOString().substring(11, 16) : "",
+      horaFim: h.hora_fim ? new Date(h.hora_fim).toISOString().substring(11, 16) : "",
       modalidade: { 
         id: Number(h.modalidades?.id),
         nome: h.modalidades?.nome || ""

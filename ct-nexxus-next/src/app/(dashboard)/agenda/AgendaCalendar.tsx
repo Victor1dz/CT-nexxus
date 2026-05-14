@@ -70,39 +70,80 @@ export function AgendaCalendar({ initialEvents }: Props) {
         height="auto"
       />
       <style jsx global>{`
+        .fc {
+          font-family: inherit;
+          --fc-border-color: #e2e8f0;
+          --fc-button-bg-color: #ffffff;
+          --fc-button-border-color: #cbd5e1;
+          --fc-button-text-color: #475569;
+          --fc-button-hover-bg-color: #f8fafc;
+          --fc-button-hover-border-color: #94a3b8;
+          --fc-button-active-bg-color: #eff6ff;
+          --fc-button-active-border-color: #3b82f6;
+          --fc-today-bg-color: #f0fdf4;
+        }
         .fc-theme-standard td, .fc-theme-standard th {
-          border-color: #e2e8f0;
+          border-color: var(--fc-border-color);
         }
         .fc-col-header-cell-cushion {
-          color: #475569;
-          font-weight: 700;
-          text-decoration: none;
+          color: #334155;
+          font-weight: 800;
+          text-transform: uppercase;
+          font-size: 0.8rem;
+          padding: 8px 4px !important;
+          text-decoration: none !important;
         }
         .fc-timegrid-slot-label-cushion {
           color: #64748b;
+          font-weight: 600;
+          font-size: 0.75rem;
         }
         .fc-event {
           border-radius: 6px;
           border: none;
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+          overflow: hidden;
         }
         .fc-v-event {
-          background-color: #3b82f6; /* blue-500 */
+          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .fc-button {
+          font-weight: 600 !important;
+          text-transform: capitalize !important;
+          border-radius: 8px !important;
+          box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+          transition: all 0.2s ease !important;
+        }
+        .fc-button-primary:not(:disabled).fc-button-active, .fc-button-primary:not(:disabled):active {
+          background-color: var(--fc-button-active-bg-color) !important;
+          border-color: var(--fc-button-active-border-color) !important;
+          color: #1d4ed8 !important;
+          box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
         }
         .fc-button-primary {
-          background-color: #2563eb !important;
-          border-color: #2563eb !important;
+          color: var(--fc-button-text-color) !important;
+          background-color: var(--fc-button-bg-color) !important;
+          border-color: var(--fc-button-border-color) !important;
         }
         .fc-button-primary:hover {
-          background-color: #1d4ed8 !important;
-        }
-        .fc-button-primary:disabled {
-          background-color: #93c5fd !important;
+          background-color: var(--fc-button-hover-bg-color) !important;
+          border-color: var(--fc-button-hover-border-color) !important;
+          color: #1e293b !important;
         }
         .fc .fc-toolbar-title {
-          font-size: 1.5rem;
+          font-size: 1.75rem;
           font-weight: 800;
-          color: #1e293b;
+          color: #0f172a;
+          letter-spacing: -0.025em;
+        }
+        .fc-timegrid-now-indicator-line {
+          border-color: #ef4444;
+          border-width: 2px;
+        }
+        .fc-timegrid-now-indicator-arrow {
+          border-color: #ef4444;
+          border-width: 6px;
         }
       `}</style>
     </div>

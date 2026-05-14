@@ -30,6 +30,8 @@ export default async function EditarAlunoPage(props: { params: Promise<{ id: str
   const serializableAluno = {
     ...aluno,
     id: Number(aluno.id),
+    data_cadastro: aluno.data_cadastro ? aluno.data_cadastro.toISOString() : null,
+    data_nascimento: aluno.data_nascimento ? aluno.data_nascimento.toISOString() : null,
     matriculas: aluno.matriculas.map((m: any) => ({
       ...m,
       id: Number(m.id),
