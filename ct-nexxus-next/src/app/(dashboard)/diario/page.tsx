@@ -31,7 +31,6 @@ export default async function DiarioPage(props: { searchParams: Promise<{ data?:
               type="date" 
               name="data" 
               defaultValue={dataAtual}
-              onChange={(e) => e.target.form?.submit()}
               className="pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-blue-600 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             />
           </div>
