@@ -704,22 +704,36 @@ export async function excluirHorario(formData: FormData) {
   }
 }
 
-export async function pagarMensalidade(formData: FormData) {
+export async function atualizarStatusMensalidade(formData: FormData) {
   try {
     const id = Number(formData.get('id'))
+    const status = formData.get('status') as string
     const forma_pagamento = formData.get('forma') as string
-    await prisma.mensalidades.update({
-      where: { id },
-      data: {
-        status: 'PAGO',
-        data_pagamento: new Date(),
-        forma_pagamento
-      }
-    })
+
+    if (status === 'PAGO') {
+      await prisma.mensalidades.update({
+        where: { id },
+        data: {
+          status: 'PAGO',
+          data_pagamento: new Date(),
+          forma_pagamento: forma_pagamento || 'NÃO INFORMADO'
+        }
+      })
+    } else {
+      await prisma.mensalidades.update({
+        where: { id },
+        data: {
+          status: status,
+          data_pagamento: null,
+          forma_pagamento: null
+        }
+      })
+    }
+    
     revalidatePath('/financeiro')
     return { success: true }
   } catch (error) {
-    console.error('Erro pagarMensalidade:', error)
+    console.error('Erro atualizarStatusMensalidade:', error)
     return { success: false }
   }
 }
