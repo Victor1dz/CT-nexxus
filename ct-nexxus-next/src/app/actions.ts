@@ -811,7 +811,7 @@ export async function salvarNovoAluno(formData: FormData) {
           select: { id: true }
         })
 
-        const removedIds = removedMatriculas.map(m => m.id)
+        const removedIds = removedMatriculas.map((m: any) => m.id)
 
         if (removedIds.length > 0) {
           // Excluir as mensalidades vinculadas
