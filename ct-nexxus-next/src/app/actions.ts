@@ -281,7 +281,39 @@ export async function getDiarioData(dateStr: string, busca?: string) {
     doDia.forEach((m: any) => {
       const modNome = m.modalidades?.nome || 'Outros'
       if (!agrupados[modNome]) agrupados[modNome] = []
-      agrupados[modNome].push(m)
+      
+      // Serialize Date and BigInt fields for Next.js Server->Client boundary
+      const serialized = {
+        ...m,
+        id: Number(m.id),
+        aluno_id: m.aluno_id ? Number(m.aluno_id) : null,
+        modalidade_id: m.modalidade_id ? Number(m.modalidade_id) : null,
+        preco_id: m.preco_id ? Number(m.preco_id) : null,
+        horario_id: m.horario_id ? Number(m.horario_id) : null,
+        data_inicio: m.data_inicio?.toISOString() || null,
+        data_fim: m.data_fim?.toISOString() || null,
+        hora_inicio_personalizada: m.hora_inicio_personalizada?.toISOString() || null,
+        hora_fim_personalizada: m.hora_fim_personalizada?.toISOString() || null,
+        alunos: m.alunos ? {
+          ...m.alunos,
+          id: Number(m.alunos.id),
+          data_cadastro: m.alunos.data_cadastro?.toISOString() || null,
+          data_nascimento: m.alunos.data_nascimento?.toISOString() || null,
+        } : null,
+        horarios: m.horarios ? {
+          ...m.horarios,
+          id: Number(m.horarios.id),
+          modalidade_id: m.horarios.modalidade_id ? Number(m.horarios.modalidade_id) : null,
+          hora_inicio: m.horarios.hora_inicio ? m.horarios.hora_inicio.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : null,
+          hora_fim: m.horarios.hora_fim ? m.horarios.hora_fim.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : null,
+        } : null,
+        modalidades: m.modalidades ? {
+          ...m.modalidades,
+          id: Number(m.modalidades.id)
+        } : null
+      }
+      
+      agrupados[modNome].push(serialized)
     })
 
     return { agrupados, mapaPresencas, diaTermo }
