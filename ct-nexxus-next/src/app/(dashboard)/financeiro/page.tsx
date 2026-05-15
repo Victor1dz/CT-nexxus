@@ -1,4 +1,4 @@
-import { getFinanceiroData, pagarMensalidade, pagarDespesa, excluirDespesa } from '@/app/actions'
+import { getFinanceiroData, atualizarStatusMensalidade, pagarDespesa, excluirDespesa } from '@/app/actions'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -67,10 +67,14 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
         </div>
         
         <div className="p-4 flex justify-between items-center border-b border-slate-100 bg-white">
-          <h2 className="text-lg font-bold text-[#2c3e50]">Lançamentos do Mês</h2>
-          <button className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
-            <i className="bi bi-plus-circle"></i> Nova Despesa
-          </button>
+          <h2 className="text-lg font-bold text-[#2c3e50]">
+            {currentTab === 'receitas' ? 'Recebimentos do Mês' : 'Lançamentos do Mês'}
+          </h2>
+          {currentTab === 'despesas' && (
+            <button className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
+              <i className="bi bi-plus-circle"></i> Nova Despesa
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -130,20 +134,30 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                 <i className="bi bi-whatsapp"></i>
                               </a>
                             )}
-                            {m.status === 'PENDENTE' && (
-                              <form action={async (formData) => { "use server"; await pagarMensalidade(formData) }} className="flex items-center gap-2">
-                                <input type="hidden" name="id" value={m.id} />
-                                <select name="forma" required className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-sm text-slate-700 outline-none w-24">
-                                  <option value="">Forma...</option>
-                                  <option value="PIX">PIX</option>
-                                  <option value="CARTAO">Cartão</option>
-                                  <option value="DINHEIRO">Dinheiro</option>
-                                </select>
-                                <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-emerald-500 text-white hover:bg-emerald-600 transition-colors" title="Confirmar Pagamento">
-                                  <i className="bi bi-check-lg"></i>
-                                </button>
-                              </form>
-                            )}
+                            <form action={async (formData) => { "use server"; await atualizarStatusMensalidade(formData) }} className="flex flex-wrap items-center gap-2 justify-end w-full">
+                              <input type="hidden" name="id" value={m.id} />
+                              
+                              <select name="status" defaultValue={m.status === 'PAGO' ? 'PAGO' : (isAtrasado ? 'INADIMPLENTE' : 'PENDENTE')} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none w-32 shadow-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="PAGO">Pago</option>
+                                <option value="INADIMPLENTE">Inadimplente</option>
+                              </select>
+
+                              {/* We need client-side JS to show/hide "forma" or just always show it but only use it if status === PAGO. 
+                                  For simplicity without client-components, we'll keep it always visible or we could make a small client wrapper. 
+                                  Let's keep it visible but optional. */}
+                              <select name="forma" className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none w-28 shadow-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="">(Forma)</option>
+                                <option value="PIX">PIX</option>
+                                <option value="CARTÃO">Cartão</option>
+                                <option value="DINHEIRO">Dinheiro</option>
+                                <option value="TRANSFERÊNCIA">Transf.</option>
+                              </select>
+
+                              <button type="submit" className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm" title="Atualizar Status">
+                                <i className="bi bi-arrow-repeat"></i>
+                              </button>
+                            </form>
                           </div>
                         </td>
                       </tr>

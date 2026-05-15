@@ -789,14 +789,32 @@ export async function salvarNovoAluno(formData: FormData) {
       
       const incomingMatriculaIds = blocks.filter((b: any) => b.matricula_id).map((b: any) => Number(b.matricula_id))
       if (aluno_id) {
-        // Inactivate matriculas that were removed
-        await prisma.matriculas.updateMany({
+        const removedMatriculas = await prisma.matriculas.findMany({
           where: {
             aluno_id: aluno.id,
             id: { notIn: incomingMatriculaIds }
           },
-          data: { ativo: false }
+          select: { id: true }
         })
+
+        const removedIds = removedMatriculas.map(m => m.id)
+
+        if (removedIds.length > 0) {
+          // Excluir as mensalidades vinculadas
+          await prisma.mensalidades.deleteMany({
+            where: { matricula_id: { in: removedIds } }
+          })
+          
+          // Excluir as presenças vinculadas
+          await prisma.presenca.deleteMany({
+            where: { matricula_id: { in: removedIds } }
+          })
+
+          // Finalmente excluir a matricula
+          await prisma.matriculas.deleteMany({
+            where: { id: { in: removedIds } }
+          })
+        }
       }
 
       for (const block of blocks) {
