@@ -309,7 +309,8 @@ export async function getDiarioData(dateStr: string, busca?: string) {
         } : null,
         modalidades: m.modalidades ? {
           ...m.modalidades,
-          id: Number(m.modalidades.id)
+          id: Number(m.modalidades.id),
+          valor: m.modalidades.valor ? Number(m.modalidades.valor) : null
         } : null
       }
       
