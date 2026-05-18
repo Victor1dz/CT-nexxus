@@ -206,9 +206,9 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <button className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-colors" title="Editar">
+                            <Link href={`/financeiro/despesa/nova?id=${d.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-colors" title="Editar">
                               <i className="bi bi-pencil"></i>
-                            </button>
+                            </Link>
                             {d.status === 'PENDENTE' && (
                               <form action={async (formData) => { "use server"; await pagarDespesa(formData) }} className="flex items-center gap-2">
                                 <input type="hidden" name="id" value={d.id} />

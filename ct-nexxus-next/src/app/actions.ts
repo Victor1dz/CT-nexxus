@@ -813,6 +813,37 @@ export async function excluirDespesa(formData: FormData) {
     return { success: false }
   }
 }
+
+export async function salvarDespesa(formData: FormData) {
+  try {
+    const id = formData.get('id') ? Number(formData.get('id')) : null
+    const categoria = formData.get('categoria') as string
+    const descricao = formData.get('descricao') as string
+    const data_vencimento = new Date(formData.get('data_vencimento') as string)
+    const valor = Number(formData.get('valor'))
+    const status = formData.get('status') as string
+
+    const dataObj = {
+      categoria,
+      descricao,
+      data_vencimento,
+      valor,
+      status,
+      data_pagamento: status === 'PAGO' ? new Date() : null
+    }
+
+    if (id) {
+      await prisma.despesas.update({ where: { id }, data: dataObj })
+    } else {
+      await prisma.despesas.create({ data: dataObj })
+    }
+  } catch (error) {
+    console.error('Erro salvarDespesa:', error)
+    return { success: false }
+  }
+  revalidatePath('/financeiro')
+  redirect('/financeiro?tab=despesas')
+}
 export async function salvarNovoAluno(formData: FormData) {
   try {
     const aluno_id_form = formData.get('aluno_id')

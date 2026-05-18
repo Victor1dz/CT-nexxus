@@ -186,9 +186,17 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
               {!isCreating && activeFicha && (
                 <button 
                   type="button"
-                  formAction={async (formData) => {
-                    formData.append('ficha_id', activeFicha.id);
-                    await excluirFichaTreino(formData);
+                  onClick={async () => {
+                    if (activeFicha.ativa) {
+                      alert("Você só pode excluir uma ficha inativa. Por favor, desmarque a opção 'Ficha Ativa' e salve as alterações antes de excluir.");
+                      return;
+                    }
+                    if (confirm("Tem certeza que deseja excluir esta ficha permanentemente?")) {
+                      const fd = new FormData();
+                      fd.append('ficha_id', activeFicha.id);
+                      await excluirFichaTreino(fd);
+                      window.location.reload();
+                    }
                   }}
                   className="px-5 py-2.5 bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold rounded-xl transition-colors flex items-center gap-2"
                 >
