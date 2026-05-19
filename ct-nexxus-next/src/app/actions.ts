@@ -814,6 +814,55 @@ export async function excluirDespesa(formData: FormData) {
   }
 }
 
+export async function gerarMensalidadesLote() {
+  try {
+    const matriculasAtivas = await prisma.matriculas.findMany({
+      where: { ativo: true },
+      include: { precos: true }
+    })
+    
+    const hoje = new Date()
+    const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
+    const anoAtualStr = hoje.getFullYear()
+    const competencia = `${anoAtualStr}-${mesAtualStr}`
+
+    let criadas = 0
+
+    for (const m of matriculasAtivas) {
+      if (!m.preco_id || !m.precos?.valor) continue;
+
+      const existe = await prisma.mensalidades.findFirst({
+        where: {
+          matricula_id: m.id,
+          competencia: competencia
+        }
+      })
+
+      if (!existe) {
+        let diaVenc = m.dia_vencimento || hoje.getDate()
+        let vencimento = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc)
+        
+        await prisma.mensalidades.create({
+          data: {
+            matricula_id: m.id,
+            aluno_id: m.aluno_id,
+            competencia: competencia,
+            valor: m.precos.valor,
+            vencimento: vencimento,
+            status: 'PENDENTE'
+          }
+        })
+        criadas++
+      }
+    }
+    revalidatePath('/financeiro')
+    return { success: true, count: criadas }
+  } catch (e) {
+    console.error(e)
+    return { success: false }
+  }
+}
+
 export async function salvarDespesa(formData: FormData) {
   try {
     const id = formData.get('id') ? Number(formData.get('id')) : null
@@ -956,9 +1005,30 @@ export async function salvarNovoAluno(formData: FormData) {
           })
         } else {
           matriculaData.data_inicio = new Date()
-          await prisma.matriculas.create({
+          const novaMatricula = await prisma.matriculas.create({
             data: matriculaData
           })
+
+          if (matriculaData.preco_id) {
+            const precoInfo = await prisma.precos.findUnique({ where: { id: matriculaData.preco_id } })
+            if (precoInfo && precoInfo.valor) {
+              const hoje = new Date()
+              const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
+              const anoAtualStr = hoje.getFullYear()
+              const competencia = `${anoAtualStr}-${mesAtualStr}`
+
+              await prisma.mensalidades.create({
+                data: {
+                  matricula_id: novaMatricula.id,
+                  aluno_id: aluno.id,
+                  competencia: competencia,
+                  valor: precoInfo.valor,
+                  vencimento: hoje,
+                  status: 'PENDENTE'
+                }
+              })
+            }
+          }
         }
       }
     }

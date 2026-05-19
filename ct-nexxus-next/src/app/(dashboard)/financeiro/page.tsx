@@ -70,10 +70,17 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
           <h2 className="text-lg font-bold text-[#2c3e50]">
             {currentTab === 'receitas' ? 'Recebimentos do Mês' : 'Lançamentos do Mês'}
           </h2>
+          {currentTab === 'receitas' && (
+            <form action={async () => { "use server"; const { gerarMensalidadesLote } = await import('@/app/actions'); await gerarMensalidadesLote() }}>
+              <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
+                <i className="bi bi-arrow-clockwise"></i> Gerar Cobranças Faltantes
+              </button>
+            </form>
+          )}
           {currentTab === 'despesas' && (
-            <button className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
+            <Link href="/financeiro/despesa/nova" className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
               <i className="bi bi-plus-circle"></i> Nova Despesa
-            </button>
+            </Link>
           )}
         </div>
 
