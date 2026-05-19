@@ -177,7 +177,7 @@ export async function getFinanceiroData(mesString?: string) {
       orderBy: { vencimento: 'asc' }
     })
 
-    const despesas = await prisma.despesas.findMany({
+    let despesas = await prisma.despesas.findMany({
       where: {
         data_vencimento: {
           gte: firstDay,
@@ -186,6 +186,32 @@ export async function getFinanceiroData(mesString?: string) {
       },
       orderBy: { data_vencimento: 'asc' }
     })
+
+    const defaultCategories = ["Aluguel", "Água", "Luz", "Cartão", "Investimento"]
+    const missing = defaultCategories.filter(cat => !despesas.some((d: any) => d.categoria === cat))
+
+    if (missing.length > 0) {
+      for (const cat of missing) {
+        await prisma.despesas.create({
+          data: {
+            categoria: cat,
+            descricao: `Fixa: ${cat}`,
+            data_vencimento: new Date(Date.UTC(year, month, 10)),
+            valor: 0,
+            status: 'PENDENTE'
+          }
+        })
+      }
+      despesas = await prisma.despesas.findMany({
+        where: {
+          data_vencimento: {
+            gte: firstDay,
+            lte: lastDay
+          }
+        },
+        orderBy: { data_vencimento: 'asc' }
+      })
+    }
 
     let totalEntradas = 0
     mensalidades.forEach((m: any) => {
@@ -757,14 +783,51 @@ export async function atualizarStatusMensalidade(formData: FormData) {
     const forma_pagamento = formData.get('forma') as string
 
     if (status === 'PAGO') {
-      await prisma.mensalidades.update({
+      const currentMensalidade = await prisma.mensalidades.update({
         where: { id },
         data: {
           status: 'PAGO',
           data_pagamento: new Date(),
           forma_pagamento: forma_pagamento || 'NÃO INFORMADO'
-        }
+        },
+        include: { matriculas: true }
       })
+
+      // Gerar próxima mensalidade se a matrícula estiver ativa
+      if (currentMensalidade.matriculas?.ativo && currentMensalidade.competencia) {
+        const [anoStr, mesStr] = currentMensalidade.competencia.split('-')
+        if (anoStr && mesStr) {
+          let proxMes = parseInt(mesStr) + 1
+          let proxAno = parseInt(anoStr)
+          if (proxMes > 12) {
+            proxMes = 1
+            proxAno += 1
+          }
+          const proxCompetencia = `${proxAno}-${String(proxMes).padStart(2, '0')}`
+          
+          const existeProx = await prisma.mensalidades.findFirst({
+            where: {
+              matricula_id: currentMensalidade.matricula_id,
+              competencia: proxCompetencia
+            }
+          })
+
+          if (!existeProx) {
+            const diaVenc = currentMensalidade.matriculas.dia_vencimento || (currentMensalidade.vencimento ? new Date(currentMensalidade.vencimento).getUTCDate() : new Date().getDate())
+            const proxVenc = new Date(Date.UTC(proxAno, proxMes - 1, diaVenc))
+            await prisma.mensalidades.create({
+              data: {
+                matricula_id: currentMensalidade.matricula_id,
+                aluno_id: currentMensalidade.aluno_id,
+                competencia: proxCompetencia,
+                valor: currentMensalidade.valor,
+                vencimento: proxVenc,
+                status: 'PENDENTE'
+              }
+            })
+          }
+        }
+      }
     } else {
       await prisma.mensalidades.update({
         where: { id },
@@ -784,20 +847,33 @@ export async function atualizarStatusMensalidade(formData: FormData) {
   }
 }
 
-export async function pagarDespesa(formData: FormData) {
+export async function atualizarStatusDespesa(formData: FormData) {
   try {
     const id = Number(formData.get('id'))
-    await prisma.despesas.update({
-      where: { id },
-      data: {
-        status: 'PAGO',
-        data_pagamento: new Date()
-      }
-    })
+    const status = formData.get('status') as string
+
+    if (status === 'PAGO') {
+      await prisma.despesas.update({
+        where: { id },
+        data: {
+          status: 'PAGO',
+          data_pagamento: new Date()
+        }
+      })
+    } else {
+      await prisma.despesas.update({
+        where: { id },
+        data: {
+          status: 'PENDENTE',
+          data_pagamento: null
+        }
+      })
+    }
+    
     revalidatePath('/financeiro')
     return { success: true }
   } catch (error) {
-    console.error('Erro pagarDespesa:', error)
+    console.error('Erro atualizarStatusDespesa:', error)
     return { success: false }
   }
 }

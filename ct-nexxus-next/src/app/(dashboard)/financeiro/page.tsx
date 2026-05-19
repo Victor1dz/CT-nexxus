@@ -207,26 +207,34 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                         <td className="py-4 px-4">
                           {d.status === 'PAGO' ? (
                             <span className="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-md border border-emerald-100">PAGO</span>
+                          ) : (d.status === 'PENDENTE' && v && v < new Date() ? (
+                            <span className="inline-block px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-md border border-red-100">ATRASADO</span>
                           ) : (
                             <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-md border border-amber-100">PENDENTE</span>
-                          )}
+                          ))}
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Link href={`/financeiro/despesa/nova?id=${d.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-colors" title="Editar">
+                            <Link href={`/financeiro/despesa/nova?id=${d.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm" title="Editar">
                               <i className="bi bi-pencil"></i>
                             </Link>
-                            {d.status === 'PENDENTE' && (
-                              <form action={async (formData) => { "use server"; await pagarDespesa(formData) }} className="flex items-center gap-2">
-                                <input type="hidden" name="id" value={d.id} />
-                                <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 transition-colors" title="Marcar como Pago">
-                                  <i className="bi bi-check-lg"></i>
-                                </button>
-                              </form>
-                            )}
-                            <form action={async (formData) => { "use server"; await excluirDespesa(formData) }}>
+
+                            <form action={async (formData) => { "use server"; const { atualizarStatusDespesa } = await import('@/app/actions'); await atualizarStatusDespesa(formData) }} className="flex flex-wrap items-center gap-2 justify-end">
                               <input type="hidden" name="id" value={d.id} />
-                              <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
+                              
+                              <select name="status" defaultValue={d.status === 'PAGO' ? 'PAGO' : 'PENDENTE'} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none w-28 shadow-sm focus:ring-2 focus:ring-blue-500">
+                                <option value="PENDENTE">Pendente</option>
+                                <option value="PAGO">Pago</option>
+                              </select>
+
+                              <button type="submit" className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm" title="Atualizar Status">
+                                <i className="bi bi-arrow-repeat"></i>
+                              </button>
+                            </form>
+
+                            <form action={async (formData) => { "use server"; const { excluirDespesa } = await import('@/app/actions'); await excluirDespesa(formData) }}>
+                              <input type="hidden" name="id" value={d.id} />
+                              <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors shadow-sm" title="Excluir">
                                 <i className="bi bi-trash"></i>
                               </button>
                             </form>
