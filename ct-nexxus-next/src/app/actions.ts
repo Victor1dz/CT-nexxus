@@ -172,7 +172,12 @@ export async function getFinanceiroData(mesString?: string) {
         }
       },
       include: {
-        alunos: true
+        alunos: true,
+        matriculas: {
+          include: {
+            modalidades: true
+          }
+        }
       },
       orderBy: { vencimento: 'asc' }
     })
@@ -1200,4 +1205,51 @@ export async function excluirFichaTreino(formData: FormData) {
     console.error('Erro excluirFichaTreino:', error)
   }
   revalidatePath('/fichas/aluno/[id]', 'page')
+}
+
+export async function salvarLembrete(formData: FormData) {
+  try {
+    const id = formData.get('id') ? Number(formData.get('id')) : null
+    const dataStr = formData.get('data') as string
+    const texto = formData.get('texto') as string
+    const cor = formData.get('cor') as string
+
+    const dataObj = new Date(dataStr + 'T12:00:00') // avoid timezone shift
+
+    if (id) {
+      await prisma.lembretes.update({
+        where: { id },
+        data: {
+          data: dataObj,
+          texto,
+          cor
+        }
+      })
+    } else {
+      await prisma.lembretes.create({
+        data: {
+          data: dataObj,
+          texto,
+          cor
+        }
+      })
+    }
+    revalidatePath('/agenda')
+    return { success: true }
+  } catch (e) {
+    console.error(e)
+    return { success: false }
+  }
+}
+
+export async function excluirLembrete(formData: FormData) {
+  try {
+    const id = Number(formData.get('id'))
+    await prisma.lembretes.delete({ where: { id } })
+    revalidatePath('/agenda')
+    return { success: true }
+  } catch (e) {
+    console.error(e)
+    return { success: false }
+  }
 }

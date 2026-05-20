@@ -204,3 +204,10 @@ model treinos_dia {
   foco_do_dia          String?        @db.VarChar(255)
   fichas_treino        fichas_treino? @relation(fields: [ficha_treino_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fko2huml1rjsnr6fhc9hok55s4n")
 }
+
+model lembretes {
+  id    BigInt   @id @default(autoincrement())
+  data  DateTime @db.Date
+  texto String
+  cor   String?  @db.VarChar(255)
+}

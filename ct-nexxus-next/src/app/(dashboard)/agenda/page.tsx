@@ -111,27 +111,61 @@ export default async function AgendaPage() {
         const hIn = new Date(b.hora_inicio).toISOString().substring(11, 16)
         const hFi = b.hora_fim ? new Date(b.hora_fim).toISOString().substring(11, 16) : undefined
         events.push({
-          title: 'Vaga Livre (Bloqueio)',
+          title: 'Horário Livre (Vaga)',
           daysOfWeek,
           startTime: hIn,
           endTime: hFi,
-          color: '#e2e8f0', // slate-200
-          textColor: '#475569', // slate-600
+          color: '#f1f5f9', // slate-100
+          textColor: '#64748b', // slate-500
+          extendedProps: {
+            isBloqueio: true
+          }
         })
       }
     }
   })
 
+  const dbLembretes = await prisma.lembretes.findMany({
+    orderBy: { data: 'asc' }
+  })
+
+  const lembretes = dbLembretes.map((l: any) => ({
+    id: Number(l.id),
+    data: l.data.toISOString().substring(0, 10),
+    texto: l.texto,
+    cor: l.cor || 'blue'
+  }))
+
+  lembretes.forEach((l: any) => {
+    events.push({
+      id: `lembrete-${l.id}`,
+      title: `📝 ${l.texto}`,
+      start: l.data,
+      allDay: true,
+      color: l.cor === 'rose' ? '#ffe4e6' : l.cor === 'emerald' ? '#d1fae5' : l.cor === 'amber' ? '#fef3c7' : '#dbeafe',
+      textColor: l.cor === 'rose' ? '#9f1239' : l.cor === 'emerald' ? '#065f46' : l.cor === 'amber' ? '#92400e' : '#1e40af',
+      extendedProps: {
+        isLembrete: true,
+        lembreteId: l.id,
+        texto: l.texto,
+        corLabel: l.cor
+      }
+    })
+  })
+
   return (
     <div className="w-full text-slate-800 font-sans">
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] flex items-center gap-3">
-          <i className="bi bi-calendar-week text-blue-600"></i> Agenda Geral
-        </h1>
+        <div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] flex items-center gap-3">
+            <i className="bi bi-calendar-week text-blue-600"></i> Agenda Geral
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Visualize treinos, horários livres e adicione anotações do dia a dia.</p>
+        </div>
       </div>
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
-        <AgendaCalendar initialEvents={events} />
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-0 overflow-hidden">
+        <AgendaCalendar initialEvents={events} initialLembretes={lembretes} />
       </div>
     </div>
   )
