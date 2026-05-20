@@ -1,4 +1,4 @@
-import { getFinanceiroData, atualizarStatusMensalidade, pagarDespesa, excluirDespesa } from '@/app/actions'
+import { getFinanceiroData, atualizarStatusMensalidade, atualizarStatusDespesa, excluirDespesa } from '@/app/actions'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
