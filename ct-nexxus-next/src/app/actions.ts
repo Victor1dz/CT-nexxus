@@ -591,7 +591,7 @@ export async function salvarAnamnese(formData: FormData) {
     const bebe_alcool = formData.get('bebe_alcool') === 'on'
     const observacoes_gerais = formData.get('observacoes_gerais') as string
 
-    // Cálculo do IMC e análise corporal
+    // Cálculo do IMC e análise corporal completa da anamnese
     let imcDetails = ""
     if (peso && altura && altura > 0) {
       const imc = peso / (altura * altura)

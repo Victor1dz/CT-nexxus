@@ -14,7 +14,7 @@ export default async function AgendaPage() {
     }
   })
 
-  // Convert matriculas into events for FullCalendar
+  // Convert matriculas into events for FullCalendar (with custom startTime/endTime fields)
   // FullCalendar recurring events format:
   // { title: 'Boxe - João', daysOfWeek: [1, 3], startTime: '10:00', endTime: '11:00' }
   const events: any[] = []

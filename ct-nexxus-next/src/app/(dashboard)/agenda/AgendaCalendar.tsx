@@ -349,10 +349,11 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                 <span className="text-base font-extrabold text-blue-600 uppercase mt-0.5 block">{detailsModal.modalidade}</span>
               </div>
 
+              {/* Horário da Aula (Sincronizado com o calendário) */}
               {detailsModal.startTime && (
                 <div>
                   <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Horário</span>
-                  <span className="text-sm font-extrabold text-slate-700 mt-0.5 block">
+                  <span className="text-base font-extrabold text-blue-600 uppercase mt-0.5 block">
                     {detailsModal.startTime}{detailsModal.endTime ? ` às ${detailsModal.endTime}` : ''}
                   </span>
                 </div>
