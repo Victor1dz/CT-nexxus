@@ -73,7 +73,11 @@ export default async function AgendaPage() {
             color: '#10b981', // emerald-500
             extendedProps: {
               isCustom: true,
-              telefone: m.alunos?.telefone
+              telefone: m.alunos?.telefone,
+              modalidade: m.modalidades?.nome || 'Treino',
+              alunosList: m.alunos ? [{ nome: m.alunos.nome, telefone: m.alunos.telefone || '' }] : [],
+              startTime: hInicio,
+              endTime: hFim || ''
             }
           })
         }
@@ -91,7 +95,9 @@ export default async function AgendaPage() {
         endTime: h.hFim || undefined,
         extendedProps: {
           modalidade: h.modalidade,
-          alunosList: h.alunos
+          alunosList: h.alunos,
+          startTime: h.hInicio,
+          endTime: h.hFim || ''
         }
       })
     }

@@ -591,61 +591,143 @@ export async function salvarAnamnese(formData: FormData) {
     const bebe_alcool = formData.get('bebe_alcool') === 'on'
     const observacoes_gerais = formData.get('observacoes_gerais') as string
 
-    // Logic for IA Sugestao
-    let sugestao = ""
-    let focos = []
-    let cuidados = []
+    // Cálculo do IMC e análise corporal
+    let imcDetails = ""
+    if (peso && altura && altura > 0) {
+      const imc = peso / (altura * altura)
+      let classificacao = ""
+      if (imc < 18.5) classificacao = "Abaixo do peso ideal"
+      else if (imc < 25) classificacao = "Peso ideal/Saudável"
+      else if (imc < 30) classificacao = "Sobrepeso"
+      else classificacao = "Obesidade"
+      
+      imcDetails = `• <strong>Composição Corporal:</strong> IMC de <strong>${imc.toFixed(1)}</strong> (${classificacao}). Peso: ${peso} kg | Altura: ${altura} m.<br>`
+    } else if (peso || altura) {
+      imcDetails = `• <strong>Composição Corporal:</strong> ${peso ? `Peso: ${peso} kg` : ''} ${altura ? `| Altura: ${altura} m` : ''}.<br>`
+    }
 
+    // Identificação de fatores de risco à saúde
+    let habitosList = []
+    if (fuma) habitosList.push("Tabagismo (Fumante)")
+    if (bebe_alcool) habitosList.push("Consumo de Álcool")
+
+    // AI Suggestions text construction
+    let sugestao = ""
+    
+    // Header Info
+    sugestao += `<div class="mb-4">`
+    sugestao += `<strong>Foco Principal:</strong> `
     const obj = objetivo_principal ? objetivo_principal.toLowerCase() : ""
     if (obj.includes("emagrecimento") || obj.includes("perder peso")) {
-      focos.push("Alta Intensidade (HIIT)", "Circuitos Funcionais")
-      sugestao += "<strong>Foco Principal:</strong> Queima Calórica e Condicionamento.<br>"
+      sugestao += `Queima Calórica e Condicionamento Cardiovascular.</div>`
     } else if (obj.includes("hipertrofia") || obj.includes("massa") || obj.includes("musculo")) {
-      focos.push("Treino de Força (Cargas Progressivas)", "Descanso Controlado")
-      sugestao += "<strong>Foco Principal:</strong> Ganho de Massa Muscular e Força.<br>"
+      sugestao += `Ganho de Massa Muscular, Força e Hipertrofia.</div>`
+    } else if (obj.includes("condicionamento")) {
+      sugestao += `Resistência Muscular e Condicionamento Geral.</div>`
+    } else if (obj.includes("saude")) {
+      sugestao += `Melhoria da Qualidade de Vida, Mobilidade e Bem-estar Geral.</div>`
     } else {
-      focos.push("Condicionamento Geral", "Mobilidade")
-      sugestao += "<strong>Foco Principal:</strong> Saúde e Bem-estar Geral.<br>"
+      sugestao += `Preparação Específica e Desempenho.</div>`
     }
 
+    // Overview of student details
+    sugestao += `<div class="p-3.5 bg-slate-100/80 rounded-xl mb-4 border border-slate-200/50 text-xs text-slate-700">`
+    sugestao += `<strong>🔍 Resumo de Análise Corporal & Hábitos:</strong><br>`
+    if (imcDetails) sugestao += imcDetails
+    sugestao += `• <strong>Nível de atividade física:</strong> ${frequencia_atividade_fisica || 'Não informado'}.<br>`
+    if (habitosList.length > 0) {
+      sugestao += `• <strong>Fatores de Estilo de Vida:</strong> ${habitosList.join(', ')} (requer atenção na hidratação e fadiga).<br>`
+    } else {
+      sugestao += `• <strong>Estilo de Vida:</strong> Bons hábitos reportados (sem tabagismo/álcool).<br>`
+    }
+    if (observacoes_gerais) {
+      sugestao += `• <strong>Notas do Treinador:</strong> "${observacoes_gerais}".`
+    }
+    sugestao += `</div>`
+
+    // Suggested Structure
+    sugestao += `📋 <strong>Estrutura Sugerida de Treino:</strong><br><ul class="pl-4 list-disc mt-1">`
+    
+    // Warmup
+    sugestao += `<li><strong>Aquecimento (10-15min):</strong> `
+    if (possui_problema_respiratorio) {
+      sugestao += `Mobilidade articular leve e caminhada progressiva. Evitar esforços súbitos para prevenir broncoespasmos.</li>`
+    } else if (possui_problema_cardiaco) {
+      sugestao += `Aquecimento longo e gradual. Subida lenta da frequência cardíaca. Alongamento dinâmico.</li>`
+    } else if (obj.includes("hipertrofia")) {
+      sugestao += `Mobilidade geral e aquecimento específico na primeira série (carga leve).</li>`
+    } else {
+      sugestao += `Pular corda (ritmo leve), polichinelos ou corrida leve + Mobilidade Articular.</li>`
+    }
+
+    // Main block
+    sugestao += `<li><strong>Bloco Principal (30-40min):</strong> `
     if (possui_problema_cardiaco) {
-      cuidados.push("Monitorar Frequência Cardíaca (Manter na Zona 2/3)")
-      cuidados.push("Evitar picos extremos de esforço sem aquecimento longo")
+      sugestao += `Treino contínuo de intensidade moderada (aeróbico/técnico). Manter pausas ativas controladas.</li>`
+    } else if (obj.includes("emagrecimento")) {
+      sugestao += `Treino intervalado (HIIT) ou circuito funcional de alta intensidade. Foco em repetições e volume de movimento.</li>`
+    } else if (obj.includes("hipertrofia")) {
+      sugestao += `Treino de força com sobrecarga progressiva. Séries de 8-12 repetições com foco na fase excêntrica e pausas de 1.5 a 2 min.</li>`
+    } else {
+      sugestao += `Treino misto de técnica (Boxe/Muay Thai/Jiu Jitsu) associado a exercícios funcionais de resistência.</li>`
+    }
+
+    // Cool down
+    sugestao += `<li><strong>Volta à Calma (5-10min):</strong> Alongamentos estáticos gerais e exercícios de respiração diafragmática para regulação cardíaca.</li></ul>`
+
+    // Special Warnings & Cautions
+    let cuidados = []
+    if (possui_problema_cardiaco) {
+      cuidados.push("Monitorar Frequência Cardíaca constante (manter em zona de segurança, evitar picos).")
+      cuidados.push("Não treinar se apresentar tontura, palpitações ou dor no peito.")
     }
     if (possui_problema_respiratorio) {
-      cuidados.push("Aumentar tempo de descanso entre séries")
-      cuidados.push("Ambiente bem ventilado")
+      cuidados.push("Ter sempre broncodilatador de resgate disponível (se prescrito).")
+      cuidados.push("Aumentar o tempo de recuperação entre séries intensas.")
     }
-
-    sugestao += "<br>📋 <strong>Estrutura Sugerida:</strong><br><ul>"
-    sugestao += "<li><strong>Aquecimento (10-15min):</strong> "
-    if (possui_problema_respiratorio) {
-      sugestao += "Caminhada progressiva ou Elíptico (menor impacto cardio inicial).</li>"
-    } else {
-      sugestao += "Pular corda (ritmo leve) ou Polichinelos + Mobilidade Articular.</li>"
+    if (fez_cirurgia_recente) {
+      cuidados.push(`Evitar exercícios que tensionem a cicatriz ou região operada (${quais_cirurgias || 'cirurgia recente'}).`)
     }
-
-    sugestao += "<li><strong>Bloco Principal (30-40min):</strong> "
-    if (focos.includes("Alta Intensidade (HIIT)")) {
-      sugestao += "Treino intervalado. Ex: 3 min Boxe/Muay Thai intenso + 1 min descanso ativo (agachamentos).</li>"
-    } else if (focos.includes("Treino de Força (Cargas Progressivas)")) {
-      sugestao += "Foco em técnica e força. Séries de 8-12 repetições. Ex: Sequências de golpes com peso ou Funcional com carga.</li>"
-    } else {
-      sugestao += "Treino misto (Técnica + Aeróbico moderado). Manter constância.</li>"
+    if (toma_medicamento_continuo) {
+      cuidados.push(`Atenção aos efeitos colaterais dos medicamentos relatados (${quais_medicamentos || 'medicamentos'}).`)
     }
-
-    sugestao += "<li><strong>Volta à Calma (5-10min):</strong> Alongamento estático e respiração diafragmática.</li></ul>"
+    if (fuma) {
+      cuidados.push("Menor capacidade de oxigenação. Cuidar com fadiga precoce e regular a respiração.")
+    }
 
     if (cuidados.length > 0) {
-      sugestao += "<div class='p-3 bg-amber-50 text-amber-800 rounded-lg mt-3 border border-amber-200'><strong><i class='bi bi-exclamation-triangle'></i> Atenção / Cuidados Especiais:</strong><ul class='mb-0 mt-1 pl-4'>"
+      sugestao += `<div class="p-3 bg-amber-50 text-amber-800 rounded-lg mt-3 border border-amber-200">`
+      sugestao += `<strong><i class="bi bi-exclamation-triangle"></i> Atenção / Cuidados Especiais:</strong>`
+      sugestao += `<ul class="mb-0 mt-1 pl-4 list-disc text-xs">`
       cuidados.forEach(c => {
         sugestao += `<li>${c}</li>`
       })
-      sugestao += "</ul></div>"
+      sugestao += `</ul></div>`
     }
 
+    // AI Tips
+    let dicas = []
     if (frequencia_atividade_fisica && frequencia_atividade_fisica.toLowerCase().includes("sedent")) {
-      sugestao += "<div class='mt-3 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200'><i class='bi bi-lightbulb-fill'></i> <em>Dica da IA: Aluno iniciante/sedentário. Começar com volume baixo e focar na adaptação nas primeiras 2 semanas.</em></div>"
+      dicas.push("Aluno iniciante/sedentário. Iniciar com volume baixo de treino, focando na adaptação anatômica nas primeiras 2 semanas.")
+    }
+    if (peso && altura && altura > 0) {
+      const imc = peso / (altura * altura)
+      if (imc >= 30) {
+        dicas.push("Foco em exercícios de baixo impacto articular (evitar saltos excessivos iniciais) para proteger joelhos e tornozelos.")
+      }
+    }
+    if (possui_alergia) {
+      dicas.push(`Alergia reportada (${quais_alergias || 'alergias'}). Evitar contato com substâncias desencadeantes no espaço de treino.`)
+    }
+
+    if (dicas.length > 0) {
+      sugestao += `<div class="mt-3 text-blue-600 bg-blue-50 p-3 rounded-lg border border-blue-200 text-xs">`
+      sugestao += `<strong><i class="bi bi-lightbulb-fill"></i> Dica da IA:</strong>`
+      sugestao += `<ul class="mb-0 mt-1 pl-4 list-disc">`
+      dicas.forEach(d => {
+        sugestao += `<li><em>${d}</em></li>`
+      })
+      sugestao += `</ul></div>`
     }
 
     const dataObj = {
@@ -798,8 +880,13 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         include: { matriculas: true }
       })
 
-      // Gerar próxima mensalidade se a matrícula estiver ativa
-      if (currentMensalidade.matriculas?.ativo && currentMensalidade.competencia) {
+      // Gerar próxima mensalidade se a matrícula e o aluno estiverem ativos
+      const matriculaDb = await prisma.matriculas.findUnique({
+        where: { id: currentMensalidade.matricula_id || 0 },
+        include: { alunos: true }
+      })
+
+      if (matriculaDb?.ativo && matriculaDb?.alunos?.ativo && currentMensalidade.competencia) {
         const [anoStr, mesStr] = currentMensalidade.competencia.split('-')
         if (anoStr && mesStr) {
           let proxMes = parseInt(mesStr) + 1
@@ -818,7 +905,7 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           })
 
           if (!existeProx) {
-            const diaVenc = currentMensalidade.matriculas.dia_vencimento || (currentMensalidade.vencimento ? new Date(currentMensalidade.vencimento).getUTCDate() : new Date().getDate())
+            const diaVenc = matriculaDb.dia_vencimento || (currentMensalidade.vencimento ? new Date(currentMensalidade.vencimento).getUTCDate() : new Date().getDate())
             const proxVenc = new Date(Date.UTC(proxAno, proxMes - 1, diaVenc))
             await prisma.mensalidades.create({
               data: {
@@ -898,7 +985,12 @@ export async function excluirDespesa(formData: FormData) {
 export async function gerarMensalidadesLote() {
   try {
     const matriculasAtivas = await prisma.matriculas.findMany({
-      where: { ativo: true },
+      where: { 
+        ativo: true,
+        alunos: {
+          ativo: true
+        }
+      },
       include: { precos: true }
     })
     
@@ -988,16 +1080,39 @@ export async function salvarNovoAluno(formData: FormData) {
     const cidade = formData.get('cidade') as string
     const uf = formData.get('uf') as string
     const blocksJson = formData.get('blocks_json') as string
+    const ativo = formData.get('ativo') !== 'off'
 
     // 1. Create or Update Aluno
     let aluno;
-    const alunoData = { nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo: true }
+    const alunoData = { nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo }
     
     if (aluno_id) {
       aluno = await prisma.alunos.update({
         where: { id: aluno_id },
         data: alunoData
       })
+      
+      if (!ativo) {
+        // Aluno inativado: desativar todas as suas matriculas
+        await prisma.matriculas.updateMany({
+          where: { aluno_id: aluno.id },
+          data: { ativo: false, data_fim: new Date() }
+        })
+        
+        // Limpar mensalidades futuras (competencia > atual) que nao foram pagas
+        const hoje = new Date()
+        const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
+        const anoAtualStr = hoje.getFullYear()
+        const competenciaAtual = `${anoAtualStr}-${mesAtualStr}`
+
+        await prisma.mensalidades.deleteMany({
+          where: {
+            aluno_id: aluno.id,
+            status: { not: 'PAGO' },
+            competencia: { gt: competenciaAtual }
+          }
+        })
+      }
     } else {
       aluno = await prisma.alunos.create({
         data: alunoData
@@ -1076,9 +1191,22 @@ export async function salvarNovoAluno(formData: FormData) {
         }
 
         if (block.matricula_id) {
-          // Se foi desativado agora, registrar data_fim
+          // Se foi desativado agora, registrar data_fim e apagar mensalidades futuras não pagas
           if (block.ativo === false) {
              matriculaData.data_fim = new Date()
+             
+             const hoje = new Date()
+             const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
+             const anoAtualStr = hoje.getFullYear()
+             const competenciaAtual = `${anoAtualStr}-${mesAtualStr}`
+             
+             await prisma.mensalidades.deleteMany({
+               where: {
+                 matricula_id: Number(block.matricula_id),
+                 status: { not: 'PAGO' },
+                 competencia: { gt: competenciaAtual }
+               }
+             })
           }
           await prisma.matriculas.update({
             where: { id: Number(block.matricula_id) },

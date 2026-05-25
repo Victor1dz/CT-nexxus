@@ -72,7 +72,9 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
         modalidade: extendedProps.modalidade || 'Treino',
         alunos: extendedProps.alunosList || [],
         isCustom: extendedProps.isCustom,
-        telefone: extendedProps.telefone
+        telefone: extendedProps.telefone,
+        startTime: extendedProps.startTime || '',
+        endTime: extendedProps.endTime || ''
       })
     }
   }
@@ -347,10 +349,24 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                 <span className="text-base font-extrabold text-blue-600 uppercase mt-0.5 block">{detailsModal.modalidade}</span>
               </div>
 
+              {detailsModal.startTime && (
+                <div>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Horário</span>
+                  <span className="text-sm font-extrabold text-slate-700 mt-0.5 block">
+                    {detailsModal.startTime}{detailsModal.endTime ? ` às ${detailsModal.endTime}` : ''}
+                  </span>
+                </div>
+              )}
+
               {detailsModal.isCustom && detailsModal.telefone && (
                 <div>
                   <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Contato do Aluno</span>
-                  <a href={`https://wa.me/55${detailsModal.telefone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-emerald-600 flex items-center gap-1.5 mt-1 hover:underline">
+                  <a 
+                    href={`https://wa.me/55${detailsModal.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${detailsModal.title.split(' - ')[1] || 'aluno(a)'}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="text-sm font-bold text-emerald-600 flex items-center gap-1.5 mt-1 hover:underline"
+                  >
                     <i className="bi bi-whatsapp"></i> {detailsModal.telefone}
                   </a>
                 </div>
@@ -367,11 +383,11 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                         <span className="text-sm font-bold text-slate-800">{a.nome}</span>
                         {a.telefone && (
                           <a 
-                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}`} 
+                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
                             target="_blank" 
                             rel="noreferrer" 
                             className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                            title="Conversar no WhatsApp"
+                            title="Enviar lembrete por WhatsApp"
                           >
                             <i className="bi bi-whatsapp text-sm"></i>
                           </a>
