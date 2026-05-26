@@ -19,9 +19,8 @@ export default function Sidebar() {
   return (
     <nav className="fixed top-0 left-0 h-screen w-[260px] bg-white border-r border-slate-200 z-50 shadow-[2px_0_10px_rgba(0,0,0,0.03)] flex flex-col pt-6 transition-all duration-300">
       <Link href="/" className="px-6 mb-8 flex flex-col items-center gap-2 text-decoration-none">
-        <div className="w-20 h-20 bg-slate-50 rounded-xl shadow-sm flex items-center justify-center p-1">
-          {/* Logo placeholder */}
-          <div className="w-full h-full bg-slate-200 rounded-lg flex items-center justify-center font-bold text-slate-400 text-xs">LOGO</div>
+        <div className="w-20 h-20 bg-slate-50 rounded-xl shadow-sm flex items-center justify-center p-1 overflow-hidden">
+          <img src="/logo.jpg" alt="CT Nexxus" className="w-full h-full object-cover rounded-lg" />
         </div>
         <h5 className="m-0 font-bold text-slate-800 tracking-tight text-lg">CT Nexxus</h5>
       </Link>
