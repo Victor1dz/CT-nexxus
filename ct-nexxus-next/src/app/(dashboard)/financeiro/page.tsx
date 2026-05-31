@@ -71,7 +71,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
             {currentTab === 'receitas' ? 'Recebimentos do Mês' : 'Lançamentos do Mês'}
           </h2>
           {currentTab === 'receitas' && (
-            <form action={async () => { "use server"; const { gerarMensalidadesLote } = await import('@/app/actions'); await gerarMensalidadesLote() }}>
+            <form action={async () => { "use server"; const { gerarMensalidadesLote } = await import('@/app/actions'); await gerarMensalidadesLote(data.mesString) }}>
               <button type="submit" className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition-colors flex items-center gap-2">
                 <i className="bi bi-arrow-clockwise"></i> Gerar Cobranças Faltantes
               </button>

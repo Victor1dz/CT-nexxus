@@ -1054,7 +1054,7 @@ export async function excluirDespesa(formData: FormData) {
   }
 }
 
-export async function gerarMensalidadesLote() {
+export async function gerarMensalidadesLote(mesString?: string) {
   try {
     const matriculasAtivas = await prisma.matriculas.findMany({
       where: { 
@@ -1067,14 +1067,31 @@ export async function gerarMensalidadesLote() {
     })
     
     const hoje = new Date()
-    const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
-    const anoAtualStr = hoje.getFullYear()
-    const competencia = `${anoAtualStr}-${mesAtualStr}`
+    let year = hoje.getFullYear()
+    let month = hoje.getMonth()
 
+    if (mesString) {
+      const parts = mesString.split('-')
+      if (parts.length === 2) {
+        year = parseInt(parts[0], 10)
+        month = parseInt(parts[1], 10) - 1
+      }
+    }
+
+    const competencia = `${year}-${String(month + 1).padStart(2, '0')}`
     let criadas = 0
 
     for (const m of matriculasAtivas) {
       if (!m.preco_id || !m.precos?.valor) continue;
+
+      // Se a matrícula inicia após o fim do mês alvo, não cobramos dela
+      if (m.data_inicio) {
+        const dInicio = new Date(m.data_inicio)
+        const lastDayOfTarget = new Date(year, month + 1, 0)
+        if (dInicio > lastDayOfTarget) {
+          continue;
+        }
+      }
 
       const existe = await prisma.mensalidades.findFirst({
         where: {
@@ -1084,9 +1101,20 @@ export async function gerarMensalidadesLote() {
       })
 
       if (!existe) {
-        let diaVenc = m.dia_vencimento || hoje.getDate()
-        let vencimento = new Date(hoje.getFullYear(), hoje.getMonth(), diaVenc)
+        let diaVenc = m.dia_vencimento || 10
+        let vencimento = new Date(year, month, diaVenc)
         
+        const compDate = new Date()
+        compDate.setUTCHours(0, 0, 0, 0)
+        
+        const vencComp = new Date(vencimento)
+        vencComp.setUTCHours(0, 0, 0, 0)
+
+        let statusInicial = 'PENDENTE'
+        if (vencComp < compDate) {
+          statusInicial = 'INADIMPLENTE'
+        }
+
         await prisma.mensalidades.create({
           data: {
             matricula_id: m.id,
@@ -1094,7 +1122,7 @@ export async function gerarMensalidadesLote() {
             competencia: competencia,
             valor: m.precos.valor,
             vencimento: vencimento,
-            status: 'PENDENTE'
+            status: statusInicial
           }
         })
         criadas++

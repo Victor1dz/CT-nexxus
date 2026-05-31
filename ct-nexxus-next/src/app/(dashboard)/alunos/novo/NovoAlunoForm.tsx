@@ -219,43 +219,44 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
             return (
               <div key={block.id} className={`relative border rounded-2xl p-6 md:p-8 shadow-sm group transition-all duration-300 ${block.ativo ? 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-md' : 'bg-slate-50 border-slate-200 opacity-60 grayscale'}`}>
                 
-                {block.data_inicio && (
-                  <div className="absolute top-6 left-6 text-xs font-bold text-slate-400">
-                    Início: {block.data_inicio}
-                  </div>
-                )}
-
-                <div className="absolute top-6 right-6 flex items-center gap-4">
-                  {block.matricula_id && (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <span className={`text-xs font-bold ${block.ativo ? 'text-emerald-600' : 'text-slate-400'}`}>
-                        {block.ativo ? 'Plano Ativo' : 'Plano Encerrado'}
-                      </span>
-                      <div className={`relative w-10 h-5 transition-colors rounded-full ${block.ativo ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                        <input type="checkbox" className="sr-only" checked={block.ativo} onChange={(e) => {
-                          if (!e.target.checked) {
-                            if (confirm("Tem certeza que deseja encerrar este plano? O aluno não será mais cobrado por ele.")) {
-                              updateBlock(block.id, "ativo", false)
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 pb-4 border-b border-slate-100 gap-4">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i className="bi bi-bookmark-star text-blue-500"></i>
+                    {block.matricula_id ? 'Plano Ativo do Aluno' : 'Novo Plano / Modalidade'}
+                  </span>
+                  
+                  <div className="flex items-center gap-4">
+                    {block.matricula_id && (
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <span className={`text-xs font-bold ${block.ativo ? 'text-emerald-600' : 'text-slate-400'}`}>
+                          {block.ativo ? 'Ativo' : 'Encerrado'}
+                        </span>
+                        <div className={`relative w-10 h-5 transition-colors rounded-full ${block.ativo ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                          <input type="checkbox" className="sr-only" checked={block.ativo} onChange={(e) => {
+                            if (!e.target.checked) {
+                              if (confirm("Tem certeza que deseja encerrar este plano? O aluno não será mais cobrado por ele.")) {
+                                updateBlock(block.id, "ativo", false)
+                              }
+                            } else {
+                              updateBlock(block.id, "ativo", true)
                             }
-                          } else {
-                            updateBlock(block.id, "ativo", true)
-                          }
-                        }} />
-                        <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${block.ativo ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                      </div>
-                    </label>
-                  )}
-                  <button type="button" onClick={() => {
-                    if (block.matricula_id) {
-                      if (confirm("Tem certeza que deseja EXCLUIR este plano do histórico? (Isso não pode ser desfeito. Se preferir manter o histórico, apenas Encerre o plano no botão ao lado).")) {
+                          }} />
+                          <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${block.ativo ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                        </div>
+                      </label>
+                    )}
+                    <button type="button" onClick={() => {
+                      if (block.matricula_id) {
+                        if (confirm("Tem certeza que deseja EXCLUIR este plano do histórico? (Isso não pode ser desfeito. Se preferir manter o histórico, apenas Encerre o plano no botão ao lado).")) {
+                          removeBlock(block.id)
+                        }
+                      } else {
                         removeBlock(block.id)
                       }
-                    } else {
-                      removeBlock(block.id)
-                    }
-                  }} className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-slate-50 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 flex items-center gap-1 text-xs font-bold" title="Excluir Plano">
-                    <TrashIcon /> <span className="hidden md:inline">Excluir</span>
-                  </button>
+                    }} className="text-slate-400 hover:text-red-500 transition-colors p-2 bg-slate-50 rounded-lg hover:bg-red-50 border border-transparent hover:border-red-100 flex items-center gap-1 text-xs font-bold" title="Excluir Plano">
+                      <TrashIcon /> <span className="hidden md:inline">Excluir</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
