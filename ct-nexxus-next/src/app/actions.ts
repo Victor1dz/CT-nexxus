@@ -255,9 +255,17 @@ export async function getFinanceiroData(mesString?: string) {
       saldo: totalEntradas - totalSaidas,
       mesString: `${year}-${String(month + 1).padStart(2, '0')}`
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao buscar dados financeiros:', error)
-    return { mensalidades: [], despesas: [], totalEntradas: 0, totalSaidas: 0, saldo: 0, mesString: '' }
+    return {
+      mensalidades: [],
+      despesas: [],
+      totalEntradas: 0,
+      totalSaidas: 0,
+      saldo: 0,
+      mesString: '',
+      error: error instanceof Error ? error.stack || error.message : String(error)
+    }
   }
 }
 

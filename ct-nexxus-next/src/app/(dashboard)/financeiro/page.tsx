@@ -10,6 +10,17 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
 
   return (
     <div className="w-full text-slate-800 font-sans">
+      {data.error && (
+        <div className="bg-red-50 border border-red-200 text-red-800 rounded-2xl p-6 mb-6 shadow-sm flex flex-col gap-2">
+          <h3 className="font-bold flex items-center gap-2 text-lg">
+            <i className="bi bi-exclamation-triangle-fill text-red-600"></i>
+            Erro de Carregamento Financeiro
+          </h3>
+          <p className="text-sm font-mono bg-red-100/50 p-3 rounded-lg border border-red-200/50 text-red-900 overflow-x-auto whitespace-pre-wrap">
+            {data.error}
+          </p>
+        </div>
+      )}
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
         <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] flex items-center gap-3">
           <i className="bi bi-wallet2 text-blue-600"></i> Financeiro
