@@ -129,8 +129,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                         const msgLines = g.mensalidades.map((m: any) => {
                           totalVal += Number(m.valor || 0);
                           const v = m.vencimento ? new Date(m.vencimento) : null;
-                          const isAtrasado = m.status === 'PENDENTE' && v && v < new Date();
-                          const statusStr = m.status === 'PAGO' ? 'PAGO' : (isAtrasado ? 'ATRASADO' : 'PENDENTE');
+                          const statusStr = m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'ATRASADO' : 'PENDENTE');
                           const vStr = v ? v.toLocaleDateString('pt-BR') : '-';
                           return `- *${m.matriculas?.modalidades?.nome || 'Plano'}*: R$ ${Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Vencimento: ${vStr} - *${statusStr}*)`;
                         }).join('\n');
@@ -152,7 +151,6 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                               <div className="flex flex-col gap-2.5">
                                 {g.mensalidades.map((m: any) => {
                                   const v = m.vencimento ? new Date(m.vencimento) : null;
-                                  const isAtrasado = m.status === 'PENDENTE' && v && v < new Date();
                                   const pgto = m.data_pagamento ? new Date(m.data_pagamento) : null;
                                   
                                   return (
@@ -180,7 +178,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                       <div className="ms-auto flex items-center gap-2">
                                         {m.status === 'PAGO' ? (
                                           <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-100">PAGO</span>
-                                        ) : isAtrasado ? (
+                                        ) : m.status === 'INADIMPLENTE' ? (
                                           <span className="px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-100">ATRASADO</span>
                                         ) : (
                                           <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100">PENDENTE</span>
@@ -189,7 +187,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                         <form action={async (formData) => { "use server"; await atualizarStatusMensalidade(formData) }} className="flex items-center gap-1.5">
                                           <input type="hidden" name="id" value={m.id} />
                                           
-                                          <select name="status" defaultValue={m.status === 'PAGO' ? 'PAGO' : (isAtrasado ? 'INADIMPLENTE' : 'PENDENTE')} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500">
+                                          <select name="status" defaultValue={m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'INADIMPLENTE' : 'PENDENTE')} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500">
                                             <option value="PENDENTE">Pendente</option>
                                             <option value="PAGO">Pago</option>
                                             <option value="INADIMPLENTE">Inadimplente</option>

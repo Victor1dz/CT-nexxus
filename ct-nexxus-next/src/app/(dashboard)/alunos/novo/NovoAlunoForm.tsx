@@ -48,10 +48,10 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
         customHoraInicio: m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : "",
         customHoraFim: m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : "",
         matricula_id: m.id,
-        data_inicio: m.data_inicio ? new Date(m.data_inicio).toLocaleDateString('pt-BR') : "",
+        data_inicio: m.data_inicio ? new Date(m.data_inicio).toISOString().substring(0, 10) : new Date().toISOString().substring(0, 10),
         ativo: m.ativo
       }))
-    : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true }]
+    : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true, data_inicio: new Date().toISOString().substring(0, 10) }]
   )
 
   const [address, setAddress] = useState({
@@ -88,7 +88,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
   }
 
   const addBlock = () => {
-    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true }])
+    setBlocks([...blocks, { id: Math.random().toString(), selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true, data_inicio: new Date().toISOString().substring(0, 10) }])
   }
 
   const removeBlock = (id: string) => {
@@ -258,7 +258,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                   {/* Modalidade */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-600">Modalidade</label>
@@ -397,6 +397,19 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                       </div>
                     )}
                   </div>
+
+                  {/* Data de Início */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-600">Data de Início</label>
+                    <input 
+                      type="date" 
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner"
+                      value={block.data_inicio || ""}
+                      onChange={e => updateBlock(block.id, "data_inicio", e.target.value)}
+                    />
+                  </div>
+
                 </div>
               </div>
             )

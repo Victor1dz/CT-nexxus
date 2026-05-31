@@ -37,7 +37,7 @@ model alunos {
   telefone        String?         @db.VarChar(255)
   uf              String?         @db.VarChar(255)
   agendamentos    agendamentos[]
-  anamneses       anamneses?
+  anamneses       anamneses[]
   fichas_treino   fichas_treino[]
   matriculas      matriculas[]
   mensalidades    mensalidades[]
@@ -53,7 +53,7 @@ model anamneses {
   possui_problema_cardiaco      Boolean
   possui_problema_respiratorio  Boolean
   toma_medicamento_continuo     Boolean
-  aluno_id                      BigInt?   @unique
+  aluno_id                      BigInt?
   data_atualizacao              DateTime? @db.Timestamp(6)
   id                            BigInt    @id @default(autoincrement())
   detalhe_problema_cardiaco     String?
@@ -65,6 +65,15 @@ model anamneses {
   quais_cirurgias               String?
   quais_medicamentos            String?
   sugestao_treino_gerada        String?
+  massa_muscular                Float?
+  massa_gorda                   Float?
+  dobra_biceps                  Float?
+  dobra_triceps                 Float?
+  dobra_subescapular            Float?
+  dobra_suprailiaca             Float?
+  dobra_peitoral                Float?
+  dobra_abdominal               Float?
+  dobra_coxa                    Float?
   alunos                        alunos?   @relation(fields: [aluno_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fknv795uvcqvbb6ilrkvgt2608l")
 }
 

@@ -164,6 +164,21 @@ export async function getFinanceiroData(mesString?: string) {
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
 
+    const hoje = new Date()
+    hoje.setUTCHours(0, 0, 0, 0)
+
+    // Atualiza automaticamente as mensalidades vencidas de PENDENTE para INADIMPLENTE.
+    // Mensalidades PENDENTE_MANUAL não são alteradas.
+    await prisma.mensalidades.updateMany({
+      where: {
+        status: 'PENDENTE',
+        vencimento: { lt: hoje }
+      },
+      data: {
+        status: 'INADIMPLENTE'
+      }
+    })
+
     const mensalidades = await prisma.mensalidades.findMany({
       where: {
         vencimento: {
@@ -566,8 +581,21 @@ export async function getRelatoriosData() {
 export async function salvarAnamnese(formData: FormData) {
   try {
     const aluno_id = Number(formData.get('aluno_id'))
+    const anamnese_id_form = formData.get('anamnese_id')
+    const anamnese_id = anamnese_id_form && anamnese_id_form !== 'novo' ? Number(anamnese_id_form) : null
+
     const peso = formData.get('peso') ? Number(formData.get('peso')) : null
     const altura = formData.get('altura') ? Number(formData.get('altura')) : null
+    const massa_muscular = formData.get('massa_muscular') ? Number(formData.get('massa_muscular')) : null
+    const massa_gorda = formData.get('massa_gorda') ? Number(formData.get('massa_gorda')) : null
+
+    const dobra_biceps = formData.get('dobra_biceps') ? Number(formData.get('dobra_biceps')) : null
+    const dobra_triceps = formData.get('dobra_triceps') ? Number(formData.get('dobra_triceps')) : null
+    const dobra_subescapular = formData.get('dobra_subescapular') ? Number(formData.get('dobra_subescapular')) : null
+    const dobra_suprailiaca = formData.get('dobra_suprailiaca') ? Number(formData.get('dobra_suprailiaca')) : null
+    const dobra_peitoral = formData.get('dobra_peitoral') ? Number(formData.get('dobra_peitoral')) : null
+    const dobra_abdominal = formData.get('dobra_abdominal') ? Number(formData.get('dobra_abdominal')) : null
+    const dobra_coxa = formData.get('dobra_coxa') ? Number(formData.get('dobra_coxa')) : null
     
     const possui_problema_cardiaco = formData.get('possui_problema_cardiaco') === 'on'
     const detalhe_problema_cardiaco = formData.get('detalhe_problema_cardiaco') as string
@@ -606,6 +634,25 @@ export async function salvarAnamnese(formData: FormData) {
       imcDetails = `• <strong>Composição Corporal:</strong> ${peso ? `Peso: ${peso} kg` : ''} ${altura ? `| Altura: ${altura} m` : ''}.<br>`
     }
 
+    // Adicionar Massa Muscular, Massa Gorda e Dobras Cutâneas se preenchidos no resumo de IA
+    let composicaoFisicaAdicional = ""
+    if (massa_muscular || massa_gorda) {
+      composicaoFisicaAdicional += `• <strong>Métricas de Composição:</strong> ${massa_muscular ? `Massa Muscular: ${massa_muscular} kg` : ''} ${massa_gorda ? `| Massa Gorda: ${massa_gorda} kg` : ''}.<br>`
+    }
+    
+    let dobrasList = []
+    if (dobra_biceps) dobrasList.push(`Bíceps: ${dobra_biceps}mm`)
+    if (dobra_triceps) dobrasList.push(`Tríceps: ${dobra_triceps}mm`)
+    if (dobra_subescapular) dobrasList.push(`Subescapular: ${dobra_subescapular}mm`)
+    if (dobra_suprailiaca) dobrasList.push(`Suprailíaca: ${dobra_suprailiaca}mm`)
+    if (dobra_peitoral) dobrasList.push(`Peitoral: ${dobra_peitoral}mm`)
+    if (dobra_abdominal) dobrasList.push(`Abdominal: ${dobra_abdominal}mm`)
+    if (dobra_coxa) dobrasList.push(`Coxa: ${dobra_coxa}mm`)
+    
+    if (dobrasList.length > 0) {
+      composicaoFisicaAdicional += `• <strong>Dobras Cutâneas:</strong> ${dobrasList.join(', ')}.<br>`
+    }
+
     // Identificação de fatores de risco à saúde
     let habitosList = []
     if (fuma) habitosList.push("Tabagismo (Fumante)")
@@ -634,6 +681,7 @@ export async function salvarAnamnese(formData: FormData) {
     sugestao += `<div class="p-3.5 bg-slate-100/80 rounded-xl mb-4 border border-slate-200/50 text-xs text-slate-700">`
     sugestao += `<strong>🔍 Resumo de Análise Corporal & Hábitos:</strong><br>`
     if (imcDetails) sugestao += imcDetails
+    if (composicaoFisicaAdicional) sugestao += composicaoFisicaAdicional
     sugestao += `• <strong>Nível de atividade física:</strong> ${frequencia_atividade_fisica || 'Não informado'}.<br>`
     if (habitosList.length > 0) {
       sugestao += `• <strong>Fatores de Estilo de Vida:</strong> ${habitosList.join(', ')} (requer atenção na hidratação e fadiga).<br>`
@@ -669,7 +717,7 @@ export async function salvarAnamnese(formData: FormData) {
     } else if (obj.includes("hipertrofia")) {
       sugestao += `Treino de força com sobrecarga progressiva. Séries de 8-12 repetições com foco na fase excêntrica e pausas de 1.5 a 2 min.</li>`
     } else {
-      sugestao += `Treino misto de técnica (Boxe/Muay Thai/Jiu Jitsu) associado a exercícios funcionais de resistência.</li>`
+      sugestao += `Treino misto de técnica (Boxe/Muay Thai/Jiu Jitsu) associado a exercises funcionais de resistência.</li>`
     }
 
     // Cool down
@@ -733,6 +781,15 @@ export async function salvarAnamnese(formData: FormData) {
     const dataObj = {
       aluno_id,
       peso, altura,
+      massa_muscular,
+      massa_gorda,
+      dobra_biceps,
+      dobra_triceps,
+      dobra_subescapular,
+      dobra_suprailiaca,
+      dobra_peitoral,
+      dobra_abdominal,
+      dobra_coxa,
       possui_problema_cardiaco, detalhe_problema_cardiaco,
       possui_problema_respiratorio, detalhe_problema_respiratorio,
       toma_medicamento_continuo, quais_medicamentos,
@@ -744,9 +801,8 @@ export async function salvarAnamnese(formData: FormData) {
       data_atualizacao: new Date()
     }
 
-    const existing = await prisma.anamneses.findUnique({ where: { aluno_id } })
-    if (existing) {
-      await prisma.anamneses.update({ where: { id: existing.id }, data: dataObj })
+    if (anamnese_id) {
+      await prisma.anamneses.update({ where: { id: anamnese_id }, data: dataObj })
     } else {
       await prisma.anamneses.create({ data: dataObj })
     }
@@ -921,10 +977,26 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         }
       }
     } else {
+      let finalStatus = status
+      if (status === 'PENDENTE') {
+        const current = await prisma.mensalidades.findUnique({ where: { id } })
+        if (current && current.vencimento) {
+          const hoje = new Date()
+          hoje.setUTCHours(0, 0, 0, 0)
+          
+          const venc = new Date(current.vencimento)
+          venc.setUTCHours(0, 0, 0, 0)
+
+          if (venc < hoje) {
+            finalStatus = 'PENDENTE_MANUAL'
+          }
+        }
+      }
+
       await prisma.mensalidades.update({
         where: { id },
         data: {
-          status: status,
+          status: finalStatus,
           data_pagamento: null,
           forma_pagamento: null
         }
@@ -1169,6 +1241,9 @@ export async function salvarNovoAluno(formData: FormData) {
         }
 
         // Prepare matricula
+        const dataInicio = block.data_inicio ? new Date(block.data_inicio + 'T12:00:00') : new Date()
+        const diaVencimento = dataInicio.getDate()
+
         const matriculaData: any = {
           aluno_id: aluno.id,
           modalidade_id: Number(block.selectedMod),
@@ -1178,7 +1253,9 @@ export async function salvarNovoAluno(formData: FormData) {
           dias_personalizados: null,
           horario_personalizado: null,
           hora_inicio_personalizada: null,
-          hora_fim_personalizada: null
+          hora_fim_personalizada: null,
+          data_inicio: dataInicio,
+          dia_vencimento: diaVencimento
         }
 
         if (block.isCustomHorario) {
@@ -1213,7 +1290,6 @@ export async function salvarNovoAluno(formData: FormData) {
             data: matriculaData
           })
         } else {
-          matriculaData.data_inicio = new Date()
           const novaMatricula = await prisma.matriculas.create({
             data: matriculaData
           })
@@ -1221,21 +1297,40 @@ export async function salvarNovoAluno(formData: FormData) {
           if (matriculaData.preco_id) {
             const precoInfo = await prisma.precos.findUnique({ where: { id: matriculaData.preco_id } })
             if (precoInfo && precoInfo.valor) {
-              const hoje = new Date()
-              const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
-              const anoAtualStr = hoje.getFullYear()
+              const mesAtualStr = String(dataInicio.getMonth() + 1).padStart(2, '0')
+              const anoAtualStr = dataInicio.getFullYear()
               const competencia = `${anoAtualStr}-${mesAtualStr}`
 
-              await prisma.mensalidades.create({
-                data: {
+              const hoje = new Date()
+              hoje.setUTCHours(0, 0, 0, 0)
+
+              const vencimentoData = new Date(dataInicio)
+              vencimentoData.setUTCHours(0, 0, 0, 0)
+
+              let statusInicial = 'PENDENTE'
+              if (vencimentoData < hoje) {
+                statusInicial = 'INADIMPLENTE'
+              }
+
+              const existe = await prisma.mensalidades.findFirst({
+                where: {
                   matricula_id: novaMatricula.id,
-                  aluno_id: aluno.id,
-                  competencia: competencia,
-                  valor: precoInfo.valor,
-                  vencimento: hoje,
-                  status: 'PENDENTE'
+                  competencia: competencia
                 }
               })
+
+              if (!existe) {
+                await prisma.mensalidades.create({
+                  data: {
+                    matricula_id: novaMatricula.id,
+                    aluno_id: aluno.id,
+                    competencia: competencia,
+                    valor: precoInfo.valor,
+                    vencimento: dataInicio,
+                    status: statusInicial
+                  }
+                })
+              }
             }
           }
         }

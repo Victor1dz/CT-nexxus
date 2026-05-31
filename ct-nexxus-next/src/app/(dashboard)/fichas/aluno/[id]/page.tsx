@@ -42,14 +42,22 @@ export default async function FichaTreinoPage(props: { params: Promise<{ id: str
     }))
   }))
 
-  const anamnese = aluno.anamneses ? {
-    objetivo_principal: aluno.anamneses.objetivo_principal,
-    sugestao_treino_gerada: aluno.anamneses.sugestao_treino_gerada,
-    frequencia_atividade_fisica: aluno.anamneses.frequencia_atividade_fisica,
-    observacoes_gerais: aluno.anamneses.observacoes_gerais,
-    possui_problema_cardiaco: aluno.anamneses.possui_problema_cardiaco,
-    possui_problema_respiratorio: aluno.anamneses.possui_problema_respiratorio,
-    possui_alergia: aluno.anamneses.possui_alergia
+  const ultimaAnamnese = aluno.anamneses && aluno.anamneses.length > 0
+    ? aluno.anamneses.reduce((prev: any, curr: any) => {
+        const prevDate = prev.data_atualizacao ? new Date(prev.data_atualizacao).getTime() : 0;
+        const currDate = curr.data_atualizacao ? new Date(curr.data_atualizacao).getTime() : 0;
+        return currDate > prevDate ? curr : prev;
+      }, aluno.anamneses[0])
+    : null;
+
+  const anamnese = ultimaAnamnese ? {
+    objetivo_principal: ultimaAnamnese.objetivo_principal,
+    sugestao_treino_gerada: ultimaAnamnese.sugestao_treino_gerada,
+    frequencia_atividade_fisica: ultimaAnamnese.frequencia_atividade_fisica,
+    observacoes_gerais: ultimaAnamnese.observacoes_gerais,
+    possui_problema_cardiaco: ultimaAnamnese.possui_problema_cardiaco,
+    possui_problema_respiratorio: ultimaAnamnese.possui_problema_respiratorio,
+    possui_alergia: ultimaAnamnese.possui_alergia
   } : null
 
   return (
