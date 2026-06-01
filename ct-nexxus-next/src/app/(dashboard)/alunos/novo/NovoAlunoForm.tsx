@@ -259,7 +259,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
                   {/* Modalidade */}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-slate-600">Modalidade</label>

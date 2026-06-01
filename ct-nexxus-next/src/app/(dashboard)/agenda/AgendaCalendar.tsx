@@ -5,7 +5,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { salvarLembrete, excluirLembrete } from '@/app/actions'
+import { salvarLembrete, excluirLembrete, getFichaTreinoAtivaDoAluno } from '@/app/actions'
 
 interface Lembrete {
   id: number
@@ -24,6 +24,30 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
   const [modalOpen, setModalOpen] = useState(false)
   const [activeLembrete, setActiveLembrete] = useState<Partial<Lembrete> | null>(null)
   const [detailsModal, setDetailsModal] = useState<any | null>(null)
+
+  const [expandedAlunoId, setExpandedAlunoId] = useState<number | null>(null)
+  const [loadingTreinos, setLoadingTreinos] = useState(false)
+  const [alunoFicha, setAlunoFicha] = useState<any | null>(null)
+
+  const handleToggleAlunoTreinos = async (alunoId: number) => {
+    if (expandedAlunoId === alunoId) {
+      setExpandedAlunoId(null)
+      return
+    }
+    setAlunoFicha(null)
+    setLoadingTreinos(true)
+    setExpandedAlunoId(alunoId)
+    const data = await getFichaTreinoAtivaDoAluno(alunoId)
+    setAlunoFicha(data)
+    setLoadingTreinos(false)
+  }
+
+  const handleCloseDetails = () => {
+    setDetailsModal(null)
+    setExpandedAlunoId(null)
+    setAlunoFicha(null)
+    setLoadingTreinos(false)
+  }
 
   // Color mapping helpers
   const getGradient = (title: string) => {
@@ -340,7 +364,7 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
               <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 🥊 Detalhes do Treino
               </h3>
-              <button onClick={() => setDetailsModal(null)} className="text-slate-400 hover:text-slate-600 text-xl"><i className="bi bi-x"></i></button>
+              <button onClick={handleCloseDetails} className="text-slate-400 hover:text-slate-600 text-xl"><i className="bi bi-x"></i></button>
             </div>
 
             <div className="flex flex-col gap-4">
@@ -378,29 +402,82 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                 {detailsModal.alunos.length === 0 ? (
                   <p className="text-xs text-slate-500 italic">Nenhum aluno cadastrado para este horário.</p>
                 ) : (
-                  <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
-                    {detailsModal.alunos.map((a: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between p-2.5 bg-slate-50 rounded-2xl border border-slate-200/60">
-                        <span className="text-sm font-bold text-slate-800">{a.nome}</span>
-                        {a.telefone && (
-                          <a 
-                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
-                            target="_blank" 
-                            rel="noreferrer" 
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-                            title="Enviar lembrete por WhatsApp"
-                          >
-                            <i className="bi bi-whatsapp text-sm"></i>
-                          </a>
-                        )}
-                      </div>
-                    ))}
+                  <div className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
+                    {(detailsModal.alunos as any[]).map((a: any, i: number) => {
+                      const isExpanded = expandedAlunoId === a.id;
+                      return (
+                        <div key={i} className="flex flex-col p-3 bg-slate-50 rounded-2xl border border-slate-200/60 gap-2">
+                          <div className="flex items-center justify-between">
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                if (a.id) handleToggleAlunoTreinos(a.id);
+                              }}
+                              className="text-left font-extrabold text-sm text-slate-800 flex items-center gap-1.5 hover:text-blue-600 transition-colors"
+                            >
+                              <i className={`bi ${isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'} text-slate-400`}></i>
+                              {a.nome}
+                            </button>
+                            
+                            {a.telefone && (
+                              <a 
+                                href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                                title="Enviar lembrete por WhatsApp"
+                              >
+                                <i className="bi bi-whatsapp text-sm"></i>
+                              </a>
+                            )}
+                          </div>
+
+                          {isExpanded && a.id && (
+                            <div className="mt-1 p-3 bg-white rounded-xl border border-slate-100 text-xs text-slate-700 space-y-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              {loadingTreinos ? (
+                                <div className="flex items-center justify-center py-4 gap-2 text-slate-400">
+                                  <i className="bi bi-arrow-repeat animate-spin text-blue-500 text-base"></i>
+                                  <span className="font-semibold text-[11px]">Carregando treinos...</span>
+                                </div>
+                              ) : alunoFicha ? (
+                                <div className="space-y-2">
+                                  <div className="font-extrabold text-[11px] text-blue-600 border-b border-slate-100 pb-1.5 flex justify-between items-center">
+                                    <span>🎯 {alunoFicha.objetivo_ficha || 'Treino'}</span>
+                                    {alunoFicha.data_criacao && (
+                                      <span className="text-[9px] text-slate-450 font-normal">Criado em: {new Date(alunoFicha.data_criacao).toLocaleDateString('pt-BR')}</span>
+                                    )}
+                                  </div>
+                                  
+                                  {alunoFicha.treinos_dia && alunoFicha.treinos_dia.length > 0 ? (
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                      {alunoFicha.treinos_dia.map((t: any) => (
+                                        <div key={t.id} className="p-2 bg-slate-50 border border-slate-200/50 rounded-xl">
+                                          <div className="font-extrabold text-[10px] text-slate-800 flex justify-between items-center mb-1">
+                                            <span className="bg-blue-50 border border-blue-200 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px]">{t.dia_semana}</span>
+                                            <span className="text-slate-500 font-semibold">{t.foco_do_dia}</span>
+                                          </div>
+                                          <p className="whitespace-pre-wrap text-[10px] font-mono text-slate-650 p-1.5 bg-white border border-slate-100 rounded leading-relaxed">{t.descricao_exercicios}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p className="text-slate-500 italic text-[10px]">Nenhum treino cadastrado na ficha ativa.</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-slate-500 italic text-[10px]">Nenhuma ficha de treino ativa encontrada.</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
               <button 
-                onClick={() => setDetailsModal(null)}
+                onClick={handleCloseDetails}
                 className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition-colors text-sm mt-2"
               >
                 Fechar

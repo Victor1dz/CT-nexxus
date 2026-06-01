@@ -32,7 +32,7 @@ export default async function AgendaPage() {
     diasStr: string,
     hInicio: string,
     hFim: string,
-    alunos: { nome: string, telefone: string }[]
+    alunos: { id: number, nome: string, telefone: string }[]
   }>()
 
   // Custom events
@@ -56,7 +56,7 @@ export default async function AgendaPage() {
         })
       }
       if (m.alunos) {
-        horarioMap.get(m.horario_id)?.alunos.push({ nome: m.alunos.nome, telefone: m.alunos.telefone || '' })
+        horarioMap.get(m.horario_id)?.alunos.push({ id: Number(m.alunos.id), nome: m.alunos.nome, telefone: m.alunos.telefone || '' })
       }
     } else if (m.dias_personalizados || m.horario_personalizado) {
       const diasStr = m.dias_personalizados || ""
@@ -75,7 +75,7 @@ export default async function AgendaPage() {
               isCustom: true,
               telefone: m.alunos?.telefone,
               modalidade: m.modalidades?.nome || 'Treino',
-              alunosList: m.alunos ? [{ nome: m.alunos.nome, telefone: m.alunos.telefone || '' }] : [],
+              alunosList: m.alunos ? [{ id: Number(m.alunos.id), nome: m.alunos.nome, telefone: m.alunos.telefone || '' }] : [],
               startTime: hInicio,
               endTime: hFim || ''
             }

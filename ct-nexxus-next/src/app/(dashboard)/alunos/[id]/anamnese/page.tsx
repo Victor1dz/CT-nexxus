@@ -7,8 +7,8 @@ import ExcluirAnamneseButton from '@/components/ExcluirAnamneseButton'
 export const dynamic = "force-dynamic"
 
 interface AnamneseData {
-  id: bigint
-  aluno_id: bigint | null
+  id: number
+  aluno_id: number | null
   data_atualizacao: Date | null
   altura: number | null
   peso: number | null
@@ -41,7 +41,7 @@ interface AnamneseData {
 
 export default async function AnamnesePage(props: { 
   params: Promise<{ id: string }>,
-  searchParams: Promise<{ avaliacao_id?: string, saved?: string, nova?: string }> 
+  searchParams: Promise<{ avaliacao_id?: string, saved?: string, nova?: string, deleted?: string }> 
 }) {
   const params = await props.params
   const searchParams = await props.searchParams
@@ -58,8 +58,8 @@ export default async function AnamnesePage(props: {
   // 1. Organizar avaliações históricas por data decrescente
   const avaliacoes: AnamneseData[] = (aluno.anamneses as any[] || []).map((a: any) => ({
     ...a,
-    id: a.id,
-    aluno_id: a.aluno_id
+    id: Number(a.id),
+    aluno_id: a.aluno_id ? Number(a.aluno_id) : null
   })).sort((a, b) => {
     const dateA = a.data_atualizacao ? new Date(a.data_atualizacao).getTime() : 0;
     const dateB = b.data_atualizacao ? new Date(b.data_atualizacao).getTime() : 0;
@@ -151,17 +151,17 @@ export default async function AnamnesePage(props: {
   return (
     <div className="w-full text-slate-800 font-sans max-w-6xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between md:items-end gap-4">
         <div>
+          <Link href="/alunos" className="text-blue-500 hover:text-blue-600 mb-2 inline-flex items-center gap-1 font-semibold transition-colors">
+            <i className="bi bi-arrow-left"></i> Voltar para Alunos
+          </Link>
           <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] flex items-center gap-3">
             <i className="bi bi-file-medical text-blue-600"></i> Ficha de Anamnese & Evolução
           </h1>
           <p className="text-slate-500 mt-2">Aluno(a): <strong className="text-blue-600 text-lg">{aluno.nome}</strong></p>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <Link href="/alunos" className="px-5 py-2.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-medium rounded-xl shadow-sm transition-all active:scale-95">
-            Voltar
-          </Link>
           <Link href={`/fichas/aluno/${alunoId}`} className="px-5 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-bold rounded-xl shadow-sm transition-all active:scale-95 flex items-center gap-2">
             <i className="bi bi-card-checklist"></i> Prescrever Treino
           </Link>
@@ -240,7 +240,7 @@ export default async function AnamnesePage(props: {
                       <td className="py-4 px-4">
                         {somaDobras > 0 ? (
                           <span className="px-2 py-0.5 bg-slate-100 border rounded-lg text-slate-700 font-medium text-xs">
-                            {somaDobras.toFixed(1)} mm
+                            {somaDobras.toFixed(1)} mm ({Number(somaDobras / 10).toFixed(1)} cm)
                           </span>
                         ) : '-'}
                       </td>
@@ -319,7 +319,17 @@ export default async function AnamnesePage(props: {
           <div className="border-b border-slate-100 bg-slate-50 p-4">
             <h5 className="font-bold text-[#2c3e50] flex items-center gap-2"><i className="bi bi-speedometer2 text-blue-500"></i> Composição e Métricas Corporais</h5>
           </div>
-          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="p-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Data da Avaliação</label>
+              <input 
+                type="datetime-local" 
+                name="data_atualizacao" 
+                defaultValue={avaliacaoAtiva.data_atualizacao ? new Date(new Date(avaliacaoAtiva.data_atualizacao).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} 
+                required 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all text-sm font-medium" 
+              />
+            </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Peso (kg)</label>
               <input type="number" step="0.1" name="peso" defaultValue={avaliacaoAtiva.peso || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 80.5" />
@@ -346,32 +356,53 @@ export default async function AnamnesePage(props: {
           </div>
           <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Bíceps (mm)</label>
-              <input type="number" step="0.1" name="dobra_biceps" defaultValue={avaliacaoAtiva.dobra_biceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 6.0" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Bíceps (mm)</span>
+                <span id="dobra_biceps_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_biceps" id="input_dobra_biceps" defaultValue={avaliacaoAtiva.dobra_biceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 6.0" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Tríceps (mm)</label>
-              <input type="number" step="0.1" name="dobra_triceps" defaultValue={avaliacaoAtiva.dobra_triceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 12.0" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Tríceps (mm)</span>
+                <span id="dobra_triceps_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_triceps" id="input_dobra_triceps" defaultValue={avaliacaoAtiva.dobra_triceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 12.0" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Subescapular (mm)</label>
-              <input type="number" step="0.1" name="dobra_subescapular" defaultValue={avaliacaoAtiva.dobra_subescapular || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 14.5" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Subescapular (mm)</span>
+                <span id="dobra_subescapular_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_subescapular" id="input_dobra_subescapular" defaultValue={avaliacaoAtiva.dobra_subescapular || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 14.5" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Suprailíaca (mm)</label>
-              <input type="number" step="0.1" name="dobra_suprailiaca" defaultValue={avaliacaoAtiva.dobra_suprailiaca || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 18.0" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Suprailíaca (mm)</span>
+                <span id="dobra_suprailiaca_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_suprailiaca" id="input_dobra_suprailiaca" defaultValue={avaliacaoAtiva.dobra_suprailiaca || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 18.0" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Peitoral (mm)</label>
-              <input type="number" step="0.1" name="dobra_peitoral" defaultValue={avaliacaoAtiva.dobra_peitoral || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 10.0" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Peitoral (mm)</span>
+                <span id="dobra_peitoral_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_peitoral" id="input_dobra_peitoral" defaultValue={avaliacaoAtiva.dobra_peitoral || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 10.0" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Abdominal (mm)</label>
-              <input type="number" step="0.1" name="dobra_abdominal" defaultValue={avaliacaoAtiva.dobra_abdominal || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 22.0" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Abdominal (mm)</span>
+                <span id="dobra_abdominal_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_abdominal" id="input_dobra_abdominal" defaultValue={avaliacaoAtiva.dobra_abdominal || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 22.0" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Coxa (mm)</label>
-              <input type="number" step="0.1" name="dobra_coxa" defaultValue={avaliacaoAtiva.dobra_coxa || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 16.5" />
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
+                <span>Coxa (mm)</span>
+                <span id="dobra_coxa_cm" className="text-blue-600 font-semibold lowercase"></span>
+              </label>
+              <input type="number" step="0.1" name="dobra_coxa" id="input_dobra_coxa" defaultValue={avaliacaoAtiva.dobra_coxa || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 16.5" />
             </div>
           </div>
         </div>
@@ -484,6 +515,30 @@ export default async function AnamnesePage(props: {
           </button>
         </div>
       </form>
+      
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function() {
+          const dobras = ['biceps', 'triceps', 'subescapular', 'suprailiaca', 'peitoral', 'abdominal', 'coxa'];
+          dobras.forEach(d => {
+            const input = document.getElementById('input_dobra_' + d);
+            const span = document.getElementById('dobra_' + d + '_cm');
+            if (input && span) {
+              const update = () => {
+                const val = parseFloat(input.value);
+                if (!isNaN(val) && val > 0) {
+                  span.innerText = (val / 10).toFixed(1) + ' cm';
+                } else {
+                  span.innerText = '';
+                }
+              };
+              input.addEventListener('input', update);
+              input.addEventListener('change', update);
+              // Rodar inicialmente
+              update();
+            }
+          });
+        })();
+      ` }} />
     </div>
   )
 }

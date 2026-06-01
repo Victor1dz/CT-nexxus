@@ -105,7 +105,7 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
 
       {/* Main Content - Editor */}
       <div className="lg:col-span-3">
-        <form action={async (formData) => { await salvarFichaTreino(formData) }} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <form key={activeFicha?.id || 'nova'} action={async (formData) => { await salvarFichaTreino(formData) }} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <input type="hidden" name="aluno_id" value={alunoId} />
           {activeFicha && !isCreating && <input type="hidden" name="ficha_id" value={activeFicha.id} />}
           <input type="hidden" name="treinos_json" value={JSON.stringify(treinos)} />
@@ -123,7 +123,7 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-600">Objetivo da Ficha</label>
                 <input type="text" name="objetivo_ficha" defaultValue={isCreating ? '' : activeFicha?.objetivo_ficha} placeholder="Ex: Hipertrofia, Adaptação, Perda de Peso..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
@@ -131,6 +131,22 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-600">Observações Extras (Opcional)</label>
                 <input type="text" name="observacoesia" defaultValue={isCreating ? '' : activeFicha?.observacoesia} placeholder="Ex: Cuidado com o joelho direito" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-600">Data de Criação</label>
+                <input 
+                  type="date" 
+                  name="data_criacao" 
+                  defaultValue={
+                    isCreating 
+                      ? new Date().toISOString().split('T')[0] 
+                      : activeFicha?.data_criacao 
+                        ? new Date(activeFicha.data_criacao).toISOString().split('T')[0] 
+                        : new Date().toISOString().split('T')[0]
+                  } 
+                  required 
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" 
+                />
               </div>
             </div>
 

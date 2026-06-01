@@ -161,8 +161,8 @@ export async function getFinanceiroData(mesString?: string) {
       }
     }
 
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
+    const firstDay = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0))
+    const lastDay = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999))
 
     const hoje = new Date()
     hoje.setUTCHours(0, 0, 0, 0)
@@ -786,6 +786,9 @@ export async function salvarAnamnese(formData: FormData) {
       sugestao += `</ul></div>`
     }
 
+    const data_atualizacao_form = formData.get('data_atualizacao') as string
+    const data_atualizacao = data_atualizacao_form ? new Date(data_atualizacao_form) : new Date()
+
     const dataObj = {
       aluno_id,
       peso, altura,
@@ -806,7 +809,7 @@ export async function salvarAnamnese(formData: FormData) {
       objetivo_principal, frequencia_atividade_fisica,
       fuma, bebe_alcool, observacoes_gerais,
       sugestao_treino_gerada: sugestao,
-      data_atualizacao: new Date()
+      data_atualizacao
     }
 
     if (anamnese_id) {
@@ -1095,7 +1098,7 @@ export async function gerarMensalidadesLote(mesString?: string) {
       // Se a matrícula inicia após o fim do mês alvo, não cobramos dela
       if (m.data_inicio) {
         const dInicio = new Date(m.data_inicio)
-        const lastDayOfTarget = new Date(year, month + 1, 0)
+        const lastDayOfTarget = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999))
         if (dInicio > lastDayOfTarget) {
           continue;
         }
@@ -1110,7 +1113,7 @@ export async function gerarMensalidadesLote(mesString?: string) {
 
       if (!existe) {
         let diaVenc = m.dia_vencimento || 10
-        let vencimento = new Date(year, month, diaVenc)
+        let vencimento = new Date(Date.UTC(year, month, diaVenc, 12, 0, 0))
         
         const compDate = new Date()
         compDate.setUTCHours(0, 0, 0, 0)
@@ -1325,6 +1328,43 @@ export async function salvarNovoAluno(formData: FormData) {
             where: { id: Number(block.matricula_id) },
             data: matriculaData
           })
+
+          // Sincronizar data de início com a primeira mensalidade não paga
+          if (matriculaData.preco_id) {
+            const precoInfo = await prisma.precos.findUnique({ where: { id: matriculaData.preco_id } })
+            if (precoInfo && precoInfo.valor) {
+              const mesAtualStr = String(dataInicio.getMonth() + 1).padStart(2, '0')
+              const anoAtualStr = dataInicio.getFullYear()
+              const novaCompetencia = `${anoAtualStr}-${mesAtualStr}`
+
+              const primeiraMensalidade = await prisma.mensalidades.findFirst({
+                where: {
+                  matricula_id: Number(block.matricula_id),
+                  status: { not: 'PAGO' }
+                },
+                orderBy: { vencimento: 'asc' }
+              })
+
+              if (primeiraMensalidade) {
+                const hoje = new Date()
+                hoje.setUTCHours(0, 0, 0, 0)
+                let statusInicial = 'PENDENTE'
+                if (dataInicio < hoje) {
+                  statusInicial = 'INADIMPLENTE'
+                }
+
+                await prisma.mensalidades.update({
+                  where: { id: primeiraMensalidade.id },
+                  data: {
+                    vencimento: dataInicio,
+                    competencia: novaCompetencia,
+                    valor: precoInfo.valor,
+                    status: statusInicial
+                  }
+                })
+              }
+            }
+          }
         } else {
           const novaMatricula = await prisma.matriculas.create({
             data: matriculaData
@@ -1410,13 +1450,21 @@ export async function salvarFichaTreino(formData: FormData) {
     const observacoesia = formData.get('observacoesia') as string
     const ativa = formData.get('ativa') === 'on'
     const treinosJson = formData.get('treinos_json') as string
+    const data_criacao_form = formData.get('data_criacao') as string
+    const data_criacao = data_criacao_form ? new Date(data_criacao_form + 'T12:00:00') : new Date()
 
     let fichaIdToUse = ficha_id
 
     if (fichaIdToUse) {
       await prisma.fichas_treino.update({
         where: { id: fichaIdToUse },
-        data: { objetivo_ficha, observacoesia, ativa }
+        data: { 
+          objetivo_ficha, 
+          observacoesia, 
+          ativa,
+          data_criacao,
+          data_inicio: data_criacao
+        }
       })
       // Clear old treinos to insert new ones
       await prisma.treinos_dia.deleteMany({
@@ -1429,8 +1477,8 @@ export async function salvarFichaTreino(formData: FormData) {
           objetivo_ficha,
           observacoesia,
           ativa,
-          data_criacao: new Date(),
-          data_inicio: new Date()
+          data_criacao: data_criacao,
+          data_inicio: data_criacao
         }
       })
       fichaIdToUse = Number(novaFicha.id)
@@ -1522,5 +1570,35 @@ export async function excluirAnamnese(id: number) {
   } catch (error) {
     console.error('Erro ao excluir anamnese:', error)
     return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+export async function getFichaTreinoAtivaDoAluno(alunoId: number) {
+  try {
+    const ficha = await prisma.fichas_treino.findFirst({
+      where: { aluno_id: alunoId, ativa: true },
+      include: { treinos_dia: true }
+    })
+    
+    if (!ficha) return null;
+
+    return {
+      id: Number(ficha.id),
+      aluno_id: Number(ficha.aluno_id),
+      ativa: ficha.ativa,
+      data_criacao: ficha.data_criacao ? ficha.data_criacao.toISOString() : null,
+      objetivo_ficha: ficha.objetivo_ficha,
+      observacoesia: ficha.observacoesia,
+      treinos_dia: ficha.treinos_dia.map((t: any) => ({
+        id: Number(t.id),
+        ficha_treino_id: Number(t.ficha_treino_id),
+        dia_semana: t.dia_semana,
+        foco_do_dia: t.foco_do_dia,
+        descricao_exercicios: t.descricao_exercicios
+      }))
+    }
+  } catch (error) {
+    console.error('Erro ao buscar ficha ativa do aluno:', error)
+    return null
   }
 }
