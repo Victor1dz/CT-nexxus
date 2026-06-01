@@ -145,7 +145,22 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                           return `- *${m.matriculas?.modalidades?.nome || 'Plano'}*: R$ ${Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (Vencimento: ${vStr} - *${statusStr}*)`;
                         }).join('\n');
 
-                        const waText = encodeURIComponent(`Olá *${g.aluno?.nome || ''}*! Segue o resumo das suas mensalidades do CT Nexxus:\n\n${msgLines}\n\nPor favor, se tiver pendências, realize o pagamento. Muito obrigado! 💪🥋`);
+                        // Verificar a situação geral do aluno para definir a severidade do texto
+                        const temAtrasado = g.mensalidades.some((m: any) => m.status === 'INADIMPLENTE');
+                        const temPendente = g.mensalidades.some((m: any) => m.status === 'PENDENTE' || m.status === 'PENDENTE_MANUAL');
+                        const todasPagas = g.mensalidades.every((m: any) => m.status === 'PAGO');
+
+                        let saudacao = "";
+                        if (todasPagas) {
+                          saudacao = `Confirmamos o recebimento do seu pagamento das mensalidades do CT Nexxus:\n\n${msgLines}\n\nTudo pago e regularizado! Muito obrigado e excelentes treinos! 💪🥋`;
+                        } else if (temAtrasado) {
+                          saudacao = `Identificamos que o pagamento da sua mensalidade no CT Nexxus está pendente e já passou da data de vencimento:\n\n${msgLines}\n\nPedimos a gentileza de realizar o pagamento o quanto antes para regularizar sua situação e evitar bloqueios. Agradecemos a compreensão.`;
+                        } else {
+                          saudacao = `Passando para lembrar que a sua mensalidade do CT Nexxus está em aberto:\n\n${msgLines}\n\nSe puder, realize o pagamento para manter tudo em dia. Muito obrigado! 💪🥋`;
+                        }
+
+                        const formasPgto = `\n\n*Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 🔑\n• Dinheiro 💵\n• Cartão 💳`;
+                        const waText = encodeURIComponent(`Olá, *${g.aluno?.nome || ''}*!\n\n${saudacao}${formasPgto}`);
                         
                         return (
                           <tr key={`aluno-row-${g.aluno?.id || 'unk'}`} className="hover:bg-slate-50 transition-colors">

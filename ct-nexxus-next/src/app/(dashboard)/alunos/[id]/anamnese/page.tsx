@@ -2,6 +2,7 @@ import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { salvarAnamnese } from '@/app/actions'
+import ExcluirAnamneseButton from '@/components/ExcluirAnamneseButton'
 
 export const dynamic = "force-dynamic"
 
@@ -173,6 +174,12 @@ export default async function AnamnesePage(props: {
         </div>
       )}
 
+      {searchParams.deleted && (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl font-medium animate-in fade-in duration-300">
+          <i className="bi bi-trash-fill"></i> Avaliação física excluída com sucesso!
+        </div>
+      )}
+
       {/* Evolução Física e Comparativo */}
       {avaliacoes.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 overflow-hidden">
@@ -279,7 +286,7 @@ export default async function AnamnesePage(props: {
         <input type="hidden" name="aluno_id" value={alunoId} />
         <input type="hidden" name="anamnese_id" value={isNova ? 'novo' : String(avaliacaoAtiva.id || '')} />
         
-        <div className="bg-slate-100/50 border border-slate-200/80 p-4 rounded-xl text-xs font-bold text-slate-500 flex items-center justify-between">
+        <div className="bg-slate-100/50 border border-slate-200/80 p-4 rounded-xl text-xs font-bold text-slate-500 flex items-center justify-between gap-4">
           <span>
             {isNova ? (
               <span className="text-emerald-700 flex items-center gap-1.5">
@@ -292,6 +299,14 @@ export default async function AnamnesePage(props: {
               </span>
             )}
           </span>
+          
+          {!isNova && avaliacaoAtiva.id && (
+            <ExcluirAnamneseButton 
+              anamneseId={Number(avaliacaoAtiva.id)} 
+              alunoId={alunoId} 
+            />
+          )}
+
           {isNova && avaliacoes.length > 0 && (
             <span className="text-[11px] font-normal italic text-slate-400">
               * Dados médicos e hábitos foram copiados da última avaliação para facilitar o preenchimento.

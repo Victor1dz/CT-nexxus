@@ -1512,3 +1512,15 @@ export async function excluirLembrete(formData: FormData) {
     return { success: false }
   }
 }
+
+export async function excluirAnamnese(id: number) {
+  try {
+    await prisma.anamneses.delete({
+      where: { id }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro ao excluir anamnese:', error)
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
