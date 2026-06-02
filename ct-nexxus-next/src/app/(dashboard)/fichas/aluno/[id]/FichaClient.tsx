@@ -10,13 +10,11 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
 
   // State for a new/editing ficha
   const [treinos, setTreinos] = useState<any[]>(activeFicha?.treinos_dia || [
-    { dia_semana: "Treino A", foco_do_dia: "", descricao_exercicios: "" }
+    { dia_semana: "Segunda-feira", foco_do_dia: "", descricao_exercicios: "" }
   ])
 
   const handleAddTreino = () => {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    const nextLetter = letters[treinos.length] || String(treinos.length + 1)
-    setTreinos([...treinos, { dia_semana: `Treino ${nextLetter}`, foco_do_dia: "", descricao_exercicios: "" }])
+    setTreinos([...treinos, { dia_semana: "Segunda-feira", foco_do_dia: "", descricao_exercicios: "" }])
   }
 
   const handleRemoveTreino = (index: number) => {
@@ -35,9 +33,21 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
       setActiveFicha(ficha)
       setIsCreating(false)
     } else {
-      setTreinos([{ dia_semana: "Treino A", foco_do_dia: "", descricao_exercicios: "" }])
+      setTreinos([{ dia_semana: "Segunda-feira", foco_do_dia: "", descricao_exercicios: "" }])
       setActiveFicha(null)
       setIsCreating(true)
+    }
+  }
+
+  let objetivoFicha = ""
+  let mesReferencia = ""
+  if (activeFicha?.objetivo_ficha) {
+    if (activeFicha.objetivo_ficha.includes(' - ')) {
+      const parts = activeFicha.objetivo_ficha.split(' - ')
+      mesReferencia = parts[0]
+      objetivoFicha = parts[1]
+    } else {
+      objetivoFicha = activeFicha.objetivo_ficha
     }
   }
 
@@ -123,10 +133,31 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-600">Objetivo da Ficha</label>
-                <input type="text" name="objetivo_ficha" defaultValue={isCreating ? '' : activeFicha?.objetivo_ficha} placeholder="Ex: Hipertrofia, Adaptação, Perda de Peso..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+                <input type="text" name="objetivo_ficha" defaultValue={isCreating ? '' : objetivoFicha} placeholder="Ex: Hipertrofia, Adaptação..." required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-600">Mês de Referência</label>
+                <select 
+                  name="mes_referencia" 
+                  defaultValue={mesReferencia || new Date().toLocaleDateString('pt-BR', { month: 'long' })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner cursor-pointer capitalize font-medium"
+                >
+                  <option value="Janeiro">Janeiro</option>
+                  <option value="Fevereiro">Fevereiro</option>
+                  <option value="Março">Março</option>
+                  <option value="Abril">Abril</option>
+                  <option value="Maio">Maio</option>
+                  <option value="Junho">Junho</option>
+                  <option value="Julho">Julho</option>
+                  <option value="Agosto">Agosto</option>
+                  <option value="Setembro">Setembro</option>
+                  <option value="Outubro">Outubro</option>
+                  <option value="Novembro">Novembro</option>
+                  <option value="Dezembro">Dezembro</option>
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-600">Observações Extras (Opcional)</label>
@@ -164,13 +195,20 @@ export default function FichaClient({ alunoId, fichas, anamnese }: any) {
                 <div key={index} className="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50/50">
                   <div className="bg-slate-100/50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                     <div className="flex items-center gap-4 flex-1">
-                      <input 
-                        type="text" 
-                        value={treino.dia_semana} 
+                      <select 
+                        value={treino.dia_semana || "Segunda-feira"} 
                         onChange={(e) => handleTreinoChange(index, 'dia_semana', e.target.value)}
-                        className="font-bold text-slate-800 bg-transparent border-b border-dashed border-slate-400 focus:border-blue-500 focus:outline-none px-1 py-0.5 w-32"
-                        placeholder="Treino A"
-                      />
+                        className="font-extrabold text-slate-800 bg-transparent border-b border-dashed border-slate-400 focus:border-blue-500 focus:outline-none px-1 py-0.5 w-40 cursor-pointer text-sm"
+                      >
+                        <option value="Segunda-feira">Segunda-feira</option>
+                        <option value="Terça-feira">Terça-feira</option>
+                        <option value="Quarta-feira">Quarta-feira</option>
+                        <option value="Quinta-feira">Quinta-feira</option>
+                        <option value="Sexta-feira">Sexta-feira</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                        <option value="Livre">Livre / A Combinar</option>
+                      </select>
                       <input 
                         type="text" 
                         value={treino.foco_do_dia} 

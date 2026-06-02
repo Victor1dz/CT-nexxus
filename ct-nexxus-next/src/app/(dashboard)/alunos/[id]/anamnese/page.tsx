@@ -357,52 +357,52 @@ export default async function AnamnesePage(props: {
           <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Bíceps (mm)</span>
-                <span id="dobra_biceps_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Bíceps (cm)</span>
+                <span id="dobra_biceps_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_biceps" id="input_dobra_biceps" defaultValue={avaliacaoAtiva.dobra_biceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 6.0" />
+              <input type="number" step="0.1" name="dobra_biceps" id="input_dobra_biceps" defaultValue={avaliacaoAtiva.dobra_biceps ? (avaliacaoAtiva.dobra_biceps / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 0.6" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Tríceps (mm)</span>
-                <span id="dobra_triceps_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Tríceps (cm)</span>
+                <span id="dobra_triceps_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_triceps" id="input_dobra_triceps" defaultValue={avaliacaoAtiva.dobra_triceps || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 12.0" />
+              <input type="number" step="0.1" name="dobra_triceps" id="input_dobra_triceps" defaultValue={avaliacaoAtiva.dobra_triceps ? (avaliacaoAtiva.dobra_triceps / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 1.2" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Subescapular (mm)</span>
-                <span id="dobra_subescapular_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Subescapular (cm)</span>
+                <span id="dobra_subescapular_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_subescapular" id="input_dobra_subescapular" defaultValue={avaliacaoAtiva.dobra_subescapular || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 14.5" />
+              <input type="number" step="0.1" name="dobra_subescapular" id="input_dobra_subescapular" defaultValue={avaliacaoAtiva.dobra_subescapular ? (avaliacaoAtiva.dobra_subescapular / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 1.4" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Suprailíaca (mm)</span>
-                <span id="dobra_suprailiaca_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Suprailíaca (cm)</span>
+                <span id="dobra_suprailiaca_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_suprailiaca" id="input_dobra_suprailiaca" defaultValue={avaliacaoAtiva.dobra_suprailiaca || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 18.0" />
+              <input type="number" step="0.1" name="dobra_suprailiaca" id="input_dobra_suprailiaca" defaultValue={avaliacaoAtiva.dobra_suprailiaca ? (avaliacaoAtiva.dobra_suprailiaca / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 1.8" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Peitoral (mm)</span>
-                <span id="dobra_peitoral_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Peitoral (cm)</span>
+                <span id="dobra_peitoral_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_peitoral" id="input_dobra_peitoral" defaultValue={avaliacaoAtiva.dobra_peitoral || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 10.0" />
+              <input type="number" step="0.1" name="dobra_peitoral" id="input_dobra_peitoral" defaultValue={avaliacaoAtiva.dobra_peitoral ? (avaliacaoAtiva.dobra_peitoral / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 1.0" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Abdominal (mm)</span>
-                <span id="dobra_abdominal_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Abdominal (cm)</span>
+                <span id="dobra_abdominal_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_abdominal" id="input_dobra_abdominal" defaultValue={avaliacaoAtiva.dobra_abdominal || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 22.0" />
+              <input type="number" step="0.1" name="dobra_abdominal" id="input_dobra_abdominal" defaultValue={avaliacaoAtiva.dobra_abdominal ? (avaliacaoAtiva.dobra_abdominal / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 2.2" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2 flex justify-between">
-                <span>Coxa (mm)</span>
-                <span id="dobra_coxa_cm" className="text-blue-600 font-semibold lowercase"></span>
+                <span>Coxa (cm)</span>
+                <span id="dobra_coxa_mm" className="text-blue-600 font-semibold lowercase"></span>
               </label>
-              <input type="number" step="0.1" name="dobra_coxa" id="input_dobra_coxa" defaultValue={avaliacaoAtiva.dobra_coxa || ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 16.5" />
+              <input type="number" step="0.1" name="dobra_coxa" id="input_dobra_coxa" defaultValue={avaliacaoAtiva.dobra_coxa ? (avaliacaoAtiva.dobra_coxa / 10).toFixed(1) : ''} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 focus:outline-none transition-all" placeholder="Ex: 1.6" />
             </div>
           </div>
         </div>
@@ -521,12 +521,12 @@ export default async function AnamnesePage(props: {
           const dobras = ['biceps', 'triceps', 'subescapular', 'suprailiaca', 'peitoral', 'abdominal', 'coxa'];
           dobras.forEach(d => {
             const input = document.getElementById('input_dobra_' + d);
-            const span = document.getElementById('dobra_' + d + '_cm');
+            const span = document.getElementById('dobra_' + d + '_mm');
             if (input && span) {
               const update = () => {
                 const val = parseFloat(input.value);
                 if (!isNaN(val) && val > 0) {
-                  span.innerText = (val / 10).toFixed(1) + ' cm';
+                  span.innerText = (val * 10).toFixed(0) + ' mm';
                 } else {
                   span.innerText = '';
                 }

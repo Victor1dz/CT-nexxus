@@ -5,7 +5,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { salvarLembrete, excluirLembrete, getFichaTreinoAtivaDoAluno } from '@/app/actions'
+import { salvarLembrete, excluirLembrete, getFichaTreinoAtivaDoAluno, salvarDescricaoExercicioDoTreino } from '@/app/actions'
 
 interface Lembrete {
   id: number
@@ -17,6 +17,122 @@ interface Lembrete {
 interface Props {
   initialEvents: any[]
   initialLembretes: Lembrete[]
+}
+
+function AlunoTreinoItem({ 
+  treino, 
+  eventDayOfWeek, 
+  onUpdate 
+}: { 
+  treino: any
+  eventDayOfWeek: string
+  onUpdate: (updatedTreino: any) => void 
+}) {
+  const isToday = treino.dia_semana?.toLowerCase() === eventDayOfWeek?.toLowerCase()
+  const [isExpanded, setIsExpanded] = useState(isToday)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedDescricao, setEditedDescricao] = useState(treino.descricao_exercicios || "")
+  const [saving, setSaving] = useState(false)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const res = await salvarDescricaoExercicioDoTreino(treino.id, editedDescricao)
+      if (res.success) {
+        onUpdate({ ...treino, descricao_exercicios: editedDescricao })
+        setIsEditing(false)
+      } else {
+        alert("Erro ao salvar treino: " + res.error)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Erro ao salvar treino.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className={`border rounded-2xl overflow-hidden transition-all duration-200 bg-white ${isToday ? 'border-blue-300 ring-2 ring-blue-500/10' : 'border-slate-200'}`}>
+      <div 
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex justify-between items-center cursor-pointer select-none hover:bg-slate-100/50 transition-colors"
+      >
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <i className={`bi ${isExpanded ? 'bi-chevron-down' : 'bi-chevron-right'} text-slate-400 text-xs`}></i>
+          {isToday ? (
+            <span className="bg-blue-600 text-white px-2 py-0.5 rounded-lg font-extrabold uppercase tracking-wider text-[9px] flex items-center gap-1 shrink-0 shadow-sm animate-pulse">
+              🔥 Hoje
+            </span>
+          ) : null}
+          <span className="bg-slate-200/80 text-slate-700 px-2 py-0.5 rounded-lg font-extrabold uppercase tracking-wider text-[9px] shrink-0">
+            {treino.dia_semana}
+          </span>
+          <span className="text-slate-500 font-bold text-xs truncate ml-1">{treino.foco_do_dia}</span>
+        </div>
+      </div>
+      
+      {isExpanded && (
+        <div className="p-4 bg-white space-y-3">
+          {isEditing ? (
+            <div className="space-y-2">
+              <textarea
+                value={editedDescricao}
+                onChange={(e) => setEditedDescricao(e.target.value)}
+                className="w-full min-h-[140px] bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono text-xs shadow-inner animate-in fade-in duration-200"
+                placeholder="Digite os exercícios do aluno..."
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedDescricao(treino.descricao_exercicios || "")
+                  }}
+                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl text-[10px] transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSave}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-[10px] transition-colors flex items-center gap-1 shadow-sm"
+                >
+                  {saving ? (
+                    <>
+                      <i className="bi bi-arrow-repeat animate-spin"></i> Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-check-lg"></i> Salvar
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="relative group">
+              <p className="whitespace-pre-wrap text-[10px] font-mono text-slate-650 bg-slate-50/50 border border-slate-100 rounded-xl p-3 leading-relaxed min-h-[60px] animate-in fade-in duration-205">
+                {treino.descricao_exercicios || (
+                  <span className="italic text-slate-400">Nenhum exercício cadastrado para este dia.</span>
+                )}
+              </p>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="absolute right-2 top-2 p-1.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-all opacity-0 group-hover:opacity-100 shadow-sm"
+                title="Editar treino"
+              >
+                <i className="bi bi-pencil-fill text-[9px]"></i>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
@@ -90,6 +206,17 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
     } else if (extendedProps?.isBloqueio) {
       // do nothing for blockages
     } else {
+      const diasSemanaMap = [
+        "Domingo",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado"
+      ]
+      const eventDayOfWeek = start ? diasSemanaMap[start.getDay()] : ""
+
       // Show details modal for training/classes
       setDetailsModal({
         title,
@@ -98,7 +225,8 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
         isCustom: extendedProps.isCustom,
         telefone: extendedProps.telefone,
         startTime: extendedProps.startTime || '',
-        endTime: extendedProps.endTime || ''
+        endTime: extendedProps.endTime || '',
+        eventDayOfWeek
       })
     }
   }
@@ -449,15 +577,21 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                                   </div>
                                   
                                   {alunoFicha.treinos_dia && alunoFicha.treinos_dia.length > 0 ? (
-                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                                       {alunoFicha.treinos_dia.map((t: any) => (
-                                        <div key={t.id} className="p-2 bg-slate-50 border border-slate-200/50 rounded-xl">
-                                          <div className="font-extrabold text-[10px] text-slate-800 flex justify-between items-center mb-1">
-                                            <span className="bg-blue-50 border border-blue-200 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider text-[9px]">{t.dia_semana}</span>
-                                            <span className="text-slate-500 font-semibold">{t.foco_do_dia}</span>
-                                          </div>
-                                          <p className="whitespace-pre-wrap text-[10px] font-mono text-slate-650 p-1.5 bg-white border border-slate-100 rounded leading-relaxed">{t.descricao_exercicios}</p>
-                                        </div>
+                                        <AlunoTreinoItem 
+                                          key={t.id} 
+                                          treino={t} 
+                                          eventDayOfWeek={detailsModal.eventDayOfWeek} 
+                                          onUpdate={(updatedTreino) => {
+                                            setAlunoFicha((prev: any) => ({
+                                              ...prev,
+                                              treinos_dia: prev.treinos_dia.map((td: any) => 
+                                                td.id === updatedTreino.id ? updatedTreino : td
+                                              )
+                                            }))
+                                          }}
+                                        />
                                       ))}
                                     </div>
                                   ) : (

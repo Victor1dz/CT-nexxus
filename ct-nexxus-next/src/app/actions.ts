@@ -597,13 +597,13 @@ export async function salvarAnamnese(formData: FormData) {
     const massa_muscular = formData.get('massa_muscular') ? Number(formData.get('massa_muscular')) : null
     const massa_gorda = formData.get('massa_gorda') ? Number(formData.get('massa_gorda')) : null
 
-    const dobra_biceps = formData.get('dobra_biceps') ? Number(formData.get('dobra_biceps')) : null
-    const dobra_triceps = formData.get('dobra_triceps') ? Number(formData.get('dobra_triceps')) : null
-    const dobra_subescapular = formData.get('dobra_subescapular') ? Number(formData.get('dobra_subescapular')) : null
-    const dobra_suprailiaca = formData.get('dobra_suprailiaca') ? Number(formData.get('dobra_suprailiaca')) : null
-    const dobra_peitoral = formData.get('dobra_peitoral') ? Number(formData.get('dobra_peitoral')) : null
-    const dobra_abdominal = formData.get('dobra_abdominal') ? Number(formData.get('dobra_abdominal')) : null
-    const dobra_coxa = formData.get('dobra_coxa') ? Number(formData.get('dobra_coxa')) : null
+    const dobra_biceps = formData.get('dobra_biceps') ? Number(formData.get('dobra_biceps')) * 10 : null
+    const dobra_triceps = formData.get('dobra_triceps') ? Number(formData.get('dobra_triceps')) * 10 : null
+    const dobra_subescapular = formData.get('dobra_subescapular') ? Number(formData.get('dobra_subescapular')) * 10 : null
+    const dobra_suprailiaca = formData.get('dobra_suprailiaca') ? Number(formData.get('dobra_suprailiaca')) * 10 : null
+    const dobra_peitoral = formData.get('dobra_peitoral') ? Number(formData.get('dobra_peitoral')) * 10 : null
+    const dobra_abdominal = formData.get('dobra_abdominal') ? Number(formData.get('dobra_abdominal')) * 10 : null
+    const dobra_coxa = formData.get('dobra_coxa') ? Number(formData.get('dobra_coxa')) * 10 : null
     
     const possui_problema_cardiaco = formData.get('possui_problema_cardiaco') === 'on'
     const detalhe_problema_cardiaco = formData.get('detalhe_problema_cardiaco') as string
@@ -1446,7 +1446,9 @@ export async function salvarFichaTreino(formData: FormData) {
   try {
     const aluno_id = Number(formData.get('aluno_id'))
     const ficha_id = formData.get('ficha_id') ? Number(formData.get('ficha_id')) : null
-    const objetivo_ficha = formData.get('objetivo_ficha') as string
+    const objetivo_ficha_input = formData.get('objetivo_ficha') as string
+    const mes_referencia = formData.get('mes_referencia') as string
+    const objetivo_ficha = mes_referencia ? `${mes_referencia} - ${objetivo_ficha_input}` : objetivo_ficha_input
     const observacoesia = formData.get('observacoesia') as string
     const ativa = formData.get('ativa') === 'on'
     const treinosJson = formData.get('treinos_json') as string
@@ -1600,5 +1602,18 @@ export async function getFichaTreinoAtivaDoAluno(alunoId: number) {
   } catch (error) {
     console.error('Erro ao buscar ficha ativa do aluno:', error)
     return null
+  }
+}
+
+export async function salvarDescricaoExercicioDoTreino(treinoId: number, descricao: string) {
+  try {
+    await prisma.treinos_dia.update({
+      where: { id: treinoId },
+      data: { descricao_exercicios: descricao }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error('Erro salvarDescricaoExercicioDoTreino:', error)
+    return { success: false, error: error instanceof Error ? error.message : String(error) }
   }
 }
