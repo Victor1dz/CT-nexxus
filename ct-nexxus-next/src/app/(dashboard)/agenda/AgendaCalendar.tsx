@@ -307,30 +307,30 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
             // Training Classes Styling
             return (
               <div 
-                className="p-3 overflow-hidden flex flex-col h-full cursor-pointer hover:scale-[1.01] transition-transform rounded-xl border text-white shadow-md"
+                className="p-1.5 md:p-2 overflow-hidden flex flex-col h-full cursor-pointer hover:scale-[1.01] transition-transform rounded-xl border text-white shadow-md"
                 style={{ 
                   background: getGradient(title),
                   borderColor: getBorderColor(title)
                 }}
               >
-                <div className="font-extrabold text-sm uppercase tracking-wide leading-snug line-clamp-1">
+                <div className="font-extrabold text-[10px] md:text-xs uppercase tracking-wide leading-tight truncate shrink-0">
                   {title.split(' (')[0]}
                 </div>
                 
                 {extendedProps?.isCustom && extendedProps?.telefone && (
-                  <div className="text-[10px] font-semibold opacity-90 mt-1 bg-white/20 px-2 py-0.5 rounded-full w-fit">
+                  <div className="text-[8px] md:text-[9px] font-semibold opacity-95 mt-0.5 bg-white/20 px-1.5 py-0.5 rounded-md w-fit truncate shrink-0">
                     📱 {extendedProps.telefone}
                   </div>
                 )}
 
-                {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && (
-                  <div className="mt-2 flex-1 overflow-hidden flex flex-col gap-1">
-                    <div className="text-[9px] font-bold uppercase tracking-wider opacity-75 border-b border-white/20 pb-0.5 mb-1">
+                {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && !extendedProps.isCustom && (
+                  <div className="mt-1 flex-1 overflow-hidden flex flex-col gap-0.5">
+                    <div className="text-[8px] font-bold uppercase tracking-wider opacity-75 border-b border-white/20 pb-0.5 mb-0.5 shrink-0">
                       Alunos ({extendedProps.alunosList.length}):
                     </div>
-                    <div className="flex flex-wrap gap-1 max-h-[45px] overflow-hidden">
+                    <div className="flex flex-wrap gap-1 max-h-[30px] overflow-hidden">
                       {extendedProps.alunosList.map((aluno: any, i: number) => (
-                        <span key={i} className="text-[9px] font-bold bg-white/20 px-1.5 py-0.5 rounded-md truncate max-w-[80px]">
+                        <span key={i} className="text-[8px] font-bold bg-white/20 px-1 py-0.5 rounded-md truncate max-w-[70px]">
                           {aluno.nome.split(' ')[0]}
                         </span>
                       ))}

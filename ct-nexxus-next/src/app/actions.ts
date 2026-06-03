@@ -90,15 +90,80 @@ export async function salvarModalidade(formData: FormData) {
   const descricao = formData.get('descricao') as string
   const ativa = formData.get('ativa') === 'on'
   const exige_horario = formData.get('exige_horario') === 'on'
+  const horarios_json = formData.get('horarios_json') as string
 
   try {
     const dataObj = { nome, descricao, ativa, exige_horario }
+    let modalidadeId = id
     if (id) {
       await prisma.modalidades.update({ where: { id }, data: dataObj })
     } else {
-      await prisma.modalidades.create({ data: dataObj })
+      const nova = await prisma.modalidades.create({ data: dataObj })
+      modalidadeId = Number(nova.id)
     }
+
+    if (horarios_json && modalidadeId) {
+      const submittedHorarios = JSON.parse(horarios_json)
+      const submittedIds = submittedHorarios.map((h: any) => h.id).filter(Boolean).map(Number)
+
+      // 1. Delete/Deactivate old schedules that are not in the submitted list (or all of them if exige_horario is true)
+      const existingHorarios = await prisma.horarios.findMany({
+        where: { modalidade_id: modalidadeId }
+      })
+
+      for (const existing of existingHorarios) {
+        if (exige_horario || !submittedIds.includes(Number(existing.id))) {
+          // Check if referenced by any active matriculas
+          const referenced = await prisma.matriculas.findFirst({
+            where: { horario_id: existing.id }
+          })
+          if (referenced) {
+            await prisma.horarios.update({
+              where: { id: existing.id },
+              data: { ativo: false }
+            })
+          } else {
+            await prisma.horarios.delete({
+              where: { id: existing.id }
+            })
+          }
+        }
+      }
+
+      // 2. Insert or Update submitted schedules (only if not exige_horario)
+      if (!exige_horario) {
+        for (const h of submittedHorarios) {
+          const hora_inicio = h.hora_inicio ? new Date(`1970-01-01T${h.hora_inicio}:00.000Z`) : null
+          const hora_fim = h.hora_fim ? new Date(`1970-01-01T${h.hora_fim}:00.000Z`) : null
+          const dias_semana = h.dias.join(', ')
+
+          if (h.id) {
+            await prisma.horarios.update({
+              where: { id: Number(h.id) },
+              data: {
+                dias_semana,
+                hora_inicio,
+                hora_fim,
+                ativo: true
+              }
+            })
+          } else {
+            await prisma.horarios.create({
+              data: {
+                modalidade_id: modalidadeId,
+                dias_semana,
+                hora_inicio,
+                hora_fim,
+                ativo: true
+              }
+            })
+          }
+        }
+      }
+    }
+
     revalidatePath('/modalidades')
+    revalidatePath('/horarios')
     return { success: true }
   } catch (error) {
     console.error('Erro salvarModalidade:', error)

@@ -75,6 +75,33 @@ export default async function PrecoFormPage(props: { searchParams: Promise<{ mod
           </button>
         </div>
       </form>
+
+      <script dangerouslySetInnerHTML={{ __html: `
+        (function() {
+          const select = document.querySelector('select[name="frequencia_semanal"]');
+          const inputDesc = document.querySelector('input[name="descricao"]');
+          if (select && inputDesc) {
+            const updateDesc = () => {
+              const val = select.value;
+              let text = "";
+              if (val === "6") {
+                text = "Todos os dias";
+              } else {
+                text = "Até " + val + "x na semana";
+              }
+              const currentVal = inputDesc.value;
+              const autoFormats = ["Todos os dias", "Até 1x na semana", "Até 2x na semana", "Até 3x na semana", "Até 4x na semana", "Até 5x na semana"];
+              if (currentVal === "" || autoFormats.includes(currentVal)) {
+                inputDesc.value = text;
+              }
+            };
+            select.addEventListener('change', updateDesc);
+            if (inputDesc.value === "") {
+              updateDesc();
+            }
+          }
+        })();
+      ` }} />
     </div>
   )
 }

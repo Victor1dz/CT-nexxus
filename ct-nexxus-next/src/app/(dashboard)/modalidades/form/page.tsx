@@ -1,7 +1,6 @@
 import prisma from '@/lib/prisma'
-import Link from 'next/link'
-import { redirect } from 'next/navigation'
-import { salvarModalidade } from '@/app/actions'
+import { notFound } from 'next/navigation'
+import ModalidadesFormClient from './ModalidadesFormClient'
 
 export const dynamic = "force-dynamic"
 
@@ -10,63 +9,41 @@ export default async function ModalidadesFormPage(props: { searchParams: Promise
   const modalidadeId = searchParams.id ? Number(searchParams.id) : null
 
   let modalidade = null
+  let horarios: any[] = []
+
   if (modalidadeId) {
     modalidade = await prisma.modalidades.findUnique({ where: { id: modalidadeId } })
+    if (!modalidade) {
+      notFound()
+    }
+    horarios = await prisma.horarios.findMany({
+      where: { modalidade_id: modalidadeId },
+      orderBy: { hora_inicio: 'asc' }
+    })
   }
 
-  async function handleSalvar(formData: FormData) {
-    "use server"
-    await salvarModalidade(formData)
-    redirect(`/modalidades`)
-  }
+  // Convert database types to simple serializable objects for Client Component
+  const serializableModalidade = modalidade ? {
+    id: Number(modalidade.id),
+    nome: modalidade.nome,
+    descricao: modalidade.descricao,
+    ativa: modalidade.ativa,
+    exige_horario: modalidade.exige_horario
+  } : null
+
+  const serializableHorarios = horarios.map((h: any) => ({
+    id: Number(h.id),
+    modalidade_id: h.modalidade_id ? Number(h.modalidade_id) : null,
+    dias_semana: h.dias_semana,
+    hora_inicio: h.hora_inicio ? h.hora_inicio.toISOString() : null,
+    hora_fim: h.hora_fim ? h.hora_fim.toISOString() : null,
+    ativo: h.ativo
+  }))
 
   return (
-    <div className="w-full text-slate-800 font-sans max-w-2xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[#2c3e50] mb-2">
-          {modalidadeId ? 'Editar Modalidade' : 'Nova Modalidade'}
-        </h1>
-        <p className="text-slate-500">
-          Gerencie as modalidades de treino oferecidas.
-        </p>
-      </div>
-
-      <form action={handleSalvar} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        {modalidadeId && <input type="hidden" name="id" value={modalidadeId} />}
-
-        <div className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Nome da Modalidade</label>
-            <input type="text" name="nome" defaultValue={modalidade?.nome || ''} placeholder="ex: Musculação" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2980b9] focus:outline-none" required />
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Descrição (Opcional)</label>
-            <textarea name="descricao" defaultValue={modalidade?.descricao || ''} rows={3} placeholder="Breve descrição da modalidade" className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#2980b9] focus:outline-none"></textarea>
-          </div>
-
-          <div className="flex gap-8 border-t border-slate-100 pt-6">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" name="ativa" defaultChecked={modalidade ? modalidade.ativa : true} className="w-5 h-5 rounded text-emerald-600 focus:ring-emerald-500" />
-              <span className="font-bold text-slate-700">Modalidade Ativa</span>
-            </label>
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" name="exige_horario" defaultChecked={modalidade?.exige_horario || false} className="w-5 h-5 rounded text-[#2980b9] focus:ring-[#2980b9]" />
-              <span className="font-bold text-slate-700">Horário "A Combinar"</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="bg-slate-50 border-t border-slate-100 p-6 flex justify-end gap-3">
-          <Link href="/modalidades" className="px-6 py-2.5 bg-white border border-slate-300 text-slate-700 font-bold rounded-xl shadow-sm hover:bg-slate-100 transition-colors">
-            Cancelar
-          </Link>
-          <button type="submit" className="px-6 py-2.5 bg-[#2980b9] hover:bg-[#206a99] text-white font-bold rounded-xl shadow-sm transition-colors">
-            Salvar Modalidade
-          </button>
-        </div>
-      </form>
-    </div>
+    <ModalidadesFormClient 
+      modalidade={serializableModalidade} 
+      initialHorarios={serializableHorarios} 
+    />
   )
 }
