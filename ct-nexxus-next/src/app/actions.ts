@@ -1253,14 +1253,16 @@ export async function salvarNovoAluno(formData: FormData) {
     const logradouro = formData.get('logradouro') as string
     const numero = formData.get('numero') as string
     const bairro = formData.get('bairro') as string
-    const cidade = formData.get('cidade') as string
+    const city = formData.get('cidade') as string
     const uf = formData.get('uf') as string
+    const data_cadastro_form = formData.get('data_cadastro') as string
+    const data_cadastro = data_cadastro_form ? new Date(data_cadastro_form + 'T12:00:00') : new Date()
     const blocksJson = formData.get('blocks_json') as string
     const ativo = formData.get('ativo') !== 'off'
 
     // 1. Create or Update Aluno
     let aluno;
-    const alunoData = { nome, telefone, cpf, cep, logradouro, numero, bairro, cidade, uf, ativo }
+    const alunoData = { nome, telefone, cpf, cep, logradouro, numero, bairro, cidade: city, uf, ativo, data_cadastro }
     
     if (aluno_id) {
       aluno = await prisma.alunos.update({
@@ -1346,6 +1348,8 @@ export async function salvarNovoAluno(formData: FormData) {
 
         // Prepare matricula
         const dataInicio = block.data_inicio ? new Date(block.data_inicio + 'T12:00:00') : new Date()
+        const dataFim = new Date(dataInicio)
+        dataFim.setMonth(dataFim.getMonth() + 1)
         const diaVencimento = dataInicio.getDate()
 
         const matriculaData: any = {
@@ -1359,6 +1363,7 @@ export async function salvarNovoAluno(formData: FormData) {
           hora_inicio_personalizada: null,
           hora_fim_personalizada: null,
           data_inicio: dataInicio,
+          data_fim: block.ativo === false ? new Date() : dataFim,
           dia_vencimento: diaVencimento
         }
 
@@ -1680,5 +1685,38 @@ export async function salvarDescricaoExercicioDoTreino(treinoId: number, descric
   } catch (error) {
     console.error('Erro salvarDescricaoExercicioDoTreino:', error)
     return { success: false, error: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+export async function getHistoricoPresencaDoAluno(alunoId: number) {
+  try {
+    const presencas = await prisma.presenca.findMany({
+      where: {
+        matriculas: {
+          aluno_id: alunoId
+        }
+      },
+      include: {
+        matriculas: {
+          include: {
+            modalidades: true
+          }
+        }
+      },
+      orderBy: {
+        data: 'desc'
+      }
+    })
+
+    return presencas.map((p: any) => ({
+      id: Number(p.id),
+      data: p.data.toISOString().split('T')[0],
+      presente: p.presente,
+      observacao: p.observacao,
+      modalidade: p.matriculas?.modalidades?.nome || 'Treino'
+    }))
+  } catch (error) {
+    console.error('Erro getHistoricoPresencaDoAluno:', error)
+    return []
   }
 }

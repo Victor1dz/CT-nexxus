@@ -317,11 +317,7 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                   {title.split(' (')[0]}
                 </div>
                 
-                {extendedProps?.isCustom && extendedProps?.telefone && (
-                  <div className="text-[8px] md:text-[9px] font-semibold opacity-95 mt-0.5 bg-white/20 px-1.5 py-0.5 rounded-md w-fit truncate shrink-0">
-                    📱 {extendedProps.telefone}
-                  </div>
-                )}
+
 
                 {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && !extendedProps.isCustom && (
                   <div className="mt-1 flex-1 overflow-hidden flex flex-col gap-0.5">

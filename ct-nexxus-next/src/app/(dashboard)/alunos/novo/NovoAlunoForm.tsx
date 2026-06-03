@@ -123,11 +123,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
           <p className="text-slate-500 mt-2 text-lg">
             {initialAluno ? 'Atualize os dados e planos do aluno.' : 'Cadastre um novo aluno e gerencie seus planos.'}
           </p>
-          {initialAluno?.data_cadastro && (
-            <p className="text-xs font-bold text-slate-400 mt-3 inline-flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-full">
-              <i className="bi bi-calendar-check"></i> Aluno desde: {new Date(initialAluno.data_cadastro).toLocaleDateString('pt-BR')}
-            </p>
-          )}
+
         </header>
 
         {/* Global Form Data */}
@@ -147,8 +143,18 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
               <input type="text" name="telefone" defaultValue={initialAluno?.telefone || ''} onChange={e => setAddress(prev => ({...prev, telefone: e.target.value}))} required placeholder="(00) 00000-0000" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-600">CPF</label>
+              <label className="text-sm font-semibold text-slate-650">CPF</label>
               <input type="text" name="cpf" defaultValue={initialAluno?.cpf || ''} onChange={e => setAddress(prev => ({...prev, cpf: e.target.value}))} placeholder="000.000.000-00" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-slate-650">Data de Início no CT (Matrícula)</label>
+              <input 
+                type="date" 
+                name="data_cadastro" 
+                defaultValue={initialAluno?.data_cadastro ? new Date(initialAluno.data_cadastro).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} 
+                required 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner font-semibold" 
+              />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-semibold text-slate-600">CEP</label>
