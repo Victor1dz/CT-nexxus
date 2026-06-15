@@ -164,6 +164,7 @@ export async function salvarModalidade(formData: FormData) {
 
     revalidatePath('/modalidades')
     revalidatePath('/horarios')
+    revalidatePath('/alunos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro salvarModalidade:', error)
@@ -911,6 +912,7 @@ export async function salvarPreco(formData: FormData) {
       })
     }
     revalidatePath(`/precos/modalidade/${modalidade_id}`)
+    revalidatePath('/alunos', 'layout')
     return { success: true, modalidade_id }
   } catch (error) {
     console.error('Erro salvarPreco:', error)
@@ -923,6 +925,7 @@ export async function excluirPreco(formData: FormData) {
     const id = Number(formData.get('id'))
     await prisma.precos.delete({ where: { id } })
     revalidatePath('/precos', 'layout')
+    revalidatePath('/alunos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro excluirPreco:', error)
@@ -945,6 +948,7 @@ export async function bloquearVagaLivre(formData: FormData) {
 
     await prisma.horarios.create({ data: dataObj })
     revalidatePath('/horarios')
+    revalidatePath('/alunos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro bloquearVagaLivre:', error)
@@ -976,6 +980,7 @@ export async function salvarHorario(formData: FormData) {
       await prisma.horarios.create({ data: dataObj })
     }
     revalidatePath('/horarios')
+    revalidatePath('/alunos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro salvarHorario:', error)
@@ -988,6 +993,7 @@ export async function excluirHorario(formData: FormData) {
     const id = Number(formData.get('id'))
     await prisma.horarios.delete({ where: { id } })
     revalidatePath('/horarios')
+    revalidatePath('/alunos', 'layout')
     return { success: true }
   } catch (error) {
     console.error('Erro excluirHorario:', error)

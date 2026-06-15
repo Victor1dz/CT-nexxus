@@ -69,7 +69,7 @@ export default function NovaModalidadePage() {
             <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
               <label className="flex items-start gap-3 cursor-pointer">
                 <div className="relative flex items-center mt-0.5">
-                  <input type="checkbox" name="exigeHorario" className="peer sr-only" />
+                  <input type="checkbox" name="exige_horario" className="peer sr-only" />
                   <div className="w-5 h-5 bg-white border-2 border-slate-300 rounded peer-checked:bg-amber-500 peer-checked:border-amber-500 flex items-center justify-center transition-colors">
                     <i className="bi bi-check text-white opacity-0 peer-checked:opacity-100 font-bold"></i>
                   </div>

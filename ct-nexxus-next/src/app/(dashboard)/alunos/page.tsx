@@ -53,7 +53,7 @@ export default async function AlunosPage() {
                         <div>
                           <div className="font-semibold text-slate-800">{a.nome}</div>
                           <div className="text-xs text-slate-400">
-                            {a.dataCadastro ? new Date(a.dataCadastro).toLocaleDateString('pt-BR') : '-'}
+                          {a.data_cadastro ? new Date(a.data_cadastro).toLocaleDateString('pt-BR') : '-'}
                           </div>
                         </div>
                       </div>
