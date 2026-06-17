@@ -193,23 +193,91 @@ export async function getDashboardStats() {
       }
     })
 
-    const inadimplentesCount = await prisma.mensalidades.count({
+    // Update PENDENTE to INADIMPLENTE if vencimento is in the past
+    const hojeLocal = new Date()
+    const hojeInicio = new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 0, 0, 0)
+    
+    await prisma.mensalidades.updateMany({
       where: {
         status: 'PENDENTE',
-        vencimento: {
-          lt: now
+        vencimento: { lt: hojeInicio }
+      },
+      data: {
+        status: 'INADIMPLENTE'
+      }
+    })
+
+    const inadimplentesCount = await prisma.mensalidades.count({
+      where: {
+        status: 'INADIMPLENTE'
+      }
+    })
+
+    // Compute badges counts
+    // financeiroCount: Mensalidades vencidas (INADIMPLENTE) ou que vencem hoje (PENDENTE)
+    const financeiroCount = await prisma.mensalidades.count({
+      where: {
+        OR: [
+          { status: 'INADIMPLENTE' },
+          {
+            status: 'PENDENTE',
+            vencimento: {
+              gte: hojeInicio,
+              lte: new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 23, 59, 59, 999)
+            }
+          }
+        ]
+      }
+    })
+
+    // diarioCount: Total de alunos com treino programado no dia de hoje (filtros de dia da semana correspondente)
+    const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+    const diaTermo = diasMap[hojeLocal.getDay()]
+    const matriculasAtivas = await prisma.matriculas.findMany({
+      where: { ativo: true },
+      include: { horarios: true }
+    })
+    const diarioCount = matriculasAtivas.filter((m: any) => {
+      const fixo = m.horarios?.dias_semana?.includes(diaTermo)
+      const custom = m.dias_personalizados?.includes(diaTermo)
+      const livre = m.horario_personalizado?.toLowerCase().includes('livre')
+      return fixo || custom || livre
+    }).length
+
+    // agendaCount: Total de lembretes/avisos marcados para hoje + turmas e aulas particulares agendadas para o dia
+    const lembretesCount = await prisma.lembretes.count({
+      where: {
+        data: {
+          gte: hojeInicio,
+          lte: new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 23, 59, 59, 999)
         }
       }
     })
 
+    const turmasIds = new Set<number>()
+    let aulasParticularesCount = 0
+    matriculasAtivas.forEach((m: any) => {
+      const fixo = m.horarios?.dias_semana?.includes(diaTermo)
+      const custom = m.dias_personalizados?.includes(diaTermo)
+      if (m.horario_id && fixo) {
+        turmasIds.add(Number(m.horario_id))
+      } else if (!m.horario_id && custom) {
+        aulasParticularesCount++
+      }
+    })
+    const agendaCount = lembretesCount + turmasIds.size + aulasParticularesCount
+
     return {
       totalAlunos,
       receitaMensal: recebidoAgregado._sum.valor ? Number(recebidoAgregado._sum.valor) : 0,
-      totalInadimplentes: inadimplentesCount
+      totalInadimplentes: inadimplentesCount,
+      financeiroCount,
+      diarioCount,
+      agendaCount
     }
   } catch (error) {
     console.error('Erro ao buscar stats:', error)
-    return { totalAlunos: 0, receitaMensal: 0, totalInadimplentes: 0 }
+    return { totalAlunos: 0, receitaMensal: 0, totalInadimplentes: 0, financeiroCount: 0, diarioCount: 0, agendaCount: 0 }
   }
 }
 
@@ -1144,74 +1212,15 @@ export async function gerarMensalidadesLote(mesString?: string) {
         alunos: {
           ativo: true
         }
-      },
-      include: { precos: true }
+      }
     })
     
-    const hoje = new Date()
-    let year = hoje.getFullYear()
-    let month = hoje.getMonth()
-
-    if (mesString) {
-      const parts = mesString.split('-')
-      if (parts.length === 2) {
-        year = parseInt(parts[0], 10)
-        month = parseInt(parts[1], 10) - 1
-      }
-    }
-
-    const competencia = `${year}-${String(month + 1).padStart(2, '0')}`
-    let criadas = 0
-
     for (const m of matriculasAtivas) {
-      if (!m.preco_id || !m.precos?.valor) continue;
-
-      // Se a matrícula inicia após o fim do mês alvo, não cobramos dela
-      if (m.data_inicio) {
-        const dInicio = new Date(m.data_inicio)
-        const lastDayOfTarget = new Date(Date.UTC(year, month + 1, 0, 23, 59, 59, 999))
-        if (dInicio > lastDayOfTarget) {
-          continue;
-        }
-      }
-
-      const existe = await prisma.mensalidades.findFirst({
-        where: {
-          matricula_id: m.id,
-          competencia: competencia
-        }
-      })
-
-      if (!existe) {
-        let diaVenc = m.dia_vencimento || 10
-        let vencimento = new Date(Date.UTC(year, month, diaVenc, 12, 0, 0))
-        
-        const compDate = new Date()
-        compDate.setUTCHours(0, 0, 0, 0)
-        
-        const vencComp = new Date(vencimento)
-        vencComp.setUTCHours(0, 0, 0, 0)
-
-        let statusInicial = 'PENDENTE'
-        if (vencComp < compDate) {
-          statusInicial = 'INADIMPLENTE'
-        }
-
-        await prisma.mensalidades.create({
-          data: {
-            matricula_id: m.id,
-            aluno_id: m.aluno_id,
-            competencia: competencia,
-            valor: m.precos.valor,
-            vencimento: vencimento,
-            status: statusInicial
-          }
-        })
-        criadas++
-      }
+      await sincronizarMensalidadesDaMatricula(m.id)
     }
+
     revalidatePath('/financeiro')
-    return { success: true, count: criadas }
+    return { success: true }
   } catch (e) {
     console.error(e)
     return { success: false }
@@ -1252,15 +1261,15 @@ export async function salvarNovoAluno(formData: FormData) {
   try {
     const aluno_id_form = formData.get('aluno_id')
     const aluno_id = aluno_id_form ? Number(aluno_id_form) : null
-    const nome = formData.get('nome') as string
-    const telefone = formData.get('telefone') as string
-    const cpf = formData.get('cpf') as string
-    const cep = formData.get('cep') as string
-    const logradouro = formData.get('logradouro') as string
-    const numero = formData.get('numero') as string
-    const bairro = formData.get('bairro') as string
-    const city = formData.get('cidade') as string
-    const uf = formData.get('uf') as string
+    const nome = (formData.get('nome') as string)?.trim() || null
+    const telefone = (formData.get('telefone') as string)?.trim() || null
+    const cpf = (formData.get('cpf') as string)?.trim() || null
+    const cep = (formData.get('cep') as string)?.trim() || null
+    const logradouro = (formData.get('logradouro') as string)?.trim() || null
+    const numero = (formData.get('numero') as string)?.trim() || null
+    const bairro = (formData.get('bairro') as string)?.trim() || null
+    const city = (formData.get('cidade') as string)?.trim() || null
+    const uf = (formData.get('uf') as string)?.trim() || null
     const data_cadastro_form = formData.get('data_cadastro') as string
     const data_cadastro = data_cadastro_form ? new Date(data_cadastro_form + 'T12:00:00') : new Date()
     const blocksJson = formData.get('blocks_json') as string
@@ -1400,91 +1409,16 @@ export async function salvarNovoAluno(formData: FormData) {
                }
              })
           }
-          await prisma.matriculas.update({
+          const updatedMatricula = await prisma.matriculas.update({
             where: { id: Number(block.matricula_id) },
             data: matriculaData
           })
-
-          // Sincronizar data de início com a primeira mensalidade não paga
-          if (matriculaData.preco_id) {
-            const precoInfo = await prisma.precos.findUnique({ where: { id: matriculaData.preco_id } })
-            if (precoInfo && precoInfo.valor) {
-              const mesAtualStr = String(dataInicio.getMonth() + 1).padStart(2, '0')
-              const anoAtualStr = dataInicio.getFullYear()
-              const novaCompetencia = `${anoAtualStr}-${mesAtualStr}`
-
-              const primeiraMensalidade = await prisma.mensalidades.findFirst({
-                where: {
-                  matricula_id: Number(block.matricula_id),
-                  status: { not: 'PAGO' }
-                },
-                orderBy: { vencimento: 'asc' }
-              })
-
-              if (primeiraMensalidade) {
-                const hoje = new Date()
-                hoje.setUTCHours(0, 0, 0, 0)
-                let statusInicial = 'PENDENTE'
-                if (dataInicio < hoje) {
-                  statusInicial = 'INADIMPLENTE'
-                }
-
-                await prisma.mensalidades.update({
-                  where: { id: primeiraMensalidade.id },
-                  data: {
-                    vencimento: dataInicio,
-                    competencia: novaCompetencia,
-                    valor: precoInfo.valor,
-                    status: statusInicial
-                  }
-                })
-              }
-            }
-          }
+          await sincronizarMensalidadesDaMatricula(updatedMatricula.id)
         } else {
           const novaMatricula = await prisma.matriculas.create({
             data: matriculaData
           })
-
-          if (matriculaData.preco_id) {
-            const precoInfo = await prisma.precos.findUnique({ where: { id: matriculaData.preco_id } })
-            if (precoInfo && precoInfo.valor) {
-              const mesAtualStr = String(dataInicio.getMonth() + 1).padStart(2, '0')
-              const anoAtualStr = dataInicio.getFullYear()
-              const competencia = `${anoAtualStr}-${mesAtualStr}`
-
-              const hoje = new Date()
-              hoje.setUTCHours(0, 0, 0, 0)
-
-              const vencimentoData = new Date(dataInicio)
-              vencimentoData.setUTCHours(0, 0, 0, 0)
-
-              let statusInicial = 'PENDENTE'
-              if (vencimentoData < hoje) {
-                statusInicial = 'INADIMPLENTE'
-              }
-
-              const existe = await prisma.mensalidades.findFirst({
-                where: {
-                  matricula_id: novaMatricula.id,
-                  competencia: competencia
-                }
-              })
-
-              if (!existe) {
-                await prisma.mensalidades.create({
-                  data: {
-                    matricula_id: novaMatricula.id,
-                    aluno_id: aluno.id,
-                    competencia: competencia,
-                    valor: precoInfo.valor,
-                    vencimento: dataInicio,
-                    status: statusInicial
-                  }
-                })
-              }
-            }
-          }
+          await sincronizarMensalidadesDaMatricula(novaMatricula.id)
         }
       }
     }
@@ -1726,3 +1660,66 @@ export async function getHistoricoPresencaDoAluno(alunoId: number) {
     return []
   }
 }
+
+export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
+  try {
+    const m = await prisma.matriculas.findUnique({
+      where: { id: matriculaId },
+      include: { precos: true, alunos: true }
+    })
+    if (!m || !m.ativo || !m.alunos?.ativo || !m.preco_id || !m.precos?.valor) {
+      return
+    }
+
+    const dataInicio = m.data_inicio || new Date()
+    const hoje = new Date()
+    
+    // Iterar mes a mes a partir de dataInicio ate hoje + 1 mes
+    let iterDate = new Date(Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth(), 1, 12, 0, 0))
+    const endDate = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1, 12, 0, 0))
+
+    while (iterDate <= endDate) {
+      const year = iterDate.getUTCFullYear()
+      const month = iterDate.getUTCMonth()
+      const competencia = `${year}-${String(month + 1).padStart(2, '0')}`
+
+      const existe = await prisma.mensalidades.findFirst({
+        where: {
+          matricula_id: m.id,
+          competencia: competencia
+        }
+      })
+
+      if (!existe) {
+        let diaVenc = m.dia_vencimento || dataInicio.getUTCDate() || 10
+        let vencimento = new Date(Date.UTC(year, month, diaVenc, 12, 0, 0))
+        
+        const compDate = new Date()
+        compDate.setUTCHours(0, 0, 0, 0)
+        
+        const vencComp = new Date(vencimento)
+        vencComp.setUTCHours(0, 0, 0, 0)
+
+        let statusInicial = 'PENDENTE'
+        if (vencComp < compDate) {
+          statusInicial = 'INADIMPLENTE'
+        }
+
+        await prisma.mensalidades.create({
+          data: {
+            matricula_id: m.id,
+            aluno_id: m.aluno_id,
+            competencia: competencia,
+            valor: m.precos.valor,
+            vencimento: vencimento,
+            status: statusInicial
+          }
+        })
+      }
+      iterDate.setUTCMonth(iterDate.getUTCMonth() + 1)
+    }
+  } catch (error) {
+    console.error('Erro sincronizarMensalidadesDaMatricula:', error)
+  }
+}
+

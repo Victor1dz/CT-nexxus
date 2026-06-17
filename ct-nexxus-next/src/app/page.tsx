@@ -63,22 +63,37 @@ export default async function Dashboard() {
         </h2>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link href="/agenda" className="border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-blue-300 hover:shadow-md transition-all group">
+          <Link href="/agenda" className="relative border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-blue-300 hover:shadow-md transition-all group">
+            {stats.agendaCount > 0 && (
+              <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                {stats.agendaCount}
+              </span>
+            )}
             <i className="bi bi-calendar-event text-4xl text-blue-600 group-hover:scale-110 transition-transform"></i>
             <span className="font-bold text-slate-800 text-sm">Agenda</span>
           </Link>
           
-          <Link href="/relatorios" className="border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-cyan-300 hover:shadow-md transition-all group">
+          <Link href="/relatorios" className="relative border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-cyan-300 hover:shadow-md transition-all group">
             <i className="bi bi-graph-up text-4xl text-cyan-500 group-hover:scale-110 transition-transform"></i>
             <span className="font-bold text-slate-800 text-sm">Relatórios</span>
           </Link>
           
-          <Link href="/financeiro" className="border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-emerald-300 hover:shadow-md transition-all group">
+          <Link href="/financeiro" className="relative border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-emerald-300 hover:shadow-md transition-all group">
+            {stats.financeiroCount > 0 && (
+              <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                {stats.financeiroCount}
+              </span>
+            )}
             <i className="bi bi-cash-coin text-4xl text-emerald-600 group-hover:scale-110 transition-transform"></i>
             <span className="font-bold text-slate-800 text-sm">Financeiro</span>
           </Link>
           
-          <Link href="/diario" className="border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-blue-300 hover:shadow-md transition-all group">
+          <Link href="/diario" className="relative border border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-4 hover:border-blue-300 hover:shadow-md transition-all group">
+            {stats.diarioCount > 0 && (
+              <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                {stats.diarioCount}
+              </span>
+            )}
             <i className="bi bi-calendar-check text-4xl text-blue-600 group-hover:scale-110 transition-transform"></i>
             <span className="font-bold text-slate-800 text-sm">Quem Vem Hoje</span>
           </Link>
