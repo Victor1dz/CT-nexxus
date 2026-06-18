@@ -79,7 +79,7 @@ function AlunoTreinoItem({
               <textarea
                 value={editedDescricao}
                 onChange={(e) => setEditedDescricao(e.target.value)}
-                className="w-full min-h-[140px] bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-mono text-xs shadow-inner animate-in fade-in duration-200"
+                className="w-full min-h-[180px] bg-slate-50 border border-slate-300 rounded-xl p-4 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all font-semibold text-[15px] shadow-inner animate-in fade-in duration-200"
                 placeholder="Digite os exercícios do aluno..."
               />
               <div className="flex gap-2 justify-end">
@@ -114,9 +114,9 @@ function AlunoTreinoItem({
             </div>
           ) : (
             <div className="relative group">
-              <p className="whitespace-pre-wrap text-[10px] font-mono text-slate-650 bg-slate-50/50 border border-slate-100 rounded-xl p-3 leading-relaxed min-h-[60px] animate-in fade-in duration-205">
+              <p className="whitespace-pre-wrap text-[15px] font-bold text-slate-800 bg-slate-50 border border-slate-200/60 rounded-xl p-4 leading-relaxed min-h-[80px] shadow-sm animate-in fade-in duration-205">
                 {treino.descricao_exercicios || (
-                  <span className="italic text-slate-400">Nenhum exercício cadastrado para este dia.</span>
+                  <span className="italic text-slate-400 font-medium">Nenhum exercício cadastrado para este dia.</span>
                 )}
               </p>
               <button
@@ -401,6 +401,10 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                 const c = l.cor === 'rose' ? 'bg-rose-50 border-rose-200 text-rose-800' : l.cor === 'emerald' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : l.cor === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-blue-50 border-blue-200 text-blue-800'
                 const [ano, mes, dia] = l.data.split('-')
                 
+                const hojeLocal = new Date()
+                const hojeYMD = `${hojeLocal.getFullYear()}-${String(hojeLocal.getMonth() + 1).padStart(2, '0')}-${String(hojeLocal.getDate()).padStart(2, '0')}`
+                const isHoje = l.data === hojeYMD
+                
                 return (
                   <div 
                     key={l.id} 
@@ -410,8 +414,14 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                     }}
                     className={`p-3.5 rounded-2xl border ${c} cursor-pointer hover:scale-[1.02] transition-transform shadow-sm relative group`}
                   >
-                    <div className="text-[10px] font-bold opacity-75 uppercase tracking-wider">
-                      📅 {dia}/{mes}/{ano}
+                    <div className="text-[10px] font-bold opacity-75 uppercase tracking-wider flex items-center justify-between">
+                      <span>📅 {dia}/{mes}/{ano}</span>
+                      {isHoje && (
+                        <span className="text-red-500 animate-pulse flex items-center gap-0.5 font-extrabold">
+                          <i className="bi bi-bell-fill text-[10px]"></i>
+                          Hoje
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm font-semibold mt-1 leading-snug break-words pr-4">{l.texto}</p>
                     <i className="bi bi-pencil-square absolute right-3 top-3 text-xs opacity-0 group-hover:opacity-60 transition-opacity"></i>

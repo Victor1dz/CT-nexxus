@@ -197,6 +197,19 @@ export async function getDashboardStats() {
     const hojeLocal = new Date()
     const hojeInicio = new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 0, 0, 0)
     
+    const mesAtualStr = String(hojeLocal.getMonth() + 1).padStart(2, '0')
+    const anoAtualStr = hojeLocal.getFullYear()
+    const competenciaAtual = `${anoAtualStr}-${mesAtualStr}`
+
+    // 1. Cleanup past unpaid monthly payments
+    await prisma.mensalidades.deleteMany({
+      where: {
+        status: { not: 'PAGO' },
+        competencia: { lt: competenciaAtual }
+      }
+    })
+
+    // 2. Mark pending overdue as INADIMPLENTE
     await prisma.mensalidades.updateMany({
       where: {
         status: 'PENDENTE',
@@ -213,9 +226,9 @@ export async function getDashboardStats() {
       }
     })
 
-    // Compute badges counts
+    // 3. Compute badges counts & detailed lists
     // financeiroCount: Mensalidades vencidas (INADIMPLENTE) ou que vencem hoje (PENDENTE)
-    const financeiroCount = await prisma.mensalidades.count({
+    const financeiroAlerts = await prisma.mensalidades.findMany({
       where: {
         OR: [
           { status: 'INADIMPLENTE' },
@@ -227,25 +240,55 @@ export async function getDashboardStats() {
             }
           }
         ]
+      },
+      include: {
+        alunos: true,
+        matriculas: {
+          include: { modalidades: true }
+        }
+      },
+      orderBy: { vencimento: 'asc' }
+    })
+    const financeiroCount = financeiroAlerts.length
+
+    const financeiroWarnings = financeiroAlerts.map((m: any) => {
+      const alunoNome = m.alunos?.nome || 'Aluno'
+      const valorStr = Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+      const statusStr = m.status === 'INADIMPLENTE' ? 'atrasada' : 'vencendo hoje'
+      const modNome = m.matriculas?.modalidades?.nome || 'Plano'
+      const vencStr = m.vencimento ? new Date(m.vencimento).toLocaleDateString('pt-BR') : ''
+      return {
+        id: `fin-${m.id}`,
+        alunoNome,
+        titulo: `${alunoNome} (${modNome})`,
+        descricao: `Mensalidade de R$ ${valorStr} ${statusStr} (Venc: ${vencStr})`,
+        link: `/financeiro?busca=${encodeURIComponent(alunoNome)}&tab=receitas`
       }
     })
 
-    // diarioCount: Total de alunos com treino programado no dia de hoje (filtros de dia da semana correspondente)
+    // Fetch active matriculas
     const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const diaTermo = diasMap[hojeLocal.getDay()]
     const matriculasAtivas = await prisma.matriculas.findMany({
       where: { ativo: true },
-      include: { horarios: true }
+      include: {
+        horarios: true,
+        alunos: true,
+        modalidades: true
+      }
     })
-    const diarioCount = matriculasAtivas.filter((m: any) => {
+
+    // diarioCount: Total de alunos com treino programado no dia de hoje (filtros de dia da semana correspondente)
+    const matriculasDoDia = matriculasAtivas.filter((m: any) => {
       const fixo = m.horarios?.dias_semana?.includes(diaTermo)
       const custom = m.dias_personalizados?.includes(diaTermo)
       const livre = m.horario_personalizado?.toLowerCase().includes('livre')
       return fixo || custom || livre
-    }).length
+    })
+    const diarioCount = matriculasDoDia.length
 
-    // agendaCount: Total de lembretes/avisos marcados para hoje + turmas e aulas particulares agendadas para o dia
-    const lembretesCount = await prisma.lembretes.count({
+    // Get presencas for today
+    const presencasHoje = await prisma.presenca.findMany({
       where: {
         data: {
           gte: hojeInicio,
@@ -253,6 +296,56 @@ export async function getDashboardStats() {
         }
       }
     })
+    const presencasHojeMap = new Map<number, boolean>()
+    presencasHoje.forEach((p: any) => {
+      presencasHojeMap.set(Number(p.matricula_id), p.presente)
+    })
+
+    const diarioWarnings = matriculasDoDia.map((m: any) => {
+      const alunoNome = m.alunos?.nome || 'Aluno'
+      const modNome = m.modalidades?.nome || 'Treino'
+      const pres = presencasHojeMap.get(Number(m.id))
+      
+      let statusStr = 'Presença pendente'
+      let isPendente = true
+      if (pres === true) {
+        statusStr = 'Presença: Confirmado (Presente)'
+        isPendente = false
+      } else if (pres === false) {
+        statusStr = 'Presença: Confirmado (Ausente)'
+        isPendente = false
+      }
+
+      let horaDisplay = 'Livre'
+      if (m.horarios?.hora_inicio) {
+        horaDisplay = new Date(m.horarios.hora_inicio).toISOString().substring(11, 16)
+      } else if (m.horario_personalizado) {
+        horaDisplay = m.horario_personalizado.split('|')[1] || m.horario_personalizado
+      }
+
+      return {
+        id: `dia-${m.id}`,
+        alunoNome,
+        titulo: `${alunoNome} - ${modNome}`,
+        descricao: `${statusStr} hoje às ${horaDisplay}`,
+        link: `/diario?busca=${encodeURIComponent(alunoNome)}`,
+        pendente: isPendente
+      }
+    })
+
+    // Sort diarioWarnings so that pending presences appear first
+    diarioWarnings.sort((a: any, b: any) => (a.pendente === b.pendente ? 0 : a.pendente ? -1 : 1))
+
+    // agendaCount: Total de lembretes/avisos marcados para hoje + turmas e aulas particulares agendadas para o dia
+    const lembretesHoje = await prisma.lembretes.findMany({
+      where: {
+        data: {
+          gte: hojeInicio,
+          lte: new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 23, 59, 59, 999)
+        }
+      }
+    })
+    const lembretesCount = lembretesHoje.length
 
     const turmasIds = new Set<number>()
     let aulasParticularesCount = 0
@@ -267,17 +360,75 @@ export async function getDashboardStats() {
     })
     const agendaCount = lembretesCount + turmasIds.size + aulasParticularesCount
 
+    const agendaWarnings: any[] = []
+    lembretesHoje.forEach((l: any) => {
+      agendaWarnings.push({
+        id: `lemb-${l.id}`,
+        titulo: `📝 Aviso: Lembrete`,
+        descricao: l.texto,
+        link: `/agenda`
+      })
+    })
+
+    const distinctHorarioIds = Array.from(turmasIds)
+    for (const hId of distinctHorarioIds) {
+      const h = await prisma.horarios.findUnique({
+        where: { id: hId },
+        include: { modalidades: true }
+      })
+      if (h) {
+        const hInicio = h.hora_inicio ? new Date(h.hora_inicio).toISOString().substring(11, 16) : ''
+        const hFim = h.hora_fim ? new Date(h.hora_fim).toISOString().substring(11, 16) : ''
+        const modNome = h.modalidades?.nome || 'Aula'
+        const count = matriculasAtivas.filter((m: any) => Number(m.horario_id) === hId).length
+        agendaWarnings.push({
+          id: `turma-${hId}`,
+          titulo: `👥 Turma: ${modNome}`,
+          descricao: `Aula das ${hInicio} às ${hFim} com ${count} aluno(s) agendado(s)`,
+          link: `/agenda`
+        })
+      }
+    }
+
+    matriculasAtivas.forEach((m: any) => {
+      const custom = m.dias_personalizados?.includes(diaTermo)
+      if (!m.horario_id && custom) {
+        const alunoNome = m.alunos?.nome || 'Aluno'
+        const modNome = m.modalidades?.nome || 'Treino'
+        const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : ''
+        agendaWarnings.push({
+          id: `part-${m.id}`,
+          titulo: `👤 Particular: ${alunoNome}`,
+          descricao: `Aula de ${modNome} agendada para hoje às ${hInicio}`,
+          link: `/agenda`
+        })
+      }
+    })
+
     return {
       totalAlunos,
       receitaMensal: recebidoAgregado._sum.valor ? Number(recebidoAgregado._sum.valor) : 0,
       totalInadimplentes: inadimplentesCount,
       financeiroCount,
       diarioCount,
-      agendaCount
+      agendaCount,
+      financeiroWarnings,
+      diarioWarnings,
+      agendaWarnings
     }
   } catch (error) {
     console.error('Erro ao buscar stats:', error)
-    return { totalAlunos: 0, receitaMensal: 0, totalInadimplentes: 0, financeiroCount: 0, diarioCount: 0, agendaCount: 0 }
+    return { 
+      totalAlunos: 0, 
+      receitaMensal: 0, 
+      totalInadimplentes: 0, 
+      financeiroCount: 0, 
+      diarioCount: 0, 
+      agendaCount: 0,
+      financeiroWarnings: [],
+      diarioWarnings: [],
+      agendaWarnings: []
+    }
   }
 }
 
@@ -1673,9 +1824,27 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
 
     const dataInicio = m.data_inicio || new Date()
     const hoje = new Date()
+
+    const mesAtualStr = String(hoje.getMonth() + 1).padStart(2, '0')
+    const anoAtualStr = hoje.getFullYear()
+    const competenciaAtual = `${anoAtualStr}-${mesAtualStr}`
+
+    // Cleanup past unpaid monthly payments for this matricula
+    await prisma.mensalidades.deleteMany({
+      where: {
+        matricula_id: m.id,
+        status: { not: 'PAGO' },
+        competencia: { lt: competenciaAtual }
+      }
+    })
     
-    // Iterar mes a mes a partir de dataInicio ate hoje + 1 mes
+    // Iterar mes a mes a partir de dataInicio ate hoje + 1 mes, mas nunca antes do mes atual
+    const primeiroDiaMesAtual = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), 1, 12, 0, 0))
     let iterDate = new Date(Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth(), 1, 12, 0, 0))
+    if (iterDate < primeiroDiaMesAtual) {
+      iterDate = primeiroDiaMesAtual
+    }
+
     const endDate = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() + 1, 1, 12, 0, 0))
 
     while (iterDate <= endDate) {

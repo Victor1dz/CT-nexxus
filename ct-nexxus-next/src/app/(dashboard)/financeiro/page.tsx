@@ -3,10 +3,15 @@ import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
 
-export default async function FinanceiroPage(props: { searchParams: Promise<{ mes?: string, tab?: string }> }) {
+export default async function FinanceiroPage(props: { searchParams: Promise<{ mes?: string, tab?: string, busca?: string }> }) {
   const searchParams = await props.searchParams
+  const busca = (searchParams.busca || '').trim().toLowerCase()
   const data = await getFinanceiroData(searchParams.mes)
   const currentTab = searchParams.tab === 'despesas' ? 'despesas' : 'receitas'
+
+  const filteredDespesas = busca
+    ? data.despesas.filter((d: any) => d.descricao?.toLowerCase().includes(busca))
+    : data.despesas
 
   return (
     <div className="w-full text-slate-800 font-sans">
@@ -28,11 +33,19 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
 
         <div className="flex items-center gap-3">
           <form className="flex items-center">
+            <input type="hidden" name="tab" value={currentTab} />
             <input
               type="month"
               name="mes"
               defaultValue={data.mesString}
               className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+            />
+            <input
+              type="text"
+              name="busca"
+              defaultValue={searchParams.busca || ''}
+              placeholder="Buscar aluno ou despesa..."
+              className="ml-2 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
             />
             <button type="submit" className="ml-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-medium transition-colors border border-slate-200 shadow-sm">
               Filtrar
@@ -115,6 +128,9 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
               });
 
               const groupedList = Object.values(groupedByAluno);
+              const filteredGroupedList = busca
+                ? groupedList.filter((g: any) => g.aluno?.nome?.toLowerCase().includes(busca))
+                : groupedList;
 
               return (
                 <table className="w-full text-left border-collapse">
@@ -126,14 +142,14 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {groupedList.length === 0 ? (
+                    {filteredGroupedList.length === 0 ? (
                       <tr>
                         <td colSpan={3} className="py-12 text-center text-slate-500">
                           <p>Nenhuma receita encontrada para este mês.</p>
                         </td>
                       </tr>
                     ) : (
-                      groupedList.map((g: any) => {
+                      filteredGroupedList.map((g: any) => {
                         const tel = g.aluno?.telefone || '';
                         
                         let totalVal = 0;
@@ -179,10 +195,21 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                   const v = m.vencimento ? new Date(m.vencimento) : null;
                                   const pgto = m.data_pagamento ? new Date(m.data_pagamento) : null;
                                   
+                                  const isVencido = m.status === 'INADIMPLENTE';
+                                  const isVenceHoje = m.status === 'PENDENTE' && (() => {
+                                    if (!v) return false;
+                                    const today = new Date();
+                                    return v.getUTCDate() === today.getDate() &&
+                                           v.getUTCMonth() === today.getMonth() &&
+                                           v.getUTCFullYear() === today.getFullYear();
+                                  })();
+                                  const temAviso = isVencido || isVenceHoje;
+
                                   return (
                                     <div key={`m-${m.id}`} className="flex flex-wrap items-center gap-2 p-2 bg-slate-50 border border-slate-200/80 rounded-xl shadow-sm">
                                       <div className="flex items-center gap-2 min-w-[200px]">
-                                        <span className="font-extrabold text-xs text-blue-800 bg-blue-50 border border-blue-200 px-2 py-1 rounded-lg">
+                                        <span className="font-extrabold text-xs text-blue-800 bg-blue-50 border border-blue-200 px-2 py-1 rounded-lg flex items-center gap-1.5">
+                                          {temAviso && <i className="bi bi-bell-fill text-red-500 animate-pulse text-[10px]" title="Aviso pendente/atrasado"></i>}
                                           {m.matriculas?.modalidades?.nome || 'Plano'}
                                         </span>
                                         <span className="font-bold text-xs text-emerald-600">
@@ -272,14 +299,14 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {data.despesas.length === 0 ? (
+                {filteredDespesas.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-500">
                       <p>Nenhuma despesa encontrada para este mês.</p>
                     </td>
                   </tr>
                 ) : (
-                  data.despesas.map((d: any) => {
+                  filteredDespesas.map((d: any) => {
                     const v = d.data_vencimento ? new Date(d.data_vencimento) : null;
                     const pgto = d.data_pagamento ? new Date(d.data_pagamento) : null;
                     return (
@@ -300,7 +327,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                         </td>
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-1.5">
-                            <Link href={`/financeiro/despesa/nova?id=${d.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition-colors shadow-sm" title="Editar">
+                            <Link href={`/financeiro/despesa/nova?id=${d.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-amber-50 text-amber-655 hover:bg-amber-105 border border-amber-200 transition-colors shadow-sm" title="Editar">
                               <i className="bi bi-pencil"></i>
                             </Link>
 

@@ -114,7 +114,12 @@ export default function DiarioClient({ agrupados, mapaPresencas: initialMapa, da
                               {m.alunos?.nome?.charAt(0) || '?'}
                             </div>
                             <div>
-                              <div className="font-bold text-slate-800">{m.alunos?.nome}</div>
+                              <div className="font-bold text-slate-800 flex items-center gap-1.5">
+                                {mapaPresencas[m.id] === undefined && (
+                                  <i className="bi bi-bell-fill text-amber-500 animate-pulse text-[11px]" title="Registro de presença pendente para hoje"></i>
+                                )}
+                                {m.alunos?.nome}
+                              </div>
                               <div className="text-sm text-slate-500">{m.alunos?.telefone}</div>
                             </div>
                           </div>

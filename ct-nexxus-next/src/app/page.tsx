@@ -99,6 +99,112 @@ export default async function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Alertas e Notificações Detalhados */}
+      <div className="bg-white border border-slate-100 rounded-xl p-8 shadow-sm mt-8">
+        <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+          <i className="bi bi-bell-fill text-amber-500 text-xl"></i> Central de Avisos e Alertas do Dia
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Agenda Column */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2 pb-2 border-b border-slate-100">
+              <i className="bi bi-calendar-event text-blue-600"></i> Agenda
+              {stats.agendaCount > 0 && (
+                <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {stats.agendaCount}
+                </span>
+              )}
+            </h3>
+
+            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
+              {!stats.agendaWarnings || stats.agendaWarnings.length === 0 ? (
+                <div className="text-slate-400 italic text-xs py-4">Nenhum aviso ou agendamento para hoje.</div>
+              ) : (
+                stats.agendaWarnings.map((w: any) => (
+                  <Link 
+                    key={w.id} 
+                    href={w.link} 
+                    className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 hover:border-blue-300 hover:bg-blue-50/20 transition-all flex flex-col gap-1 group"
+                  >
+                    <span className="font-bold text-slate-800 text-[13px] group-hover:text-blue-700 transition-colors">{w.titulo}</span>
+                    <span className="text-slate-500 text-[11px] font-medium leading-relaxed">{w.descricao}</span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Financeiro Column */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2 pb-2 border-b border-slate-100">
+              <i className="bi bi-cash-coin text-emerald-600"></i> Financeiro
+              {stats.financeiroCount > 0 && (
+                <span className="bg-red-100 text-red-800 text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  {stats.financeiroCount}
+                </span>
+              )}
+            </h3>
+
+            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
+              {!stats.financeiroWarnings || stats.financeiroWarnings.length === 0 ? (
+                <div className="text-slate-400 italic text-xs py-4">Nenhuma mensalidade pendente ou atrasada.</div>
+              ) : (
+                stats.financeiroWarnings.map((w: any) => (
+                  <Link 
+                    key={w.id} 
+                    href={w.link} 
+                    className="p-3 bg-rose-50/30 rounded-xl border border-rose-200/50 hover:border-red-300 hover:bg-rose-50/60 transition-all flex flex-col gap-1 group"
+                  >
+                    <span className="font-bold text-rose-950 text-[13px] flex items-center gap-1.5">
+                      <i className="bi bi-exclamation-circle-fill text-red-500 text-[11px]"></i>
+                      {w.titulo}
+                    </span>
+                    <span className="text-slate-600 text-[11px] font-medium leading-relaxed">{w.descricao}</span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Quem Vem Hoje Column */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2 pb-2 border-b border-slate-100">
+              <i className="bi bi-calendar-check text-blue-600"></i> Quem Vem Hoje
+              {stats.diarioCount > 0 && (
+                <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                  {stats.diarioCount}
+                </span>
+              )}
+            </h3>
+
+            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
+              {!stats.diarioWarnings || stats.diarioWarnings.length === 0 ? (
+                <div className="text-slate-400 italic text-xs py-4">Nenhum aluno agendado para hoje.</div>
+              ) : (
+                stats.diarioWarnings.map((w: any) => (
+                  <Link 
+                    key={w.id} 
+                    href={w.link} 
+                    className={`p-3 rounded-xl border transition-all flex flex-col gap-1 group ${
+                      w.pendente 
+                        ? 'bg-amber-50/30 border-amber-200/50 hover:border-amber-400 hover:bg-amber-50/60' 
+                        : 'bg-slate-50 border-slate-200/60 hover:border-blue-300 hover:bg-blue-50/20'
+                    }`}
+                  >
+                    <span className={`font-bold text-[13px] flex items-center gap-1.5 ${w.pendente ? 'text-amber-900' : 'text-slate-800 group-hover:text-blue-700'}`}>
+                      {w.pendente && <i className="bi bi-bell-fill text-amber-500 text-[11px] animate-pulse"></i>}
+                      {w.titulo}
+                    </span>
+                    <span className="text-slate-500 text-[11px] font-medium leading-relaxed">{w.descricao}</span>
+                  </Link>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
