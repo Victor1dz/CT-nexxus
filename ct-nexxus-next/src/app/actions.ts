@@ -1237,16 +1237,17 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         include: { matriculas: true }
       })
 
-      // Disparar notificação de confirmação via WhatsApp e aguardar
-      console.log('atualizarStatusMensalidade: Mensalidade paga, iniciando fluxo de notificação. aluno_id:', currentMensalidade.aluno_id);
-      if (currentMensalidade.aluno_id) {
+      // Buscar aluno via aluno_id da mensalidade ou via matrícula associada
+      const targetAlunoId = currentMensalidade.aluno_id || currentMensalidade.matriculas?.aluno_id
+      console.log('atualizarStatusMensalidade: Mensalidade paga, iniciando fluxo de notificação. aluno_id resolved:', targetAlunoId);
+      if (targetAlunoId) {
         try {
           const fs = await import('fs')
           const path = await import('path')
           const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
           
           let templates = {
-            confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!"
+            confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
           }
 
           if (fs.existsSync(templatesPath)) {
@@ -1255,7 +1256,7 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           }
 
           const aluno = await prisma.alunos.findUnique({
-            where: { id: currentMensalidade.aluno_id }
+            where: { id: targetAlunoId }
           })
           console.log('atualizarStatusMensalidade: Aluno encontrado:', aluno ? aluno.nome : 'NULO', 'telefone:', aluno ? aluno.telefone : 'NULO');
 

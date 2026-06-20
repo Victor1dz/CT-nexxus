@@ -1,6 +1,6 @@
 {
   "aulaHoje": "Olá, {nome}! Passando para avisar que hoje ({dia}) você tem aula de {modalidade} marcada para as {horario}. Esperamos você no CT!",
-  "lembreteVencimento": "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.",
-  "mensalidadeAtrasada": "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.",
-  "confirmacaoPagamento": "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!"
+  "lembreteVencimento": "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+  "mensalidadeAtrasada": "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+  "confirmacaoPagamento": "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
 }

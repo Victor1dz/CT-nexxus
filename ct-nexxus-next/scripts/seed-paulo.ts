@@ -58,8 +58,8 @@ async function main() {
   // Vamos usar a modalidade Muay Thai (ID 8) e preço (ID 20)
   const hoje = new Date();
   
-  // Vencimento daqui a 2 dias (22/06/2026)
-  const diaVencimento = 22;
+  // Vencimento hoje (20/06/2026) para teste instantâneo
+  const diaVencimento = 20;
 
   const matricula = await prisma.matriculas.create({
     data: {
@@ -73,11 +73,11 @@ async function main() {
       horario_personalizado: 'Personalizado|10:00 às 11:00'
     }
   });
-  console.log('Matrícula criada para Paulo (Muay Thai, Sáb|Ter|Qui, vencimento dia 22).');
+  console.log('Matrícula criada para Paulo (Muay Thai, Sáb|Ter|Qui, vencimento dia 20).');
 
   // 4. Criar mensalidades de teste
-  // Mensalidade 1: Vence em 2 dias (22/06/2026), status PENDENTE
-  const vencimentoPerto = new Date(2026, 5, 22); // Junho é mês 5 (0-indexed)
+  // Mensalidade 1: Vence hoje (20/06/2026), status PENDENTE
+  const vencimentoPerto = new Date(2026, 5, 20); // Junho é mês 5 (0-indexed)
   await prisma.mensalidades.create({
     data: {
       aluno_id: paulo.id,
