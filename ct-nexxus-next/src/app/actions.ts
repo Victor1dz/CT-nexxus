@@ -1237,25 +1237,43 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         include: { matriculas: true }
       })
 
-      // Disparar notificação de confirmação via WhatsApp
+      // Disparar notificação de confirmação via WhatsApp e aguardar
       if (currentMensalidade.aluno_id) {
-        prisma.alunos.findUnique({
-          where: { id: currentMensalidade.aluno_id }
-        }).then((aluno: any) => {
+        try {
+          const fs = await import('fs')
+          const path = await import('path')
+          const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
+          
+          let templates = {
+            confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!"
+          }
+
+          if (fs.existsSync(templatesPath)) {
+            const fileData = fs.readFileSync(templatesPath, 'utf8')
+            templates = JSON.parse(fileData)
+          }
+
+          const aluno = await prisma.alunos.findUnique({
+            where: { id: currentMensalidade.aluno_id }
+          })
+
           if (aluno && aluno.telefone) {
-            const compStr = currentMensalidade.competencia || '';
-            const msg = `Obrigado, ${aluno.nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a ${compStr}. Bom treino!`;
+            const compStr = currentMensalidade.competencia || ''
+            const msg = templates.confirmacaoPagamento
+              .replace('{nome}', aluno.nome || 'Aluno')
+              .replace('{competencia}', compStr)
             
-            fetch('http://localhost:3001/send', {
+            const res = await fetch('http://localhost:3001/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone: aluno.telefone, message: msg })
             })
-            .then(res => res.json())
-            .then(data => console.log('Envio de confirmação de pagamento:', data))
-            .catch(err => console.error('Erro de rede ao enviar confirmação de pagamento:', err));
+            const data = await res.json()
+            console.log('WhatsApp: Envio de confirmação de pagamento:', data)
           }
-        }).catch((err: any) => console.error('Erro ao buscar aluno para confirmação de pagamento:', err));
+        } catch (err) {
+          console.error('Erro ao disparar confirmação de pagamento:', err)
+        }
       }
 
       // Gerar próxima mensalidade se a matrícula e o aluno estiverem ativos

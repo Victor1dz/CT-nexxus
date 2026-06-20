@@ -15,6 +15,7 @@ app.use(express.json());
 
 const PORT = 3001;
 const AUTH_DIR = path.join(__dirname, '../.wpp_auth');
+const TEMPLATES_FILE = path.join(__dirname, '../whatsapp-templates.json');
 
 let sock = null;
 let qrCodeData = null;
@@ -23,6 +24,53 @@ let connectedNumber = null;
 
 // SAFETY CHECK: ONLY ALLOW SENDING MESSAGES TO PAULO DURING TESTING
 const ALLOWED_TEST_NUMBER = '5515997040121';
+
+// Função para formatar data UTC de forma segura sem shift de fuso horário
+function formatarDataUTC(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const dia = String(d.getUTCDate()).padStart(2, '0');
+  const mes = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const ano = d.getUTCFullYear();
+  return `${dia}/${mes}/${ano}`;
+}
+
+// Carregar templates do arquivo JSON ou usar defaults
+function carregarTemplates() {
+  const defaultTemplates = {
+    aulaHoje: "Olá, {nome}! Passando para avisar que hoje ({dia}) você tem aula de {modalidade} marcada para as {horario}. Esperamos você no CT!",
+    lembreteVencimento: "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.",
+    mensalidadeAtrasada: "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.",
+    confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!"
+  };
+
+  try {
+    if (fs.existsSync(TEMPLATES_FILE)) {
+      const data = fs.readFileSync(TEMPLATES_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Erro ao carregar arquivo de templates:', err);
+  }
+
+  // Se não existir, salvar o padrão
+  try {
+    fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(defaultTemplates, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Erro ao escrever arquivo default de templates:', err);
+  }
+  return defaultTemplates;
+}
+
+function salvarTemplates(templates) {
+  try {
+    fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error('Erro ao salvar arquivo de templates:', err);
+    return false;
+  }
+}
 
 function formatPhone(phone) {
   let cleaned = phone.replace(/\D/g, '');
@@ -128,6 +176,7 @@ async function connectToWhatsApp() {
 // Lógica de verificação automática do banco de dados
 async function rodarVerificacoesDoDia() {
   console.log('Iniciando varredura e envio de avisos automáticos...');
+  const templates = carregarTemplates();
 
   try {
     const hojeLocal = new Date();
@@ -164,17 +213,23 @@ async function rodarVerificacoesDoDia() {
         horaDisplay = m.horario_personalizado.split('|')[1] || m.horario_personalizado;
       }
 
-      const msg = `Olá, ${aluno.nome}! Passando para avisar que hoje (${diaTermo}) você tem aula de ${modNome} marcada para as ${horaDisplay}. Esperamos você no CT!`;
+      const msg = templates.aulaHoje
+        .replace('{nome}', aluno.nome || 'Aluno')
+        .replace('{dia}', diaTermo)
+        .replace('{modalidade}', modNome)
+        .replace('{horario}', horaDisplay);
+
       await sendWhatsAppMessage(aluno.telefone, msg, 'Aviso de Aula Hoje');
     }
 
     // --- 2. LEMBRETE DE VENCIMENTO (3, 2 E 1 DIAS ANTES) ---
+    // Usando cálculo UTC robusto para evitar deslocamento de fuso horário
     for (let dias of [1, 2, 3]) {
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + dias);
       
-      const startOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0);
-      const endOfTarget = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999);
+      const startOfTarget = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0));
+      const endOfTarget = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999));
 
       const mensalidadesPerto = await prisma.mensalidades.findMany({
         where: {
@@ -192,7 +247,15 @@ async function rodarVerificacoesDoDia() {
       for (const m of mensalidadesPerto) {
         const aluno = m.alunos;
         if (!aluno || !aluno.ativo || !aluno.telefone) continue;
-        const msg = `Olá, ${aluno.nome}! Lembramos que sua mensalidade de ${m.competencia} vence daqui a ${dias} dia(s) (no dia ${m.vencimento.toLocaleDateString('pt-BR')}). Valor: R$ ${Number(m.valor).toFixed(2)}.`;
+
+        const dataFormatada = formatarDataUTC(m.vencimento);
+        const msg = templates.lembreteVencimento
+          .replace('{nome}', aluno.nome || 'Aluno')
+          .replace('{competencia}', m.competencia || '')
+          .replace('{dias}', dias.toString())
+          .replace('{vencimento}', dataFormatada)
+          .replace('{valor}', Number(m.valor || 0).toFixed(2));
+
         await sendWhatsAppMessage(aluno.telefone, msg, `Lembrete Vencimento ${dias}d`);
       }
     }
@@ -210,8 +273,13 @@ async function rodarVerificacoesDoDia() {
     for (const m of mensalidadesAtrasadas) {
       const aluno = m.alunos;
       if (!aluno || !aluno.ativo || !aluno.telefone) continue;
-      const dataVenc = m.vencimento ? m.vencimento.toLocaleDateString('pt-BR') : '';
-      const msg = `Olá, ${aluno.nome}! Constatamos que sua mensalidade de ${m.competencia} (vencida em ${dataVenc}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.`;
+
+      const dataVenc = formatarDataUTC(m.vencimento);
+      const msg = templates.mensalidadeAtrasada
+        .replace('{nome}', aluno.nome || 'Aluno')
+        .replace('{competencia}', m.competencia || '')
+        .replace('{vencimento}', dataVenc);
+
       await sendWhatsAppMessage(aluno.telefone, msg, 'Mensalidade Atrasada');
     }
 
@@ -228,6 +296,23 @@ app.get('/status', (req, res) => {
     qr: qrCodeData,
     number: connectedNumber
   });
+});
+
+// Rota HTTP para buscar templates de mensagens
+app.get('/templates', (req, res) => {
+  const templates = carregarTemplates();
+  res.json(templates);
+});
+
+// Rota HTTP para salvar templates de mensagens
+app.post('/templates', (req, res) => {
+  const templates = req.body;
+  if (!templates || typeof templates !== 'object') {
+    return res.status(400).json({ error: 'Objeto de templates inválido' });
+  }
+
+  const success = salvarTemplates(templates);
+  res.json({ success });
 });
 
 // Rota HTTP para desconectar e limpar sessão

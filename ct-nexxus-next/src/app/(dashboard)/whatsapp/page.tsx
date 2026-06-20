@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from 'react'
 
+interface MessageTemplates {
+  aulaHoje: string
+  lembreteVencimento: string
+  mensalidadeAtrasada: string
+  confirmacaoPagamento: string
+}
+
 export default function WhatsAppPage() {
   const [status, setStatus] = useState<'DISCONNECTED' | 'CONNECTING' | 'CONNECTED' | 'LOADING'>('LOADING')
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [connectedNumber, setConnectedNumber] = useState<string | null>(null)
   const [loadingAction, setLoadingAction] = useState<boolean>(false)
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
+  
+  // State para os templates de mensagem
+  const [templates, setTemplates] = useState<MessageTemplates>({
+    aulaHoje: '',
+    lembreteVencimento: '',
+    mensalidadeAtrasada: '',
+    confirmacaoPagamento: ''
+  })
+  const [loadingTemplates, setLoadingTemplates] = useState<boolean>(true)
 
   // Função para buscar status do servidor WhatsApp
   const fetchStatus = async () => {
@@ -24,9 +40,26 @@ export default function WhatsAppPage() {
     }
   }
 
-  // Polling a cada 3 segundos para atualizar QR Code e Status
+  // Função para buscar os templates do servidor
+  const fetchTemplates = async () => {
+    setLoadingTemplates(true)
+    try {
+      const res = await fetch('http://localhost:3001/templates')
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data)
+      }
+    } catch (error) {
+      console.error('Erro ao buscar templates:', error)
+    } finally {
+      setLoadingTemplates(false)
+    }
+  }
+
+  // Polling para status do WhatsApp
   useEffect(() => {
     fetchStatus()
+    fetchTemplates()
     const interval = setInterval(fetchStatus, 3000)
     return () => clearInterval(interval)
   }, [])
@@ -75,8 +108,32 @@ export default function WhatsAppPage() {
     }
   }
 
+  // Salvar alterações nos templates de mensagem
+  const handleSaveTemplates = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoadingAction(true)
+    setMessage(null)
+    try {
+      const res = await fetch('http://localhost:3001/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(templates)
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMessage({ text: 'Modelos de mensagem salvos e atualizados com sucesso!', type: 'success' })
+      } else {
+        setMessage({ text: 'Erro ao salvar os modelos de mensagem.', type: 'error' })
+      }
+    } catch (err) {
+      setMessage({ text: 'Erro de rede ao salvar os templates.', type: 'error' })
+    } finally {
+      setLoadingAction(false)
+    }
+  }
+
   return (
-    <div className="w-full text-slate-800 font-sans max-w-5xl mx-auto pb-12">
+    <div className="w-full text-slate-800 font-sans max-w-6xl mx-auto pb-16">
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -84,7 +141,7 @@ export default function WhatsAppPage() {
             <i className="bi bi-whatsapp text-emerald-500"></i> Automação do WhatsApp
           </h1>
           <p className="text-slate-500 text-sm mt-1">
-            Central de conexão, alertas automáticos de mensalidades e avisos de treinos do CT Nexxus.
+            Gerencie a conexão do celular do CT e personalize as mensagens automáticas de alertas.
           </p>
         </div>
       </div>
@@ -95,17 +152,19 @@ export default function WhatsAppPage() {
           message.type === 'success' 
             ? 'bg-emerald-50 border-emerald-100 text-emerald-800' 
             : 'bg-rose-50 border-rose-100 text-rose-800'
-        } flex items-center gap-3 shadow-sm`}>
+        } flex items-center gap-3 shadow-sm animate-fadeIn`}>
           <i className={`bi ${message.type === 'success' ? 'bi-check-circle-fill text-emerald-500' : 'bi-exclamation-circle-fill text-rose-500'} text-lg`}></i>
           <span className="text-sm font-medium">{message.text}</span>
         </div>
       )}
 
       {/* Grid Principal */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Coluna 1: Status de Conexão */}
-        <div className="md:col-span-2 space-y-6">
+        {/* Coluna da Esquerda: Status do Dispositivo (Lg: 8 cols) */}
+        <div className="lg:col-span-8 space-y-8">
+          
+          {/* Card de Status */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col items-center text-center">
             <h2 className="text-lg font-bold text-slate-800 mb-6 w-full text-left flex items-center gap-2 pb-2 border-b border-slate-100">
               <i className="bi bi-broadcast text-blue-500"></i> Status do Dispositivo
@@ -133,7 +192,7 @@ export default function WhatsAppPage() {
             )}
 
             {status === 'CONNECTING' && qrCode && (
-              <div className="py-4 flex flex-col items-center gap-6 w-full">
+              <div className="py-4 flex flex-col items-center gap-6 w-full animate-fadeIn">
                 <div className="px-4 py-1.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-xs font-semibold animate-pulse flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
                   Aguardando Leitura do QR Code
@@ -156,7 +215,7 @@ export default function WhatsAppPage() {
             )}
 
             {status === 'CONNECTED' && (
-              <div className="py-8 flex flex-col items-center gap-6">
+              <div className="py-8 flex flex-col items-center gap-6 animate-fadeIn">
                 <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-4xl shadow-inner relative">
                   <i className="bi bi-check-circle-fill"></i>
                   <span className="absolute bottom-1 right-1 flex h-3.5 w-3.5">
@@ -186,17 +245,135 @@ export default function WhatsAppPage() {
               </div>
             )}
           </div>
+
+          {/* Form de Edição de Templates */}
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+            <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 pb-2 border-b border-slate-100">
+              <i className="bi bi-chat-left-text text-emerald-500"></i> Modelos de Mensagens
+            </h2>
+            
+            {loadingTemplates ? (
+              <div className="py-8 flex justify-center items-center">
+                <span className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></span>
+                <span className="ml-2.5 text-xs text-slate-500 font-medium">Carregando modelos...</span>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveTemplates} className="space-y-6">
+                
+                {/* 1. Aula Hoje */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Aviso de Aula Hoje (Enviado no dia do treino)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={templates.aulaHoje}
+                    onChange={(e) => setTemplates({ ...templates, aulaHoje: e.target.value })}
+                    className="w-full p-4 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-y leading-relaxed"
+                    required
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-slate-400 font-semibold uppercase">
+                    Variáveis: 
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{nome}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{dia}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{modalidade}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{horario}`}</span>
+                  </div>
+                </div>
+
+                {/* 2. Lembrete Vencimento */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Lembrete de Vencimento Próximo (3, 2, 1 dias antes)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={templates.lembreteVencimento}
+                    onChange={(e) => setTemplates({ ...templates, lembreteVencimento: e.target.value })}
+                    className="w-full p-4 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-y leading-relaxed"
+                    required
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-slate-400 font-semibold uppercase">
+                    Variáveis: 
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{nome}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{competencia}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{dias}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{vencimento}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{valor}`}</span>
+                  </div>
+                </div>
+
+                {/* 3. Mensalidade Atrasada */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Cobrança de Mensalidade Atrasada (Inadimplente)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={templates.mensalidadeAtrasada}
+                    onChange={(e) => setTemplates({ ...templates, mensalidadeAtrasada: e.target.value })}
+                    className="w-full p-4 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-y leading-relaxed"
+                    required
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-slate-400 font-semibold uppercase">
+                    Variáveis: 
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{nome}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{competencia}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{vencimento}`}</span>
+                  </div>
+                </div>
+
+                {/* 4. Confirmação Pagamento */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-slate-700">
+                    Agradecimento de Confirmação de Pagamento (Instantâneo)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={templates.confirmacaoPagamento}
+                    onChange={(e) => setTemplates({ ...templates, confirmacaoPagamento: e.target.value })}
+                    className="w-full p-4 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all resize-y leading-relaxed"
+                    required
+                  />
+                  <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-slate-400 font-semibold uppercase">
+                    Variáveis: 
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{nome}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{competencia}`}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4 border-t border-slate-100">
+                  <button
+                    type="submit"
+                    disabled={loadingAction}
+                    className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-[#27ae60] text-white font-bold rounded-xl text-sm hover:shadow-md transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    {loadingAction ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-save2-fill"></i> Salvar Modelos
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
 
-        {/* Coluna 2: Painel de Testes e Informações */}
-        <div className="space-y-6">
+        {/* Coluna da Direita: Painel de Testes e Informações (Lg: 4 cols) */}
+        <div className="lg:col-span-4 space-y-6">
           {/* Card de Testes */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
             <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2 pb-2 border-b border-slate-100">
               <i className="bi bi-bug text-amber-500"></i> Painel de Testes
             </h2>
             <p className="text-slate-500 text-xs leading-relaxed mb-4">
-              Use este botão para forçar a verificação manual no banco de dados e simular os avisos agora mesmo.
+              Clique neste botão para forçar a verificação manual no banco de dados e simular os avisos agora mesmo.
             </p>
             
             <button
@@ -235,18 +412,17 @@ export default function WhatsAppPage() {
             <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
               <div className="p-2.5 bg-blue-50 border border-blue-100 text-blue-800 rounded-lg font-medium">
                 <strong>Modo de Segurança Ativo:</strong><br />
-                Durante a fase de testes, o robô intercepta todas as mensagens e <strong>só envia mensagens de verdade para o número do Paulo: (15) 997040121</strong>.
+                Durante os testes, o robô intercepta as mensagens e <strong>só envia mensagens de verdade para o número do Paulo: (15) 997040121</strong>.
               </div>
               <p>
                 Os demais alunos registrados não serão notificados pelo WhatsApp, e suas mensagens simuladas apenas aparecerão no painel de logs do servidor.
               </p>
               <h4 className="font-bold text-slate-800 mt-2">Etapas do Teste:</h4>
               <ul className="list-disc list-inside space-y-1.5">
-                <li>Esqueça ou desative outros alunos se preferir.</li>
-                <li>Escaneie o QR Code com o <strong>seu</strong> celular.</li>
+                <li>Escaneie o QR Code com o <strong>seu</strong> celular pessoal.</li>
                 <li>Clique em <strong>Disparar Testes Manuais</strong> acima.</li>
                 <li>O Paulo receberá os avisos de Aula Hoje e Mensalidade Vencida no celular dele.</li>
-                <li>Para testar a confirmação de pagamento, vá em <strong>Financeiro</strong>, busque por <strong>Paulo</strong>, clique em Pagar e confirme. O Paulo receberá a confirmação de recebimento instantânea!</li>
+                <li>Para testar a confirmação de pagamento, vá em <strong>Financeiro</strong>, busque por <strong>Paulo</strong>, clique em Pagar e confirme. O Paulo receberá a confirmação de recebimento instantânea no WhatsApp dele!</li>
               </ul>
             </div>
           </div>
