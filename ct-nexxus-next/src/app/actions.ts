@@ -1221,12 +1221,24 @@ export async function excluirHorario(formData: FormData) {
 }
 
 export async function atualizarStatusMensalidade(formData: FormData) {
+  const fs = require('fs')
+  const path = require('path')
+  const logFile = path.join(process.cwd(), 'actions-debug.log')
+  const log = (msg: string) => {
+    try {
+      fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`, 'utf8')
+    } catch (e) {}
+  }
+
+  log('--- ATUALIZAR STATUS MENSALIDADE INICIADA ---')
   try {
     const id = Number(formData.get('id'))
     const status = formData.get('status') as string
     const forma_pagamento = formData.get('forma') as string
+    log(`Parâmetros: id=${id}, status=${status}, forma_pagamento=${forma_pagamento}`)
 
     if (status === 'PAGO') {
+      log('Atualizando para PAGO no banco de dados...')
       const currentMensalidade = await prisma.mensalidades.update({
         where: { id },
         data: {
@@ -1236,16 +1248,15 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         },
         include: { matriculas: true }
       })
+      log(`Banco atualizado com sucesso. aluno_id=${currentMensalidade.aluno_id}, matricula_id=${currentMensalidade.matricula_id}`)
 
       // Buscar aluno via aluno_id da mensalidade ou via matrícula associada
       const targetAlunoId = currentMensalidade.aluno_id || currentMensalidade.matriculas?.aluno_id
-      console.log('atualizarStatusMensalidade: Mensalidade paga, iniciando fluxo de notificação. aluno_id resolved:', targetAlunoId);
+      log(`targetAlunoId resolvido: ${targetAlunoId}`)
+      
       if (targetAlunoId) {
         try {
-          const fs = await import('fs')
-          const path = await import('path')
           const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
-          
           let templates = {
             confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
           }
@@ -1253,12 +1264,15 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           if (fs.existsSync(templatesPath)) {
             const fileData = fs.readFileSync(templatesPath, 'utf8')
             templates = JSON.parse(fileData)
+            log('Templates de WhatsApp carregados do JSON.')
+          } else {
+            log('Arquivo de templates não encontrado. Usando default.')
           }
 
           const aluno = await prisma.alunos.findUnique({
             where: { id: targetAlunoId }
           })
-          console.log('atualizarStatusMensalidade: Aluno encontrado:', aluno ? aluno.nome : 'NULO', 'telefone:', aluno ? aluno.telefone : 'NULO');
+          log(`Aluno consultado: ${aluno ? aluno.nome : 'NULO'}, telefone: ${aluno ? aluno.telefone : 'NULO'}`)
 
           if (aluno && aluno.telefone) {
             const compStr = currentMensalidade.competencia || ''
@@ -1266,23 +1280,31 @@ export async function atualizarStatusMensalidade(formData: FormData) {
               .replace('{nome}', aluno.nome || 'Aluno')
               .replace('{competencia}', compStr)
             
-            console.log('atualizarStatusMensalidade: Enviando requisição POST para 127.0.0.1:3001/send com a mensagem:', msg);
+            log(`Disparando POST para http://127.0.0.1:3001/send para o telefone ${aluno.telefone}`)
             const res = await fetch('http://127.0.0.1:3001/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone: aluno.telefone, message: msg })
             })
-            const data = await res.json()
-            console.log('WhatsApp: Envio de confirmação de pagamento:', data)
+            
+            if (res.ok) {
+              const data = await res.json()
+              log(`Servidor WhatsApp respondeu com sucesso: ${JSON.stringify(data)}`)
+            } else {
+              log(`Servidor WhatsApp respondeu com erro HTTP ${res.status}: ${res.statusText}`)
+            }
           } else {
-            console.log('atualizarStatusMensalidade: Envio cancelado pois aluno ou telefone são inválidos/nulos.');
+            log('Envio cancelado: Aluno ou telefone nulo.')
           }
-        } catch (err) {
-          console.error('Erro ao disparar confirmação de pagamento:', err)
+        } catch (err: any) {
+          log(`Erro interno no fluxo do WhatsApp: ${err.message || err}`)
         }
+      } else {
+        log('Envio cancelado: targetAlunoId é nulo.')
       }
 
       // Gerar próxima mensalidade se a matrícula e o aluno estiverem ativos
+      log('Verificando se precisa gerar próxima mensalidade...')
       const matriculaDb = await prisma.matriculas.findUnique({
         where: { id: currentMensalidade.matricula_id || 0 },
         include: { alunos: true }
@@ -1319,10 +1341,14 @@ export async function atualizarStatusMensalidade(formData: FormData) {
                 status: 'PENDENTE'
               }
             })
+            log(`Próxima mensalidade gerada para competência ${proxCompetencia}`)
+          } else {
+            log(`Próxima mensalidade para competência ${proxCompetencia} já existe.`)
           }
         }
       }
     } else {
+      log('Status diferente de PAGO. Atualizando registro no banco...')
       let finalStatus = status
       if (status === 'PENDENTE') {
         const current = await prisma.mensalidades.findUnique({ where: { id } })
@@ -1347,11 +1373,14 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           forma_pagamento: null
         }
       })
+      log(`Registro atualizado com status ${finalStatus}`)
     }
     
+    log('atualizarStatusMensalidade finalizada com sucesso.')
     revalidatePath('/financeiro')
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
+    log(`Erro fatal em atualizarStatusMensalidade: ${error.message || error}`)
     console.error('Erro atualizarStatusMensalidade:', error)
     return { success: false }
   }
