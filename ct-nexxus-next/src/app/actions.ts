@@ -1237,6 +1237,27 @@ export async function atualizarStatusMensalidade(formData: FormData) {
         include: { matriculas: true }
       })
 
+      // Disparar notificação de confirmação via WhatsApp
+      if (currentMensalidade.aluno_id) {
+        prisma.alunos.findUnique({
+          where: { id: currentMensalidade.aluno_id }
+        }).then((aluno: any) => {
+          if (aluno && aluno.telefone) {
+            const compStr = currentMensalidade.competencia || '';
+            const msg = `Obrigado, ${aluno.nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a ${compStr}. Bom treino!`;
+            
+            fetch('http://localhost:3001/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone: aluno.telefone, message: msg })
+            })
+            .then(res => res.json())
+            .then(data => console.log('Envio de confirmação de pagamento:', data))
+            .catch(err => console.error('Erro de rede ao enviar confirmação de pagamento:', err));
+          }
+        }).catch((err: any) => console.error('Erro ao buscar aluno para confirmação de pagamento:', err));
+      }
+
       // Gerar próxima mensalidade se a matrícula e o aluno estiverem ativos
       const matriculaDb = await prisma.matriculas.findUnique({
         where: { id: currentMensalidade.matricula_id || 0 },

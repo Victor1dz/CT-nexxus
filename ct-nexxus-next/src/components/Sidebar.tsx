@@ -14,6 +14,7 @@ export default function Sidebar() {
     { name: "Agenda", href: "/agenda", icon: "calendar-week" },
     { name: "Diário / Presença", href: "/diario", icon: "card-checklist" },
     { name: "Financeiro", href: "/financeiro", icon: "cash-coin" },
+    { name: "WhatsApp / Alertas", href: "/whatsapp", icon: "whatsapp" },
   ]
 
   return (
