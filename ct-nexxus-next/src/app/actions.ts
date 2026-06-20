@@ -1238,6 +1238,7 @@ export async function atualizarStatusMensalidade(formData: FormData) {
       })
 
       // Disparar notificação de confirmação via WhatsApp e aguardar
+      console.log('atualizarStatusMensalidade: Mensalidade paga, iniciando fluxo de notificação. aluno_id:', currentMensalidade.aluno_id);
       if (currentMensalidade.aluno_id) {
         try {
           const fs = await import('fs')
@@ -1256,6 +1257,7 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           const aluno = await prisma.alunos.findUnique({
             where: { id: currentMensalidade.aluno_id }
           })
+          console.log('atualizarStatusMensalidade: Aluno encontrado:', aluno ? aluno.nome : 'NULO', 'telefone:', aluno ? aluno.telefone : 'NULO');
 
           if (aluno && aluno.telefone) {
             const compStr = currentMensalidade.competencia || ''
@@ -1263,13 +1265,16 @@ export async function atualizarStatusMensalidade(formData: FormData) {
               .replace('{nome}', aluno.nome || 'Aluno')
               .replace('{competencia}', compStr)
             
-            const res = await fetch('http://localhost:3001/send', {
+            console.log('atualizarStatusMensalidade: Enviando requisição POST para 127.0.0.1:3001/send com a mensagem:', msg);
+            const res = await fetch('http://127.0.0.1:3001/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone: aluno.telefone, message: msg })
             })
             const data = await res.json()
             console.log('WhatsApp: Envio de confirmação de pagamento:', data)
+          } else {
+            console.log('atualizarStatusMensalidade: Envio cancelado pois aluno ou telefone são inválidos/nulos.');
           }
         } catch (err) {
           console.error('Erro ao disparar confirmação de pagamento:', err)
