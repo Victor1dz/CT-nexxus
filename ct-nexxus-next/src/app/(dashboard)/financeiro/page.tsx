@@ -245,6 +245,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                             name="status" 
                                             defaultValue={m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'INADIMPLENTE' : 'PENDENTE')} 
                                             className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500"
+                                            autoComplete="off"
                                           >
                                             <option value="PENDENTE">Pendente</option>
                                             <option value="PAGO">Pago</option>
@@ -256,6 +257,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                             name="forma" 
                                             defaultValue={m.forma_pagamento || ''} 
                                             className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-20 shadow-sm focus:ring-1 focus:ring-blue-500"
+                                            autoComplete="off"
                                           >
                                             <option value="">(Forma)</option>
                                             <option value="PIX">PIX</option>

@@ -1225,10 +1225,12 @@ export async function atualizarStatusMensalidade(formData: FormData) {
   const path = require('path')
   const logFile = path.join(process.cwd(), 'actions-debug.log')
   const log = (msg: string) => {
+    console.log(`[atualizarStatusMensalidade] ${msg}`)
     try {
       fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`, 'utf8')
     } catch (e) {}
   }
+
 
   log('--- ATUALIZAR STATUS MENSALIDADE INICIADA ---')
   try {
