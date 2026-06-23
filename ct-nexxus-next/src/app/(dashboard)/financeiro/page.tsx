@@ -240,13 +240,23 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                         <form action={async (formData) => { "use server"; await atualizarStatusMensalidade(formData) }} className="flex items-center gap-1.5">
                                           <input type="hidden" name="id" value={m.id} />
                                           
-                                          <select name="status" defaultValue={m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'INADIMPLENTE' : 'PENDENTE')} className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500">
+                                          <select 
+                                            key={`status-select-${m.id}-${m.status}`}
+                                            name="status" 
+                                            defaultValue={m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'INADIMPLENTE' : 'PENDENTE')} 
+                                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500"
+                                          >
                                             <option value="PENDENTE">Pendente</option>
                                             <option value="PAGO">Pago</option>
                                             <option value="INADIMPLENTE">Inadimplente</option>
                                           </select>
 
-                                          <select name="forma" className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-20 shadow-sm focus:ring-1 focus:ring-blue-500">
+                                          <select 
+                                            key={`forma-select-${m.id}-${m.forma_pagamento || 'empty'}`}
+                                            name="forma" 
+                                            defaultValue={m.forma_pagamento || ''} 
+                                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-20 shadow-sm focus:ring-1 focus:ring-blue-500"
+                                          >
                                             <option value="">(Forma)</option>
                                             <option value="PIX">PIX</option>
                                             <option value="CARTÃO">Cartão</option>

@@ -1,6 +1,13 @@
 "use client"
 
 import { useEffect, useState } from 'react'
+import {
+  getWhatsAppStatus,
+  getWhatsAppTemplates,
+  saveWhatsAppTemplates,
+  disconnectWhatsApp,
+  triggerWhatsAppChecks
+} from '@/app/actions'
 
 interface MessageTemplates {
   aulaHoje: string
@@ -24,12 +31,12 @@ export default function WhatsAppPage() {
     confirmacaoPagamento: ''
   })
   const [loadingTemplates, setLoadingTemplates] = useState<boolean>(true)
+  const [templatesLoaded, setTemplatesLoaded] = useState<boolean>(false)
 
   // Função para buscar status do servidor WhatsApp
   const fetchStatus = async () => {
     try {
-      const res = await fetch('http://localhost:3001/status')
-      const data = await res.json()
+      const data = await getWhatsAppStatus()
       setStatus(data.status)
       setQrCode(data.qr)
       setConnectedNumber(data.number)
@@ -44,10 +51,10 @@ export default function WhatsAppPage() {
   const fetchTemplates = async () => {
     setLoadingTemplates(true)
     try {
-      const res = await fetch('http://localhost:3001/templates')
-      if (res.ok) {
-        const data = await res.json()
+      const data = await getWhatsAppTemplates()
+      if (data) {
         setTemplates(data)
+        setTemplatesLoaded(true)
       }
     } catch (error) {
       console.error('Erro ao buscar templates:', error)
@@ -56,13 +63,20 @@ export default function WhatsAppPage() {
     }
   }
 
-  // Polling para status do WhatsApp
+  // Polling para status do WhatsApp e carregamento dos templates
   useEffect(() => {
     fetchStatus()
-    fetchTemplates()
-    const interval = setInterval(fetchStatus, 3000)
+    if (!templatesLoaded) {
+      fetchTemplates()
+    }
+    const interval = setInterval(() => {
+      fetchStatus()
+      if (!templatesLoaded) {
+        fetchTemplates()
+      }
+    }, 3000)
     return () => clearInterval(interval)
-  }, [])
+  }, [templatesLoaded])
 
   // Função para forçar desconexão
   const handleDisconnect = async () => {
@@ -71,8 +85,7 @@ export default function WhatsAppPage() {
     setLoadingAction(true)
     setMessage(null)
     try {
-      const res = await fetch('http://localhost:3001/disconnect', { method: 'POST' })
-      const data = await res.json()
+      const data = await disconnectWhatsApp()
       if (data.success) {
         setMessage({ text: 'WhatsApp desconectado com sucesso!', type: 'success' })
         fetchStatus()
@@ -91,8 +104,7 @@ export default function WhatsAppPage() {
     setLoadingAction(true)
     setMessage(null)
     try {
-      const res = await fetch('http://localhost:3001/trigger-checks', { method: 'POST' })
-      const data = await res.json()
+      const data = await triggerWhatsAppChecks()
       if (data.success) {
         setMessage({ 
           text: 'Varredura de testes executada! Se o seu WhatsApp estiver conectado, o Paulo receberá os avisos de aula e mensalidades vencidas/pendentes.', 
@@ -114,12 +126,7 @@ export default function WhatsAppPage() {
     setLoadingAction(true)
     setMessage(null)
     try {
-      const res = await fetch('http://localhost:3001/templates', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(templates)
-      })
-      const data = await res.json()
+      const data = await saveWhatsAppTemplates(templates)
       if (data.success) {
         setMessage({ text: 'Modelos de mensagem salvos e atualizados com sucesso!', type: 'success' })
       } else {
@@ -178,7 +185,7 @@ export default function WhatsAppPage() {
             )}
 
             {status === 'DISCONNECTED' && !qrCode && (
-              <div className="py-8 flex flex-col items-center gap-4">
+              <div className="py-8 flex flex-col items-center gap-4 animate-fadeIn">
                 <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center text-3xl">
                   <i className="bi bi-x-circle-fill"></i>
                 </div>
@@ -252,7 +259,7 @@ export default function WhatsAppPage() {
               <i className="bi bi-chat-left-text text-emerald-500"></i> Modelos de Mensagens
             </h2>
             
-            {loadingTemplates ? (
+            {loadingTemplates && !templatesLoaded ? (
               <div className="py-8 flex justify-center items-center">
                 <span className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></span>
                 <span className="ml-2.5 text-xs text-slate-500 font-medium">Carregando modelos...</span>

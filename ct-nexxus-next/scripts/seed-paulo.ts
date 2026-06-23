@@ -89,20 +89,6 @@ async function main() {
     }
   });
   console.log('Mensalidade de Junho (vencimento em 2 dias) criada como PENDENTE.');
-
-  // Mensalidade 2: Vencida em 22/05/2026, status INADIMPLENTE
-  const vencimentoAtrasado = new Date(2026, 4, 22); // Maio é mês 4
-  await prisma.mensalidades.create({
-    data: {
-      aluno_id: paulo.id,
-      matricula_id: matricula.id,
-      competencia: '2026-05',
-      valor: 120,
-      vencimento: vencimentoAtrasado,
-      status: 'INADIMPLENTE'
-    }
-  });
-  console.log('Mensalidade de Maio (vencida) criada como INADIMPLENTE.');
 }
 
 main()

@@ -1966,3 +1966,64 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
   }
 }
 
+export async function getWhatsAppStatus() {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/status', { cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (err: any) {
+    console.error('Error in getWhatsAppStatus:', err.message || err)
+    return { status: 'DISCONNECTED', qr: null, number: null }
+  }
+}
+
+export async function getWhatsAppTemplates() {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/templates', { cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (err: any) {
+    console.error('Error in getWhatsAppTemplates:', err.message || err)
+    return null
+  }
+}
+
+export async function saveWhatsAppTemplates(templates: any) {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(templates),
+      cache: 'no-store'
+    })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (err: any) {
+    console.error('Error in saveWhatsAppTemplates:', err.message || err)
+    return { success: false }
+  }
+}
+
+export async function disconnectWhatsApp() {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/disconnect', { method: 'POST', cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (err: any) {
+    console.error('Error in disconnectWhatsApp:', err.message || err)
+    return { success: false }
+  }
+}
+
+export async function triggerWhatsAppChecks() {
+  try {
+    const res = await fetch('http://127.0.0.1:3001/trigger-checks', { method: 'POST', cache: 'no-store' })
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    return await res.json()
+  } catch (err: any) {
+    console.error('Error in triggerWhatsAppChecks:', err.message || err)
+    return { success: false }
+  }
+}
+
+
