@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache"
 import prisma from "@/lib/prisma"
 import { Modalidade, Preco, Horario } from "@/types"
 
+const WPP_URL = process.env.WHATSAPP_SERVER_URL || 'http://127.0.0.1:3001';
+
 export async function getModalidades() {
   try {
     const mods = await prisma.modalidades.findMany({
@@ -1282,8 +1284,8 @@ export async function atualizarStatusMensalidade(formData: FormData) {
               .replace('{nome}', aluno.nome || 'Aluno')
               .replace('{competencia}', compStr)
             
-            log(`Disparando POST para http://127.0.0.1:3001/send para o telefone ${aluno.telefone}`)
-            const res = await fetch('http://127.0.0.1:3001/send', {
+            log(`Disparando POST para ${WPP_URL}/send para o telefone ${aluno.telefone}`)
+            const res = await fetch(`${WPP_URL}/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone: aluno.telefone, message: msg })
@@ -1970,7 +1972,7 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
 
 export async function getWhatsAppStatus() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/status', { cache: 'no-store' })
+    const res = await fetch(`${WPP_URL}/status`, { cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP error ${res.status}`)
     return await res.json()
   } catch (err: any) {
@@ -1981,7 +1983,7 @@ export async function getWhatsAppStatus() {
 
 export async function getWhatsAppTemplates() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/templates', { cache: 'no-store' })
+    const res = await fetch(`${WPP_URL}/templates`, { cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP error ${res.status}`)
     return await res.json()
   } catch (err: any) {
@@ -1992,7 +1994,7 @@ export async function getWhatsAppTemplates() {
 
 export async function saveWhatsAppTemplates(templates: any) {
   try {
-    const res = await fetch('http://127.0.0.1:3001/templates', {
+    const res = await fetch(`${WPP_URL}/templates`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(templates),
@@ -2008,7 +2010,7 @@ export async function saveWhatsAppTemplates(templates: any) {
 
 export async function disconnectWhatsApp() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/disconnect', { method: 'POST', cache: 'no-store' })
+    const res = await fetch(`${WPP_URL}/disconnect`, { method: 'POST', cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP error ${res.status}`)
     return await res.json()
   } catch (err: any) {
@@ -2019,7 +2021,7 @@ export async function disconnectWhatsApp() {
 
 export async function triggerWhatsAppChecks() {
   try {
-    const res = await fetch('http://127.0.0.1:3001/trigger-checks', { method: 'POST', cache: 'no-store' })
+    const res = await fetch(`${WPP_URL}/trigger-checks`, { method: 'POST', cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP error ${res.status}`)
     return await res.json()
   } catch (err: any) {
