@@ -13,7 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 const AUTH_DIR = path.join(__dirname, '../.wpp_auth');
 const TEMPLATES_FILE = path.join(__dirname, '../whatsapp-templates.json');
 
