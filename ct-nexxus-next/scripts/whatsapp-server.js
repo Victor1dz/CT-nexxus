@@ -21,6 +21,7 @@ let sock = null;
 let qrCodeData = null;
 let connectionStatus = 'DISCONNECTED';
 let connectedNumber = null;
+let isManualLogout = false;
 
 // SAFETY CHECK: ONLY ALLOW SENDING MESSAGES TO PAULO DURING TESTING
 const ALLOWED_TEST_NUMBER = '5515997040121';
@@ -147,17 +148,23 @@ async function connectToWhatsApp() {
         connectionStatus = 'DISCONNECTED';
         connectedNumber = null;
         
-        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-        console.log('Conexão com WhatsApp fechada. Motivo:', lastDisconnect?.error?.message || 'Desconhecido');
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        console.log(`Conexão com WhatsApp fechada. Status Code: ${statusCode || 'N/A'}. Motivo:`, lastDisconnect?.error?.message || 'Desconhecido');
         
-        if (shouldReconnect) {
-          console.log('Tentando reconectar em 5 segundos...');
-          setTimeout(connectToWhatsApp, 5000);
-        } else {
-          console.log('Desconectado permanentemente pelo usuário.');
+        if (isManualLogout || isLoggedOut) {
+          console.log('Sessão encerrada permanentemente (desconectado pelo usuário ou deslogado no celular). Limpando credenciais...');
           if (fs.existsSync(AUTH_DIR)) {
             fs.rmSync(AUTH_DIR, { recursive: true, force: true });
           }
+          isManualLogout = false; // Reset flag
+          
+          // Reconnect after 5 seconds to generate a new QR Code for login
+          console.log('Tentando inicializar nova sessão em 5 segundos...');
+          setTimeout(connectToWhatsApp, 5000);
+        } else {
+          console.log('Conexão perdida (possível sleep do PC ou queda de rede). Tentando reconectar automaticamente em 5 segundos sem limpar credenciais...');
+          setTimeout(connectToWhatsApp, 5000);
         }
       } else if (connection === 'open') {
         connectionStatus = 'CONNECTED';
@@ -319,23 +326,31 @@ app.post('/templates', (req, res) => {
 app.post('/disconnect', async (req, res) => {
   console.log('Desconectando WhatsApp por requisição...');
   try {
+    isManualLogout = true;
     qrCodeData = null;
     connectionStatus = 'DISCONNECTED';
     connectedNumber = null;
 
     if (sock) {
       await sock.logout();
+    } else {
+      // Se não houver socket ativo mas houver credenciais antigas na pasta, limpar agora
+      if (fs.existsSync(AUTH_DIR)) {
+        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+      }
+      setTimeout(connectToWhatsApp, 1000);
     }
   } catch (err) {
     console.error('Erro ao efetuar logout:', err);
-  }
-
-  if (fs.existsSync(AUTH_DIR)) {
-    fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    // Em caso de erro ao tentar logout do socket, força a limpeza local das credenciais
+    if (fs.existsSync(AUTH_DIR)) {
+      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    }
+    isManualLogout = false;
+    setTimeout(connectToWhatsApp, 1000);
   }
 
   res.json({ success: true });
-  setTimeout(connectToWhatsApp, 2000);
 });
 
 // Rota HTTP para envio manual / webhook instantâneo
