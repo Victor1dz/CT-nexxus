@@ -1,11 +1,9 @@
 const makeWASocket = require('@whiskeysockets/baileys').default;
-const { useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { BufferJSON, initAuthCreds, proto, DisconnectReason } = require('@whiskeysockets/baileys');
 const express = require('express');
 const cors = require('cors');
 const pino = require('pino');
 const QRCode = require('qrcode');
-const fs = require('fs');
-const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -14,14 +12,13 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
-const AUTH_DIR = path.join(__dirname, '../.wpp_auth');
-const TEMPLATES_FILE = path.join(__dirname, '../whatsapp-templates.json');
 
 let sock = null;
 let qrCodeData = null;
 let connectionStatus = 'DISCONNECTED';
 let connectedNumber = null;
 let isManualLogout = false;
+let authState = null;
 
 // SAFETY CHECK: ONLY ALLOW SENDING MESSAGES TO PAULO DURING TESTING
 const ALLOWED_TEST_NUMBER = '5515997040121';
@@ -36,41 +33,137 @@ function formatarDataUTC(date) {
   return `${dia}/${mes}/${ano}`;
 }
 
-// Carregar templates do arquivo JSON ou usar defaults
-function carregarTemplates() {
-  const defaultTemplates = {
-    aulaHoje: "Olá, {nome}! Passando para avisar que hoje ({dia}) você tem aula de {modalidade} marcada para as {horario}. Esperamos você no CT!",
-    lembreteVencimento: "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
-    mensalidadeAtrasada: "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
-    confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
-  };
+const defaultTemplates = {
+  aulaHoje: "Olá, {nome}! Passando para avisar que hoje ({dia}) você tem aula de {modalidade} marcada para as {horario}. Esperamos você no CT!",
+  lembreteVencimento: "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+  mensalidadeAtrasada: "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+  confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
+};
 
+let globalTemplates = { ...defaultTemplates };
+
+async function carregarTemplates() {
   try {
-    if (fs.existsSync(TEMPLATES_FILE)) {
-      const data = fs.readFileSync(TEMPLATES_FILE, 'utf8');
-      return JSON.parse(data);
+    const record = await prisma.whatsapp_session.findUnique({
+      where: { key: 'templates' }
+    });
+    if (record) {
+      globalTemplates = JSON.parse(record.value);
+    } else {
+      // Se não existir, salvar o padrão no banco
+      await prisma.whatsapp_session.create({
+        data: {
+          key: 'templates',
+          value: JSON.stringify(defaultTemplates)
+        }
+      });
+      globalTemplates = { ...defaultTemplates };
     }
   } catch (err) {
-    console.error('Erro ao carregar arquivo de templates:', err);
+    console.error('Erro ao carregar templates do banco, usando default:', err);
+    globalTemplates = { ...defaultTemplates };
   }
-
-  // Se não existir, salvar o padrão
-  try {
-    fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(defaultTemplates, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Erro ao escrever arquivo default de templates:', err);
-  }
-  return defaultTemplates;
 }
 
-function salvarTemplates(templates) {
+async function salvarTemplates(templates) {
   try {
-    fs.writeFileSync(TEMPLATES_FILE, JSON.stringify(templates, null, 2), 'utf8');
+    const value = JSON.stringify(templates);
+    await prisma.whatsapp_session.upsert({
+      where: { key: 'templates' },
+      update: { value },
+      create: { key: 'templates', value }
+    });
+    globalTemplates = { ...templates };
     return true;
   } catch (err) {
-    console.error('Erro ao salvar arquivo de templates:', err);
+    console.error('Erro ao salvar templates no banco:', err);
     return false;
   }
+}
+
+// Provedor de estado de autenticação customizado usando Prisma (Banco de Dados)
+async function usePrismaAuthState(prismaInstance) {
+  const writeData = async (data, key) => {
+    const value = JSON.stringify(data, BufferJSON.replacer);
+    await prismaInstance.whatsapp_session.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value }
+    });
+  };
+
+  const readData = async (key) => {
+    try {
+      const record = await prismaInstance.whatsapp_session.findUnique({
+        where: { key }
+      });
+      if (!record) return null;
+      return JSON.parse(record.value, BufferJSON.reviver);
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const removeData = async (key) => {
+    try {
+      await prismaInstance.whatsapp_session.delete({
+        where: { key }
+      });
+    } catch (error) {
+      // Ignora se não existir
+    }
+  };
+
+  const creds = (await readData('creds')) || initAuthCreds();
+
+  return {
+    state: {
+      creds,
+      keys: {
+        get: async (type, ids) => {
+          const data = {};
+          await Promise.all(ids.map(async (id) => {
+            let value = await readData(`${type}-${id}`);
+            if (type === 'app-state-sync-key' && value) {
+              if (proto && proto.Message && proto.Message.AppStateSyncKeyData) {
+                value = proto.Message.AppStateSyncKeyData.fromObject(value);
+              }
+            }
+            data[id] = value;
+          }));
+          return data;
+        },
+        set: async (data) => {
+          const tasks = [];
+          for (const category in data) {
+            for (const id in data[category]) {
+              const value = data[category][id];
+              const key = `${category}-${id}`;
+              tasks.push(value ? writeData(value, key) : removeData(key));
+            }
+          }
+          await Promise.all(tasks);
+        }
+      }
+    },
+    saveCreds: async () => {
+      return writeData(creds, 'creds');
+    },
+    clearAll: async () => {
+      try {
+        // Remove tudo, exceto as templates de mensagens
+        await prismaInstance.whatsapp_session.deleteMany({
+          where: {
+            key: {
+              not: 'templates'
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Erro ao limpar sessão no banco:', error);
+      }
+    }
+  };
 }
 
 function formatPhone(phone) {
@@ -121,16 +214,16 @@ async function sendWhatsAppMessage(phone, text, context) {
 async function connectToWhatsApp() {
   try {
     connectionStatus = 'CONNECTING';
-    const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
+    authState = await usePrismaAuthState(prisma);
 
     sock = makeWASocket({
-      auth: state,
+      auth: authState.state,
       logger: pino({ level: 'silent' }),
       printQRInTerminal: true,
       defaultQueryTimeoutMs: undefined
     });
 
-    sock.ev.on('creds.update', saveCreds);
+    sock.ev.on('creds.update', authState.saveCreds);
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -153,9 +246,9 @@ async function connectToWhatsApp() {
         console.log(`Conexão com WhatsApp fechada. Status Code: ${statusCode || 'N/A'}. Motivo:`, lastDisconnect?.error?.message || 'Desconhecido');
         
         if (isManualLogout || isLoggedOut) {
-          console.log('Sessão encerrada permanentemente (desconectado pelo usuário ou deslogado no celular). Limpando credenciais...');
-          if (fs.existsSync(AUTH_DIR)) {
-            fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+          console.log('Sessão encerrada permanentemente (desconectado pelo usuário ou deslogado no celular). Limpando credenciais no banco...');
+          if (authState) {
+            await authState.clearAll();
           }
           isManualLogout = false; // Reset flag
           
@@ -183,7 +276,7 @@ async function connectToWhatsApp() {
 // Lógica de verificação automática do banco de dados
 async function rodarVerificacoesDoDia() {
   console.log('Iniciando varredura e envio de avisos automáticos...');
-  const templates = carregarTemplates();
+  const templates = globalTemplates;
 
   try {
     const hojeLocal = new Date();
@@ -307,18 +400,17 @@ app.get('/status', (req, res) => {
 
 // Rota HTTP para buscar templates de mensagens
 app.get('/templates', (req, res) => {
-  const templates = carregarTemplates();
-  res.json(templates);
+  res.json(globalTemplates);
 });
 
 // Rota HTTP para salvar templates de mensagens
-app.post('/templates', (req, res) => {
+app.post('/templates', async (req, res) => {
   const templates = req.body;
   if (!templates || typeof templates !== 'object') {
     return res.status(400).json({ error: 'Objeto de templates inválido' });
   }
 
-  const success = salvarTemplates(templates);
+  const success = await salvarTemplates(templates);
   res.json({ success });
 });
 
@@ -334,17 +426,17 @@ app.post('/disconnect', async (req, res) => {
     if (sock) {
       await sock.logout();
     } else {
-      // Se não houver socket ativo mas houver credenciais antigas na pasta, limpar agora
-      if (fs.existsSync(AUTH_DIR)) {
-        fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+      // Se não houver socket ativo mas houver credenciais antigas no banco, limpar agora
+      if (authState) {
+        await authState.clearAll();
       }
       setTimeout(connectToWhatsApp, 1000);
     }
   } catch (err) {
     console.error('Erro ao efetuar logout:', err);
     // Em caso de erro ao tentar logout do socket, força a limpeza local das credenciais
-    if (fs.existsSync(AUTH_DIR)) {
-      fs.rmSync(AUTH_DIR, { recursive: true, force: true });
+    if (authState) {
+      await authState.clearAll();
     }
     isManualLogout = false;
     setTimeout(connectToWhatsApp, 1000);
@@ -373,7 +465,8 @@ app.post('/trigger-checks', async (req, res) => {
 const MILISEGUNDOS_DIA = 24 * 60 * 60 * 1000;
 setInterval(rodarVerificacoesDoDia, MILISEGUNDOS_DIA);
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Servidor WhatsApp rodando na porta ${PORT}`);
+  await carregarTemplates();
   connectToWhatsApp();
 });

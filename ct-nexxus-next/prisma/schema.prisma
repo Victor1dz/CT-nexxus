@@ -220,3 +220,9 @@ model lembretes {
   texto String
   cor   String?  @db.VarChar(255)
 }
+
+model whatsapp_session {
+  key   String @id
+  value String @db.Text
+}
+
