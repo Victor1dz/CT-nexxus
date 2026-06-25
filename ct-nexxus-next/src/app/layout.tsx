@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from "@/components/Sidebar";
+import { WhatsAppGlobalBanner } from "@/components/WhatsAppGlobalBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className="min-h-full flex bg-[#f4f6f9] text-slate-800">
         <Sidebar />
         <main className="ml-[260px] flex-1 p-10 min-h-screen">
+          <WhatsAppGlobalBanner />
           {children}
         </main>
       </body>

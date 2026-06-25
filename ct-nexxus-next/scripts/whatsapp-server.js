@@ -280,6 +280,29 @@ async function rodarVerificacoesDoDia() {
 
   try {
     const hojeLocal = new Date();
+    const hojeUTC = new Date(Date.UTC(hojeLocal.getUTCFullYear(), hojeLocal.getUTCMonth(), hojeLocal.getUTCDate(), 0, 0, 0, 0));
+
+    // Atualiza automaticamente as mensalidades vencidas de PENDENTE para INADIMPLENTE
+    await prisma.mensalidades.updateMany({
+      where: {
+        status: 'PENDENTE',
+        vencimento: { lt: hojeUTC }
+      },
+      data: {
+        status: 'INADIMPLENTE'
+      }
+    });
+
+    // Reverte automaticamente as mensalidades futuras de INADIMPLENTE para PENDENTE
+    await prisma.mensalidades.updateMany({
+      where: {
+        status: 'INADIMPLENTE',
+        vencimento: { gte: hojeUTC }
+      },
+      data: {
+        status: 'PENDENTE'
+      }
+    });
     
     // --- 1. AULA HOJE ---
     const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];

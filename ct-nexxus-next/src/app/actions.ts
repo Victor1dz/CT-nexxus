@@ -466,6 +466,17 @@ export async function getFinanceiroData(mesString?: string) {
       }
     })
 
+    // Reverte automaticamente as mensalidades futuras de INADIMPLENTE para PENDENTE.
+    await prisma.mensalidades.updateMany({
+      where: {
+        status: 'INADIMPLENTE',
+        vencimento: { gte: hoje }
+      },
+      data: {
+        status: 'PENDENTE'
+      }
+    })
+
     const mensalidades = await prisma.mensalidades.findMany({
       where: {
         vencimento: {
@@ -1284,19 +1295,22 @@ export async function atualizarStatusMensalidade(formData: FormData) {
               .replace('{nome}', aluno.nome || 'Aluno')
               .replace('{competencia}', compStr)
             
-            log(`Disparando POST para ${WPP_URL}/send para o telefone ${aluno.telefone}`)
-            const res = await fetch(`${WPP_URL}/send`, {
+            fetch(`${WPP_URL}/send`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone: aluno.telefone, message: msg })
             })
-            
-            if (res.ok) {
-              const data = await res.json()
-              log(`Servidor WhatsApp respondeu com sucesso: ${JSON.stringify(data)}`)
-            } else {
-              log(`Servidor WhatsApp respondeu com erro HTTP ${res.status}: ${res.statusText}`)
-            }
+            .then(async (response) => {
+              if (response.ok) {
+                const data = await response.json();
+                log(`Servidor WhatsApp respondeu com sucesso: ${JSON.stringify(data)}`);
+              } else {
+                log(`Servidor WhatsApp respondeu com erro HTTP ${response.status}: ${response.statusText}`);
+              }
+            })
+            .catch((err) => {
+              log(`Erro ao enviar mensagem em background: ${err.message || err}`);
+            });
           } else {
             log('Envio cancelado: Aluno ou telefone nulo.')
           }

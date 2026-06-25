@@ -1,4 +1,6 @@
-import { getFinanceiroData, atualizarStatusMensalidade } from '@/app/actions'
+import { getFinanceiroData } from '@/app/actions'
+import { MensalidadeStatusForm } from '@/components/MensalidadeStatusForm'
+import { DespesaStatusForm } from '@/components/DespesaStatusForm'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -229,47 +231,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                                       )}
 
                                       <div className="ms-auto flex items-center gap-2">
-                                        {m.status === 'PAGO' ? (
-                                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-100">PAGO</span>
-                                        ) : m.status === 'INADIMPLENTE' ? (
-                                          <span className="px-2.5 py-1 bg-red-50 text-red-700 text-xs font-bold rounded-lg border border-red-100">ATRASADO</span>
-                                        ) : (
-                                          <span className="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-100">PENDENTE</span>
-                                        )}
-
-                                        <form action={async (formData) => { "use server"; await atualizarStatusMensalidade(formData) }} className="flex items-center gap-1.5">
-                                          <input type="hidden" name="id" value={m.id} />
-                                          
-                                          <select 
-                                            key={`status-select-${m.id}-${m.status}`}
-                                            name="status" 
-                                            defaultValue={m.status === 'PAGO' ? 'PAGO' : (m.status === 'INADIMPLENTE' ? 'INADIMPLENTE' : 'PENDENTE')} 
-                                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-24 shadow-sm focus:ring-1 focus:ring-blue-500"
-                                            autoComplete="off"
-                                          >
-                                            <option value="PENDENTE">Pendente</option>
-                                            <option value="PAGO">Pago</option>
-                                            <option value="INADIMPLENTE">Inadimplente</option>
-                                          </select>
-
-                                          <select 
-                                            key={`forma-select-${m.id}-${m.forma_pagamento || 'empty'}`}
-                                            name="forma" 
-                                            defaultValue={m.forma_pagamento || ''} 
-                                            className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-700 outline-none w-20 shadow-sm focus:ring-1 focus:ring-blue-500"
-                                            autoComplete="off"
-                                          >
-                                            <option value="">(Forma)</option>
-                                            <option value="PIX">PIX</option>
-                                            <option value="CARTÃO">Cartão</option>
-                                            <option value="DINHEIRO">Dinheiro</option>
-                                            <option value="TRANSFERÊNCIA">Transf.</option>
-                                          </select>
-
-                                          <button type="submit" className="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm" title="Salvar">
-                                            <i className="bi bi-arrow-repeat text-[12px]"></i>
-                                          </button>
-                                        </form>
+                                        <MensalidadeStatusForm id={Number(m.id)} status={m.status} formaPagamento={m.forma_pagamento} />
                                       </div>
                                     </div>
                                   );
@@ -343,18 +305,7 @@ export default async function FinanceiroPage(props: { searchParams: Promise<{ me
                               <i className="bi bi-pencil"></i>
                             </Link>
 
-                            <form action={async (formData) => { "use server"; const { atualizarStatusDespesa } = await import('@/app/actions'); await atualizarStatusDespesa(formData) }} className="flex flex-wrap items-center gap-2 justify-end">
-                              <input type="hidden" name="id" value={d.id} />
-
-                              <select name="status" defaultValue={d.status === 'PAGO' ? 'PAGO' : 'PENDENTE'} className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-sm text-slate-700 outline-none w-28 shadow-sm focus:ring-2 focus:ring-blue-500">
-                                <option value="PENDENTE">Pendente</option>
-                                <option value="PAGO">Pago</option>
-                              </select>
-
-                              <button type="submit" className="w-8 h-8 flex items-center justify-center rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 transition-colors shadow-sm" title="Atualizar Status">
-                                <i className="bi bi-arrow-repeat"></i>
-                              </button>
-                            </form>
+                            <DespesaStatusForm id={Number(d.id)} status={d.status} />
 
                             <form action={async (formData) => { "use server"; const { excluirDespesa } = await import('@/app/actions'); await excluirDespesa(formData) }}>
                               <input type="hidden" name="id" value={d.id} />
