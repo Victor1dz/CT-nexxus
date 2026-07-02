@@ -268,10 +268,13 @@ export async function getDashboardStats() {
       }
     })
 
-    // 4. Fetch pending despesas (expenses)
+    // 4. Fetch pending despesas (expenses) starting from the current month
     const despesasAlerts = await prisma.despesas.findMany({
       where: {
-        status: 'PENDENTE'
+        status: 'PENDENTE',
+        data_vencimento: {
+          gte: firstDay
+        }
       },
       orderBy: { data_vencimento: 'asc' }
     })
@@ -533,11 +536,21 @@ export async function getFinanceiroData(mesString?: string) {
 
     if (missing.length > 0) {
       for (const cat of missing) {
+        // Busca o dia de vencimento da última despesa desta categoria no banco
+        const ultimaDespesa = await prisma.despesas.findFirst({
+          where: { categoria: cat },
+          orderBy: { data_vencimento: 'desc' }
+        })
+        let diaVenc = 10
+        if (ultimaDespesa && ultimaDespesa.data_vencimento) {
+          diaVenc = new Date(ultimaDespesa.data_vencimento).getUTCDate()
+        }
+
         await prisma.despesas.create({
           data: {
             categoria: cat,
             descricao: `Fixa: ${cat}`,
-            data_vencimento: new Date(Date.UTC(year, month, 10)),
+            data_vencimento: new Date(Date.UTC(year, month, diaVenc, 12, 0, 0, 0)),
             valor: 0,
             status: 'PENDENTE'
           }
