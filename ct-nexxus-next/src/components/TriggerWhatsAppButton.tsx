@@ -47,7 +47,7 @@ export function TriggerWhatsAppButton() {
         className={`flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-md shadow-sm transition-all text-sm w-fit ${
           loading ? 'opacity-70 cursor-not-allowed' : ''
         }`}
-        title="Forçar verificação manual de avisos e disparar WhatsApps pendentes/atrasados/aulas"
+        title="Disparar avisos de treino de hoje por WhatsApp"
       >
         {loading ? (
           <>
@@ -60,7 +60,7 @@ export function TriggerWhatsAppButton() {
         ) : (
           <>
             <i className="bi bi-whatsapp"></i>
-            <span>Disparar Avisos Hoje</span>
+            <span>Disparar Avisos de Treino</span>
           </>
         )}
       </button>

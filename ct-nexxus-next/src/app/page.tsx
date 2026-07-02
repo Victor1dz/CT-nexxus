@@ -1,6 +1,7 @@
 import { getDashboardStats } from '@/app/actions'
 import { TriggerWhatsAppButton } from '@/components/TriggerWhatsAppButton'
 import { DashboardWhatsAppCard } from '@/components/DashboardWhatsAppCard'
+import { DashboardFinanceiroList } from '@/components/DashboardFinanceiroList'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -110,10 +111,10 @@ export default async function Dashboard() {
       {/* Alertas e Notificações Detalhados */}
       <div className="bg-white border border-slate-100 rounded-xl p-8 shadow-sm mt-8">
         <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-          <i className="bi bi-bell-fill text-amber-500 text-xl"></i> Central de Avisos e Alertas do Dia
+          <i className="bi bi-bell-fill text-amber-500 text-xl"></i> Central de Avisos e Alertas Gerais
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Agenda Column */}
           <div className="space-y-4">
             <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2 pb-2 border-b border-slate-100">
@@ -154,25 +155,7 @@ export default async function Dashboard() {
               )}
             </h3>
 
-            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
-              {!stats.financeiroWarnings || stats.financeiroWarnings.length === 0 ? (
-                <div className="text-slate-400 italic text-xs py-4">Nenhuma mensalidade pendente ou atrasada.</div>
-              ) : (
-                stats.financeiroWarnings.map((w: any) => (
-                  <Link 
-                    key={w.id} 
-                    href={w.link} 
-                    className="p-3 bg-rose-50/30 rounded-xl border border-rose-200/50 hover:border-red-300 hover:bg-rose-50/60 transition-all flex flex-col gap-1 group"
-                  >
-                    <span className="font-bold text-rose-950 text-[13px] flex items-center gap-1.5">
-                      <i className="bi bi-exclamation-circle-fill text-red-500 text-[11px]"></i>
-                      {w.titulo}
-                    </span>
-                    <span className="text-slate-600 text-[11px] font-medium leading-relaxed">{w.descricao}</span>
-                  </Link>
-                ))
-              )}
-            </div>
+            <DashboardFinanceiroList warnings={stats.financeiroWarnings} />
           </div>
 
           {/* Quem Vem Hoje Column */}
@@ -207,6 +190,46 @@ export default async function Dashboard() {
                     <span className="text-slate-500 text-[11px] font-medium leading-relaxed">{w.descricao}</span>
                   </Link>
                 ))
+              )}
+            </div>
+          </div>
+
+          {/* Despesas Column */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2 pb-2 border-b border-slate-100">
+              <i className="bi bi-wallet2 text-rose-600"></i> Despesas Pendentes
+              {stats.despesasCount > 0 && (
+                <span className="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold animate-pulse">
+                  {stats.despesasCount}
+                </span>
+              )}
+            </h3>
+
+            <div className="flex flex-col gap-3 max-h-[350px] overflow-y-auto pr-1">
+              {!stats.despesasWarnings || stats.despesasWarnings.length === 0 ? (
+                <div className="text-slate-400 italic text-xs py-4">Nenhuma despesa pendente.</div>
+              ) : (
+                stats.despesasWarnings.map((d: any) => {
+                  const dateStr = d.vencimento ? new Date(d.vencimento).toLocaleDateString('pt-BR') : '-'
+                  const valorStr = d.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })
+                  return (
+                    <Link 
+                      key={`desp-${d.id}`} 
+                      href={`/financeiro?tab=despesas`} 
+                      className="p-3 bg-rose-50/20 rounded-xl border border-rose-200/40 hover:border-rose-300 hover:bg-rose-50/40 transition-all flex flex-col gap-1 group"
+                    >
+                      <span className="font-bold text-rose-950 text-[13px] flex items-center justify-between gap-2">
+                        <span className="truncate">{d.descricao}</span>
+                        <span className="px-1.5 py-0.5 bg-rose-100/50 text-rose-700 text-[9px] font-bold rounded">
+                          {d.categoria}
+                        </span>
+                      </span>
+                      <span className="text-slate-600 text-[11px] font-medium leading-relaxed">
+                        R$ {valorStr} (Venc: {dateStr})
+                      </span>
+                    </Link>
+                  )
+                })
               )}
             </div>
           </div>

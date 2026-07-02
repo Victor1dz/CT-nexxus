@@ -7,6 +7,16 @@ import { Modalidade, Preco, Horario } from "@/types"
 
 const WPP_URL = process.env.WHATSAPP_SERVER_URL || 'http://127.0.0.1:3001';
 
+// Keep-alive ping para evitar o sleep do Render (WhatsApp Server) a cada 10 minutos
+if (typeof window === 'undefined') {
+  console.log(`[Keep-Alive] Inicializando ping para manter o servidor de WhatsApp ativo em ${WPP_URL}`)
+  setInterval(() => {
+    fetch(`${WPP_URL}/status`)
+      .then(res => console.log(`[Keep-Alive] Ping no WhatsApp Server: ${res.status}`))
+      .catch(err => console.error(`[Keep-Alive] Erro ao pingar WhatsApp Server:`, err.message));
+  }, 10 * 60 * 1000); // 10 minutos
+}
+
 export async function getModalidades() {
   try {
     const mods = await prisma.modalidades.findMany({
@@ -229,19 +239,12 @@ export async function getDashboardStats() {
     })
 
     // 3. Compute badges counts & detailed lists
-    // financeiroCount: Mensalidades vencidas (INADIMPLENTE) ou que vencem hoje (PENDENTE)
+    // financeiroCount: Todas as mensalidades PENDENTE e INADIMPLENTE
     const financeiroAlerts = await prisma.mensalidades.findMany({
       where: {
-        OR: [
-          { status: 'INADIMPLENTE' },
-          {
-            status: 'PENDENTE',
-            vencimento: {
-              gte: hojeInicio,
-              lte: new Date(hojeLocal.getFullYear(), hojeLocal.getMonth(), hojeLocal.getDate(), 23, 59, 59, 999)
-            }
-          }
-        ]
+        status: {
+          in: ['PENDENTE', 'INADIMPLENTE']
+        }
       },
       include: {
         alunos: true,
@@ -254,17 +257,33 @@ export async function getDashboardStats() {
     const financeiroCount = financeiroAlerts.length
 
     const financeiroWarnings = financeiroAlerts.map((m: any) => {
-      const alunoNome = m.alunos?.nome || 'Aluno'
-      const valorStr = Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })
-      const statusStr = m.status === 'INADIMPLENTE' ? 'atrasada' : 'vencendo hoje'
-      const modNome = m.matriculas?.modalidades?.nome || 'Plano'
-      const vencStr = m.vencimento ? new Date(m.vencimento).toLocaleDateString('pt-BR') : ''
       return {
-        id: `fin-${m.id}`,
-        alunoNome,
-        titulo: `${alunoNome} (${modNome})`,
-        descricao: `Mensalidade de R$ ${valorStr} ${statusStr} (Venc: ${vencStr})`,
-        link: `/financeiro?busca=${encodeURIComponent(alunoNome)}&tab=receitas`
+        id: Number(m.id),
+        alunoNome: m.alunos?.nome || 'Aluno',
+        telefone: m.alunos?.telefone || '',
+        valor: Number(m.valor || 0),
+        vencimento: m.vencimento ? m.vencimento.toISOString() : null,
+        status: m.status,
+        modalidade: m.matriculas?.modalidades?.nome || 'Plano'
+      }
+    })
+
+    // 4. Fetch pending despesas (expenses)
+    const despesasAlerts = await prisma.despesas.findMany({
+      where: {
+        status: 'PENDENTE'
+      },
+      orderBy: { data_vencimento: 'asc' }
+    })
+    const despesasCount = despesasAlerts.length
+    const despesasWarnings = despesasAlerts.map((d: any) => {
+      return {
+        id: Number(d.id),
+        descricao: d.descricao,
+        categoria: d.categoria,
+        valor: Number(d.valor || 0),
+        vencimento: d.data_vencimento ? d.data_vencimento.toISOString() : null,
+        status: d.status
       }
     })
 
@@ -414,9 +433,11 @@ export async function getDashboardStats() {
       financeiroCount,
       diarioCount,
       agendaCount,
+      despesasCount,
       financeiroWarnings,
       diarioWarnings,
-      agendaWarnings
+      agendaWarnings,
+      despesasWarnings
     }
   } catch (error) {
     console.error('Erro ao buscar stats:', error)
@@ -427,9 +448,11 @@ export async function getDashboardStats() {
       financeiroCount: 0, 
       diarioCount: 0, 
       agendaCount: 0,
+      despesasCount: 0,
       financeiroWarnings: [],
       diarioWarnings: [],
-      agendaWarnings: []
+      agendaWarnings: [],
+      despesasWarnings: []
     }
   }
 }
