@@ -107,7 +107,7 @@ export default function WhatsAppPage() {
       const data = await triggerWhatsAppChecks()
       if (data.success) {
         setMessage({ 
-          text: 'Varredura de testes executada! Se o seu WhatsApp estiver conectado, o Paulo receberá os avisos de aula e mensalidades vencidas/pendentes.', 
+          text: 'Varredura de avisos executada! Se o seu WhatsApp estiver conectado, os treinos do dia foram notificados para os respectivos alunos.', 
           type: 'success' 
         })
       } else {
@@ -414,23 +414,19 @@ export default function WhatsAppPage() {
           {/* Card de Guia/Instruções de Teste */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6">
             <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2 pb-2 border-b border-slate-100">
-              <i className="bi bi-info-circle text-blue-500"></i> Como Testar
+              <i className="bi bi-info-circle text-emerald-500"></i> Informações do Sistema
             </h2>
             <div className="text-xs text-slate-600 space-y-3 leading-relaxed">
-              <div className="p-2.5 bg-blue-50 border border-blue-100 text-blue-800 rounded-lg font-medium">
-                <strong>Modo de Segurança Ativo:</strong><br />
-                Durante os testes, o robô intercepta as mensagens e <strong>só envia mensagens de verdade para o número do Paulo: (15) 997040121</strong>.
+              <div className="p-2.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-lg font-semibold">
+                <strong>Modo Produção Ativo:</strong><br />
+                As mensagens são disparadas diretamente para os números reais cadastrados dos alunos.
               </div>
               <p>
-                Os demais alunos registrados não serão notificados pelo WhatsApp, e suas mensagens simuladas apenas aparecerão no painel de logs do servidor.
+                <strong>Avisos de Treino:</strong> Podem ser disparados em lote pelo botão "Disparar Avisos de Treino". Apenas alunos com aula agendada para hoje receberão mensagem.
               </p>
-              <h4 className="font-bold text-slate-800 mt-2">Etapas do Teste:</h4>
-              <ul className="list-disc list-inside space-y-1.5">
-                <li>Escaneie o QR Code com o <strong>seu</strong> celular pessoal.</li>
-                <li>Clique em <strong>Disparar Testes Manuais</strong> acima.</li>
-                <li>O Paulo receberá os avisos de Aula Hoje e Mensalidade Vencida no celular dele.</li>
-                <li>Para testar a confirmação de pagamento, vá em <strong>Financeiro</strong>, busque por <strong>Paulo</strong>, clique em Pagar e confirme. O Paulo receberá a confirmação de recebimento instantânea no WhatsApp dele!</li>
-              </ul>
+              <p>
+                <strong>Cobranças Financeiras:</strong> O controle é manual e individual. Acesse o Dashboard ou a página Financeiro e clique no ícone de WhatsApp ao lado de qualquer mensalidade pendente ou atrasada para notificar apenas aquele aluno.
+              </p>
             </div>
           </div>
         </div>

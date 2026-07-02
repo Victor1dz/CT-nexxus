@@ -268,12 +268,13 @@ export async function getDashboardStats() {
       }
     })
 
-    // 4. Fetch pending despesas (expenses) starting from the current month
+    // 4. Fetch pending despesas (expenses) for the current month only
     const despesasAlerts = await prisma.despesas.findMany({
       where: {
         status: 'PENDENTE',
         data_vencimento: {
-          gte: firstDay
+          gte: firstDay,
+          lte: lastDay
         }
       },
       orderBy: { data_vencimento: 'asc' }

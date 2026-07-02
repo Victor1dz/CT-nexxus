@@ -27,6 +27,36 @@ async function main() {
     });
     console.log(`Deletadas ${matDel.count} matrículas.`);
 
+    // Deletar anamneses
+    const anamDel = await prisma.anamneses.deleteMany({
+      where: { aluno_id: id }
+    });
+    console.log(`Deletadas ${anamDel.count} anamneses.`);
+
+    // Busca todas as fichas de treino deste aluno para deletar treinos_dia associados
+    const fichas = await prisma.fichas_treino.findMany({
+      where: { aluno_id: id }
+    });
+    const fichaIds = fichas.map((f: any) => f.id);
+
+    // Deletar treinos_dia
+    const treinosDel = await prisma.treinos_dia.deleteMany({
+      where: { ficha_treino_id: { in: fichaIds } }
+    });
+    console.log(`Deletados ${treinosDel.count} treinos do dia.`);
+
+    // Deletar fichas de treino
+    const fichasDel = await prisma.fichas_treino.deleteMany({
+      where: { id: { in: fichaIds } }
+    });
+    console.log(`Deletadas ${fichasDel.count} fichas de treino.`);
+
+    // Deletar agendamentos
+    const agendDel = await prisma.agendamentos.deleteMany({
+      where: { aluno_id: id }
+    });
+    console.log(`Deletados ${agendDel.count} agendamentos.`);
+
     // Deletar aluno
     try {
       const alunoDel = await prisma.alunos.delete({
