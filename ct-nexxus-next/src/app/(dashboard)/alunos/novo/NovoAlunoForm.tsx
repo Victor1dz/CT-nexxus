@@ -33,7 +33,7 @@ const TrashIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
 )
 
-import { salvarNovoAluno } from "@/app/actions"
+import { salvarNovoAluno, sincronizarMensalidadesDaMatricula } from "@/app/actions"
 
 export default function NovoAlunoForm({ initialModalidades, initialPrecos, initialHorarios, initialAluno }: Props) {
   const [blocks, setBlocks] = useState<MatriculaBlockState[]>(
@@ -53,6 +53,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
       }))
     : [{ id: "1", selectedMod: "", selectedPreco: "", selectedHorario: "", isCustomHorario: false, customDias: [], customHoraInicio: "", customHoraFim: "", ativo: true, data_inicio: new Date().toISOString().substring(0, 10) }]
   )
+  const [syncingMap, setSyncingMap] = useState<Record<number, 'loading' | 'success' | 'error' | 'idle'>>({})
 
   const [address, setAddress] = useState({
     cep: initialAluno?.cep || "",
@@ -233,23 +234,81 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                   
                   <div className="flex items-center gap-4">
                     {block.matricula_id && (
-                      <label className="flex items-center gap-2 cursor-pointer select-none">
-                        <span className={`text-xs font-bold ${block.ativo ? 'text-emerald-600' : 'text-slate-400'}`}>
-                          {block.ativo ? 'Ativo' : 'Encerrado'}
-                        </span>
-                        <div className={`relative w-10 h-5 transition-colors rounded-full ${block.ativo ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                          <input type="checkbox" className="sr-only" checked={block.ativo} onChange={(e) => {
-                            if (!e.target.checked) {
-                              if (confirm("Tem certeza que deseja encerrar este plano? O aluno não será mais cobrado por ele.")) {
-                                updateBlock(block.id, "ativo", false)
-                              }
-                            } else {
-                              updateBlock(block.id, "ativo", true)
+                      <div className="flex items-center gap-3.5 mr-2">
+                        <button
+                          type="button"
+                          disabled={syncingMap[block.matricula_id] === 'loading'}
+                          onClick={async () => {
+                            if (!block.matricula_id) return
+                            setSyncingMap(prev => ({ ...prev, [block.matricula_id!]: 'loading' }))
+                            try {
+                              await sincronizarMensalidadesDaMatricula(block.matricula_id)
+                              setSyncingMap(prev => ({ ...prev, [block.matricula_id!]: 'success' }))
+                              setTimeout(() => {
+                                setSyncingMap(prev => ({ ...prev, [block.matricula_id!]: 'idle' }))
+                              }, 3000)
+                            } catch (e) {
+                              setSyncingMap(prev => ({ ...prev, [block.matricula_id!]: 'error' }))
+                              setTimeout(() => {
+                                setSyncingMap(prev => ({ ...prev, [block.matricula_id!]: 'idle' }))
+                              }, 3000)
                             }
-                          }} />
-                          <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${block.ativo ? 'translate-x-5' : 'translate-x-0'}`}></div>
-                        </div>
-                      </label>
+                          }}
+                          className={`flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                            syncingMap[block.matricula_id] === 'loading'
+                              ? 'bg-blue-50 text-blue-600 border-blue-200'
+                              : syncingMap[block.matricula_id] === 'success'
+                                ? 'bg-emerald-500 text-white border-emerald-600'
+                                : syncingMap[block.matricula_id] === 'error'
+                                  ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                  : 'bg-cyan-50 text-cyan-600 border-cyan-200 hover:bg-cyan-100 hover:border-cyan-300'
+                          }`}
+                          title="Sincronizar as mensalidades deste plano no banco de dados"
+                        >
+                          {syncingMap[block.matricula_id] === 'loading' ? (
+                            <>
+                              <svg className="animate-spin h-3.5 w-3.5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              <span>Sincronizando...</span>
+                            </>
+                          ) : syncingMap[block.matricula_id] === 'success' ? (
+                            <>
+                              <i className="bi bi-check-lg text-sm"></i>
+                              <span>Sincronizado!</span>
+                            </>
+                          ) : syncingMap[block.matricula_id] === 'error' ? (
+                            <>
+                              <i className="bi bi-x-lg text-xs"></i>
+                              <span>Erro</span>
+                            </>
+                          ) : (
+                            <>
+                              <i className="bi bi-arrow-clockwise text-sm"></i>
+                              <span>Sincronizar Plano</span>
+                            </>
+                          )}
+                        </button>
+
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <span className={`text-xs font-bold ${block.ativo ? 'text-emerald-600' : 'text-slate-400'}`}>
+                            {block.ativo ? 'Ativo' : 'Encerrado'}
+                          </span>
+                          <div className={`relative w-10 h-5 transition-colors rounded-full ${block.ativo ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                            <input type="checkbox" className="sr-only" checked={block.ativo} onChange={(e) => {
+                              if (!e.target.checked) {
+                                if (confirm("Tem certeza que deseja encerrar este plano? O aluno não será mais cobrado por ele.")) {
+                                  updateBlock(block.id, "ativo", false)
+                                }
+                              } else {
+                                updateBlock(block.id, "ativo", true)
+                              }
+                            }} />
+                            <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${block.ativo ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                          </div>
+                        </label>
+                      </div>
                     )}
                     <button type="button" onClick={() => {
                       if (block.matricula_id) {

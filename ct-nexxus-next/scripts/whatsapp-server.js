@@ -20,9 +20,6 @@ let connectedNumber = null;
 let isManualLogout = false;
 let authState = null;
 
-// SAFETY CHECK: ONLY ALLOW SENDING MESSAGES TO PAULO DURING TESTING
-const ALLOWED_TEST_NUMBER = '5515997040121';
-
 // Função para formatar data UTC de forma segura sem shift de fuso horário
 function formatarDataUTC(date) {
   if (!date) return '';
@@ -191,19 +188,13 @@ async function sendWhatsAppMessage(phone, text, context) {
     console.log(`Conteúdo: "${text}"`);
     console.log(`------------------------------------\n`);
 
-    // Safety check interceptor
-    if (formatted !== ALLOWED_TEST_NUMBER) {
-      console.log(`[SAFETY INTERCEPT] Ignorando envio real para o número ${phone}. Apenas o número de teste ${ALLOWED_TEST_NUMBER} está liberado.`);
-      return true;
-    }
-
     if (connectionStatus !== 'CONNECTED' || !sock) {
       console.log(`[${context}] Erro ao enviar: WhatsApp desconectado.`);
       return false;
     }
 
     await sock.sendMessage(jid, { text });
-    console.log(`[${context}] Mensagem enviada com sucesso no WhatsApp do Paulo!`);
+    console.log(`[${context}] Mensagem enviada com sucesso para ${phone}!`);
     return true;
   } catch (error) {
     console.error(`[${context}] Erro no envio via Baileys para ${phone}:`, error);
@@ -345,68 +336,7 @@ async function rodarVerificacoesDoDia() {
       await sendWhatsAppMessage(aluno.telefone, msg, 'Aviso de Aula Hoje');
     }
 
-    // --- 2. LEMBRETE DE VENCIMENTO (3, 2 E 1 DIAS ANTES) ---
-    // Usando cálculo UTC robusto para evitar deslocamento de fuso horário
-    for (let dias of [1, 2, 3]) {
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + dias);
-      
-      const startOfTarget = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0));
-      const endOfTarget = new Date(Date.UTC(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999));
-
-      const mensalidadesPerto = await prisma.mensalidades.findMany({
-        where: {
-          status: 'PENDENTE',
-          vencimento: {
-            gte: startOfTarget,
-            lte: endOfTarget
-          }
-        },
-        include: {
-          alunos: true
-        }
-      });
-
-      for (const m of mensalidadesPerto) {
-        const aluno = m.alunos;
-        if (!aluno || !aluno.ativo || !aluno.telefone) continue;
-
-        const dataFormatada = formatarDataUTC(m.vencimento);
-        const msg = templates.lembreteVencimento
-          .replace('{nome}', aluno.nome || 'Aluno')
-          .replace('{competencia}', m.competencia || '')
-          .replace('{dias}', dias.toString())
-          .replace('{vencimento}', dataFormatada)
-          .replace('{valor}', Number(m.valor || 0).toFixed(2));
-
-        await sendWhatsAppMessage(aluno.telefone, msg, `Lembrete Vencimento ${dias}d`);
-      }
-    }
-
-    // --- 3. MENSALIDADES ATRASADAS (INADIMPLENTES) ---
-    const mensalidadesAtrasadas = await prisma.mensalidades.findMany({
-      where: {
-        status: 'INADIMPLENTE'
-      },
-      include: {
-        alunos: true
-      }
-    });
-
-    for (const m of mensalidadesAtrasadas) {
-      const aluno = m.alunos;
-      if (!aluno || !aluno.ativo || !aluno.telefone) continue;
-
-      const dataVenc = formatarDataUTC(m.vencimento);
-      const msg = templates.mensalidadeAtrasada
-        .replace('{nome}', aluno.nome || 'Aluno')
-        .replace('{competencia}', m.competencia || '')
-        .replace('{vencimento}', dataVenc);
-
-      await sendWhatsAppMessage(aluno.telefone, msg, 'Mensalidade Atrasada');
-    }
-
-    console.log('Varredura e envio concluídos com sucesso!');
+    console.log('Varredura de aulas concluída com sucesso!');
   } catch (error) {
     console.error('Erro na varredura automatizada:', error);
   }

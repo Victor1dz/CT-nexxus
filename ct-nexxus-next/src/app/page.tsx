@@ -1,5 +1,6 @@
 import { getDashboardStats } from '@/app/actions'
 import { TriggerWhatsAppButton } from '@/components/TriggerWhatsAppButton'
+import { DashboardWhatsAppCard } from '@/components/DashboardWhatsAppCard'
 import Link from 'next/link'
 
 export const dynamic = "force-dynamic"
@@ -28,6 +29,8 @@ export default async function Dashboard() {
           </Link>
         </div>
       </header>
+      
+      <DashboardWhatsAppCard />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div className="bg-white border border-slate-100 rounded-xl p-6 shadow-sm flex justify-between items-center h-32">

@@ -2044,4 +2044,101 @@ export async function triggerWhatsAppChecks() {
   }
 }
 
+export async function enviarAlertaMensalidadeManual(id: number) {
+  try {
+    const fs = require('fs')
+    const path = require('path')
+
+    // 1. Buscar a mensalidade
+    const m = await prisma.mensalidades.findUnique({
+      where: { id },
+      include: {
+        alunos: true,
+        matriculas: {
+          include: { modalidades: true }
+        }
+      }
+    })
+
+    if (!m) return { success: false, error: 'Mensalidade não encontrada.' }
+    if (!m.alunos || !m.alunos.telefone) return { success: false, error: 'Aluno ou telefone não cadastrado.' }
+
+    // 2. Carregar templates do banco (Neon) usando Prisma
+    // Tentamos buscar templates no banco para ser consistente com o whatsapp-server
+    let templates = {
+      lembreteVencimento: "Olá, {nome}! Lembramos que sua mensalidade de {competencia} vence daqui a {dias} dia(s) (no dia {vencimento}). Valor: R$ {valor}.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+      mensalidadeAtrasada: "Olá, {nome}! Constatamos que sua mensalidade de {competencia} (vencida em {vencimento}) está em aberto. Se já efetuou o pagamento, favor desconsiderar e nos enviar o comprovante.\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳",
+      confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
+    }
+
+    try {
+      const record = await prisma.whatsapp_session.findUnique({
+        where: { key: 'templates' }
+      })
+      if (record) {
+        templates = { ...templates, ...JSON.parse(record.value) }
+      } else {
+        // Fallback para arquivo JSON se o banco não tiver
+        const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
+        if (fs.existsSync(templatesPath)) {
+          const fileData = fs.readFileSync(templatesPath, 'utf8')
+          templates = { ...templates, ...JSON.parse(fileData) }
+        }
+      }
+    } catch (e) {}
+
+    // 3. Montar a mensagem com base no status atual
+    let msg = ""
+    const formattedDate = m.vencimento ? new Date(m.vencimento).toLocaleDateString('pt-BR') : '-'
+
+    if (m.status === 'PAGO') {
+      msg = templates.confirmacaoPagamento
+        .replace('{nome}', m.alunos.nome || 'Aluno')
+        .replace('{competencia}', m.competencia || '')
+    } else if (m.status === 'INADIMPLENTE') {
+      msg = templates.mensalidadeAtrasada
+        .replace('{nome}', m.alunos.nome || 'Aluno')
+        .replace('{competencia}', m.competencia || '')
+        .replace('{vencimento}', formattedDate)
+    } else {
+      // PENDENTE
+      const hoje = new Date()
+      hoje.setHours(0,0,0,0)
+      const venc = m.vencimento ? new Date(m.vencimento) : new Date()
+      venc.setHours(0,0,0,0)
+      const diffTime = venc.getTime() - hoje.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const diasStr = diffDays > 0 ? String(diffDays) : "0"
+
+      msg = templates.lembreteVencimento
+        .replace('{nome}', m.alunos.nome || 'Aluno')
+        .replace('{competencia}', m.competencia || '')
+        .replace('{dias}', diasStr)
+        .replace('{vencimento}', formattedDate)
+        .replace('{valor}', Number(m.valor || 0).toFixed(2))
+    }
+
+    // 4. Enviar mensagem para o whatsapp-server
+    const WPP_URL = process.env.WHATSAPP_SERVER_URL || 'http://127.0.0.1:3001'
+    const res = await fetch(`${WPP_URL}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: m.alunos.telefone, message: msg })
+    })
+
+    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
+    const resData = await res.json()
+
+    if (resData.success) {
+      return { success: true }
+    } else {
+      return { success: false, error: 'O servidor de WhatsApp recusou o envio.' }
+    }
+
+  } catch (error: any) {
+    console.error('Erro enviarAlertaMensalidadeManual:', error)
+    return { success: false, error: error.message || 'Erro de comunicação com o servidor de WhatsApp.' }
+  }
+}
+
 
