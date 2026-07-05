@@ -244,6 +244,9 @@ export async function getDashboardStats() {
       where: {
         status: {
           in: ['PENDENTE', 'INADIMPLENTE']
+        },
+        vencimento: {
+          lte: lastDay
         }
       },
       include: {
@@ -1947,7 +1950,16 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
       where: { id: matriculaId },
       include: { precos: true, alunos: true }
     })
+    
+    // Se a matrícula não é ativa, o aluno não é ativo ou não tem preço selecionado (combo de cortesia)
     if (!m || !m.ativo || !m.alunos?.ativo || !m.preco_id || !m.precos?.valor) {
+      // Apagamos qualquer cobrança pendente/atrasada existente vinculada a esta matrícula
+      await prisma.mensalidades.deleteMany({
+        where: {
+          matricula_id: matriculaId,
+          status: { not: 'PAGO' }
+        }
+      })
       return
     }
 
@@ -1958,7 +1970,7 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
     const anoAtualStr = hoje.getFullYear()
     const competenciaAtual = `${anoAtualStr}-${mesAtualStr}`
 
-    // Cleanup past unpaid monthly payments for this matricula
+    // 1. Limpar mensalidades antigas não pagas fora da competência atual
     await prisma.mensalidades.deleteMany({
       where: {
         matricula_id: m.id,
@@ -1967,7 +1979,7 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
       }
     })
     
-    // Iterar mes a mes a partir de dataInicio ate hoje + 1 mes, mas nunca antes do mes atual
+    // 2. Iterar mês a mês para sincronizar os valores e vencimentos
     const primeiroDiaMesAtual = new Date(Date.UTC(hoje.getFullYear(), hoje.getMonth(), 1, 12, 0, 0))
     let iterDate = new Date(Date.UTC(dataInicio.getUTCFullYear(), dataInicio.getUTCMonth(), 1, 12, 0, 0))
     if (iterDate < primeiroDiaMesAtual) {
@@ -1988,21 +2000,34 @@ export async function sincronizarMensalidadesDaMatricula(matriculaId: number) {
         }
       })
 
-      if (!existe) {
-        let diaVenc = m.dia_vencimento || dataInicio.getUTCDate() || 10
-        let vencimento = new Date(Date.UTC(year, month, diaVenc, 12, 0, 0))
-        
-        const compDate = new Date()
-        compDate.setUTCHours(0, 0, 0, 0)
-        
-        const vencComp = new Date(vencimento)
-        vencComp.setUTCHours(0, 0, 0, 0)
+      let diaVenc = m.dia_vencimento || dataInicio.getUTCDate() || 10
+      let vencimento = new Date(Date.UTC(year, month, diaVenc, 12, 0, 0, 0))
+      
+      const compDate = new Date()
+      compDate.setUTCHours(0, 0, 0, 0)
+      
+      const vencComp = new Date(vencimento)
+      vencComp.setUTCHours(0, 0, 0, 0)
 
-        let statusInicial = 'PENDENTE'
-        if (vencComp < compDate) {
-          statusInicial = 'INADIMPLENTE'
+      let statusInicial = 'PENDENTE'
+      if (vencComp < compDate) {
+        statusInicial = 'INADIMPLENTE'
+      }
+
+      if (existe) {
+        // Se a mensalidade já existe e NÃO está paga, atualiza para o novo valor, vencimento e status corretos
+        if (existe.status !== 'PAGO') {
+          await prisma.mensalidades.update({
+            where: { id: existe.id },
+            data: {
+              valor: m.precos.valor,
+              vencimento: vencimento,
+              status: statusInicial
+            }
+          })
         }
-
+      } else {
+        // Cria a mensalidade do zero
         await prisma.mensalidades.create({
           data: {
             matricula_id: m.id,
