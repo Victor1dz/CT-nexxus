@@ -1632,9 +1632,15 @@ export async function salvarNovoAluno(formData: FormData) {
       for (const block of blocks) {
         if (!block.selectedMod) continue;
         
+        const mod = await prisma.modalidades.findUnique({
+          where: { id: Number(block.selectedMod) }
+        })
+        const exigeHorarioMod = mod?.exige_horario ?? false
+        const isCustom = block.isCustomHorario || exigeHorarioMod
+
         let customDiasStr = block.customDias.join(', ')
         let horarioPersonalizado = null
-        if (block.isCustomHorario && customDiasStr) {
+        if (isCustom && customDiasStr) {
           const hInicio = block.customHoraInicio || ''
           const hFim = block.customHoraFim || ''
           if (hInicio || hFim) {
@@ -1665,7 +1671,7 @@ export async function salvarNovoAluno(formData: FormData) {
           dia_vencimento: diaVencimento
         }
 
-        if (block.isCustomHorario) {
+        if (isCustom) {
           matriculaData.dias_personalizados = customDiasStr
           matriculaData.horario_personalizado = horarioPersonalizado
           if (block.customHoraInicio) matriculaData.hora_inicio_personalizada = new Date(`1970-01-01T${block.customHoraInicio}:00Z`)
@@ -2200,6 +2206,46 @@ export async function enviarAlertaMensalidadeManual(id: number) {
   } catch (error: any) {
     console.error('Erro enviarAlertaMensalidadeManual:', error)
     return { success: false, error: error.message || 'Erro de comunicação com o servidor de WhatsApp.' }
+  }
+}
+
+export async function excluirModalidade(id: number) {
+  try {
+    // 1. Excluir presencas de matriculas desta modalidade
+    await prisma.presenca.deleteMany({
+      where: { matriculas: { modalidade_id: id } }
+    })
+
+    // 2. Excluir mensalidades de matriculas desta modalidade
+    await prisma.mensalidades.deleteMany({
+      where: { matriculas: { modalidade_id: id } }
+    })
+
+    // 3. Excluir matriculas desta modalidade
+    await prisma.matriculas.deleteMany({
+      where: { modalidade_id: id }
+    })
+
+    // 4. Excluir precos desta modalidade
+    await prisma.precos.deleteMany({
+      where: { modalidade_id: id }
+    })
+
+    // 5. Excluir horarios desta modalidade
+    await prisma.horarios.deleteMany({
+      where: { modalidade_id: id }
+    })
+
+    // 6. Excluir a modalidade
+    await prisma.modalidades.delete({
+      where: { id }
+    })
+
+    revalidatePath('/modalidades')
+    return { success: true }
+  } catch (error) {
+    console.error('Erro ao excluir modalidade:', error)
+    return { success: false, error: error instanceof Error ? error.message : 'Erro interno ao excluir.' }
   }
 }
 
