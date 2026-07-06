@@ -67,12 +67,14 @@ export default async function AgendaPage() {
       if (diasStr) {
         const daysOfWeek = parseDays(diasStr)
         if (daysOfWeek.length > 0) {
+          const isLivre = !hInicio
           customEvents.push({
             title: `${m.modalidades?.nome || 'Treino'} (${hInicio || 'Livre'}) - ${m.alunos?.nome}`,
             daysOfWeek,
-            startTime: hInicio || "07:00",
-            endTime: hFim || "22:00",
-            color: '#10b981', // emerald-500
+            allDay: isLivre,
+            startTime: isLivre ? undefined : hInicio,
+            endTime: isLivre ? undefined : hFim,
+            color: isLivre ? '#0284c7' : '#10b981',
             extendedProps: {
               isCustom: true,
               telefone: m.alunos?.telefone,
@@ -89,19 +91,34 @@ export default async function AgendaPage() {
 
   Array.from(horarioMap.values()).forEach(h => {
     const daysOfWeek = parseDays(h.diasStr)
-    if (daysOfWeek.length > 0 && h.hInicio) {
-      events.push({
-        title: `${h.modalidade} (${h.alunos.length} Alunos)`,
-        daysOfWeek,
-        startTime: h.hInicio,
-        endTime: h.hFim || undefined,
-        extendedProps: {
-          modalidade: h.modalidade,
-          alunosList: h.alunos,
+    if (daysOfWeek.length > 0) {
+      if (h.hInicio) {
+        events.push({
+          title: `${h.modalidade} (${h.alunos.length} Alunos)`,
+          daysOfWeek,
           startTime: h.hInicio,
-          endTime: h.hFim || ''
-        }
-      })
+          endTime: h.hFim || undefined,
+          extendedProps: {
+            modalidade: h.modalidade,
+            alunosList: h.alunos,
+            startTime: h.hInicio,
+            endTime: h.hFim || ''
+          }
+        })
+      } else {
+        events.push({
+          title: `${h.modalidade} (Livre - ${h.alunos.length} Alunos)`,
+          daysOfWeek,
+          allDay: true,
+          color: '#0284c7',
+          extendedProps: {
+            modalidade: h.modalidade,
+            alunosList: h.alunos,
+            startTime: 'Livre',
+            endTime: ''
+          }
+        })
+      }
     }
   })
 

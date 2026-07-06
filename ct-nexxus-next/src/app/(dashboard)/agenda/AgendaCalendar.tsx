@@ -309,11 +309,12 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
           eventClick={handleEventClick}
           eventContent={(arg) => {
             const { title, extendedProps } = arg.event
+            const isMonthView = arg.view.type === 'dayGridMonth'
             
             // Lembretes Styling
             if (extendedProps?.isLembrete) {
               return (
-                <div className="p-2 overflow-hidden rounded-lg flex items-center gap-1.5 h-full cursor-pointer hover:brightness-95 transition-all text-xs font-bold leading-tight shadow-sm border border-black/5">
+                <div className="p-1 md:p-1.5 overflow-hidden rounded-lg flex items-center gap-1.5 h-full cursor-pointer hover:brightness-95 transition-all text-[9px] md:text-xs font-bold leading-tight shadow-sm border border-black/5">
                   <span>📌</span>
                   <span className="truncate">{title.replace('📝 ', '')}</span>
                 </div>
@@ -323,38 +324,73 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
             // Horário Livre Styling
             if (extendedProps?.isBloqueio) {
               return (
-                <div className="p-2 overflow-hidden rounded-xl flex flex-col justify-center items-center h-full border border-dashed border-slate-300 bg-slate-50 text-[10px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">
+                <div className="p-1 md:p-1.5 overflow-hidden rounded-xl flex flex-col justify-center items-center h-full border border-dashed border-slate-300 bg-slate-50 text-[9px] font-bold text-slate-500 hover:bg-slate-100 transition-colors">
                   <span className="uppercase tracking-wider">🔓 Vaga Livre</span>
                 </div>
               )
             }
 
             // Training Classes Styling
+            const isLivre = title.includes('(Livre)') || title.includes('(A Combinar)') || extendedProps.startTime === 'Livre'
+
+            // Month View: Compact badges with no student list
+            if (isMonthView) {
+              const displayTitle = title.split(' (')[0]
+              return (
+                <div 
+                  className="px-1.5 py-0.5 overflow-hidden flex items-center justify-between w-full cursor-pointer hover:brightness-95 transition-all rounded-lg border text-white text-[9px] font-extrabold shadow-sm"
+                  style={{ 
+                    background: isLivre ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : getGradient(title),
+                    borderColor: isLivre ? '#0284c7' : getBorderColor(title)
+                  }}
+                  title={title}
+                >
+                  <span className="truncate">{displayTitle}</span>
+                  {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && (
+                    <span className="ml-1 px-1 bg-white/20 rounded-md shrink-0 text-[8px]">
+                      {extendedProps.alunosList.length}
+                    </span>
+                  )}
+                </div>
+              )
+            }
+
+            // Week & Day View: Spacious layout
+            const displayTitle = title.split(' (')[0]
             return (
               <div 
                 className="p-1.5 md:p-2 overflow-hidden flex flex-col h-full cursor-pointer hover:scale-[1.01] transition-transform rounded-xl border text-white shadow-md"
                 style={{ 
-                  background: getGradient(title),
-                  borderColor: getBorderColor(title)
+                  background: isLivre ? 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)' : getGradient(title),
+                  borderColor: isLivre ? '#0284c7' : getBorderColor(title)
                 }}
               >
                 <div className="font-extrabold text-[10px] md:text-xs uppercase tracking-wide leading-tight truncate shrink-0">
-                  {title.split(' (')[0]}
+                  {displayTitle}
                 </div>
-                
-
 
                 {extendedProps?.alunosList && extendedProps.alunosList.length > 0 && !extendedProps.isCustom && (
                   <div className="mt-1 flex-1 overflow-hidden flex flex-col gap-0.5">
                     <div className="text-[8px] font-bold uppercase tracking-wider opacity-75 border-b border-white/20 pb-0.5 mb-0.5 shrink-0">
                       Alunos ({extendedProps.alunosList.length}):
                     </div>
-                    <div className="flex flex-wrap gap-1 max-h-[30px] overflow-hidden">
+                    <div className="flex flex-wrap gap-1 max-h-[40px] overflow-hidden">
                       {extendedProps.alunosList.map((aluno: any, i: number) => (
-                        <span key={i} className="text-[8px] font-bold bg-white/20 px-1 py-0.5 rounded-md truncate max-w-[70px]">
+                        <span key={i} className="text-[8px] font-bold bg-white/20 px-1 py-0.5 rounded-md truncate max-w-[75px]">
                           {aluno.nome.split(' ')[0]}
                         </span>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {extendedProps?.isCustom && (
+                  <div className="mt-1 flex-1 overflow-hidden flex flex-col gap-0.5">
+                    <div className="text-[8px] font-bold uppercase tracking-wider opacity-75 border-b border-white/20 pb-0.5 mb-0.5 shrink-0">
+                      Horário Livre:
+                    </div>
+                    <div className="text-[8px] font-bold bg-white/20 px-1 py-0.5 rounded-md truncate">
+                      {title.split(') - ')[1] || 'Livre'}
                     </div>
                   </div>
                 )}
