@@ -380,9 +380,13 @@ export async function getDashboardStats() {
     matriculasAtivas.forEach((m: any) => {
       const fixo = m.horarios?.dias_semana?.includes(diaTermo)
       const custom = m.dias_personalizados?.includes(diaTermo)
+      
+      let matched = false
       if (m.horario_id && fixo) {
         turmasIds.add(Number(m.horario_id))
-      } else if (!m.horario_id && custom) {
+        matched = true
+      }
+      if (custom) {
         aulasParticularesCount++
       }
     })
@@ -420,14 +424,14 @@ export async function getDashboardStats() {
 
     matriculasAtivas.forEach((m: any) => {
       const custom = m.dias_personalizados?.includes(diaTermo)
-      if (!m.horario_id && custom) {
+      if (custom) {
         const alunoNome = m.alunos?.nome || 'Aluno'
         const modNome = m.modalidades?.nome || 'Treino'
-        const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : ''
+        const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : 'Livre'
         agendaWarnings.push({
           id: `part-${m.id}`,
           titulo: `👤 Particular: ${alunoNome}`,
-          descricao: `Aula de ${modNome} agendada para hoje às ${hInicio}`,
+          descricao: `Aula de ${modNome} agendada para hoje (${hInicio})`,
           link: `/agenda`
         })
       }
@@ -1671,13 +1675,15 @@ export async function salvarNovoAluno(formData: FormData) {
           dia_vencimento: diaVencimento
         }
 
+        if (block.selectedHorario) {
+          matriculaData.horario_id = Number(block.selectedHorario)
+        }
+
         if (isCustom) {
           matriculaData.dias_personalizados = customDiasStr
           matriculaData.horario_personalizado = horarioPersonalizado
           if (block.customHoraInicio) matriculaData.hora_inicio_personalizada = new Date(`1970-01-01T${block.customHoraInicio}:00Z`)
           if (block.customHoraFim) matriculaData.hora_fim_personalizada = new Date(`1970-01-01T${block.customHoraFim}:00Z`)
-        } else if (block.selectedHorario) {
-          matriculaData.horario_id = Number(block.selectedHorario)
         }
 
         if (block.matricula_id) {

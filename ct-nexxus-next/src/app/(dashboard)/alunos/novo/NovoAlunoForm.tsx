@@ -379,57 +379,62 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                   </div>
 
                   {/* Horário */}
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <label className="text-sm font-semibold text-slate-600">Horário</label>
                     
-                    {!block.isCustomHorario && !exigeHorario ? (
+                    {/* 1. Seleção de Horário Fixo (se exigeHorario for falso) */}
+                    {!exigeHorario && (
                       <div className="relative">
                         <select 
-                          className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner cursor-pointer"
+                          className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all shadow-inner cursor-pointer text-sm font-medium"
                           value={block.selectedHorario}
                           onChange={e => {
                             const val = e.target.value
-                            if (val === "custom") {
-                              updateBlock(block.id, "isCustomHorario", true)
-                            } else {
-                              updateBlock(block.id, "selectedHorario", val ? Number(val) : "")
-                            }
+                            updateBlock(block.id, "selectedHorario", val ? Number(val) : "")
                           }}
                         >
-                          <option value="">Selecione...</option>
+                          <option value="">Selecione um Horário Fixo (Opcional)...</option>
                           {horariosFiltrados.map(h => (
                             <option key={h.id} value={h.id}>
-                              {h.horaInicio ? `${h.horaInicio} - ` : ''}{h.modalidade.nome} | {h.diasSemana}
+                              {h.horaInicio ? `${h.horaInicio} - ` : 'Sem hora - '}{h.modalidade.nome} | {h.diasSemana}
                             </option>
                           ))}
-                          <option value="custom" className="text-blue-600 font-semibold">✨ A Combinar / Livre</option>
                         </select>
                         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
                         </div>
                       </div>
-                    ) : null}
+                    )}
 
+                    {/* 2. Toggle para Horários Personalizados/A Combinar */}
+                    {!exigeHorario && (
+                      <label className="flex items-center gap-2.5 cursor-pointer bg-slate-50 border border-slate-250 px-4 py-2.5 rounded-xl hover:bg-slate-100/60 transition-colors w-fit select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={block.isCustomHorario}
+                          onChange={(e) => updateBlock(block.id, "isCustomHorario", e.target.checked)}
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" 
+                        />
+                        <span className="font-semibold text-slate-700 text-xs">Adicionar Dias Personalizados / A Combinar</span>
+                      </label>
+                    )}
+
+                    {/* 3. Card de Horário Personalizado/A Combinar */}
                     {(block.isCustomHorario || exigeHorario) && (
-                      <div className="w-full bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
+                      <div className="w-full bg-blue-50/50 border border-blue-200/60 rounded-xl p-4 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
                         <div className="flex justify-between items-center">
-                          <span className="text-blue-700 font-bold text-sm flex items-center gap-2">
+                          <span className="text-blue-800 font-bold text-xs flex items-center gap-2">
                             <span className="relative flex h-2 w-2">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                             </span>
-                            Horário Personalizado / A Combinar
+                            Dias Personalizados / A Combinar
                           </span>
-                          {!exigeHorario && (
-                            <button onClick={() => { updateBlock(block.id, "isCustomHorario", false); updateBlock(block.id, "selectedHorario", "") }} className="text-blue-400 hover:text-blue-700 transition-colors">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                            </button>
-                          )}
                         </div>
                         
                         <div>
-                          <label className="text-xs font-bold text-blue-800 mb-2 block uppercase tracking-wider">Dias da Semana</label>
-                          <div className="flex flex-wrap gap-2">
+                          <label className="text-[10px] font-bold text-blue-800 mb-2 block uppercase tracking-wider">Dias da Semana</label>
+                          <div className="flex flex-wrap gap-1.5">
                             {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(dia => (
                               <button 
                                 key={dia}
@@ -440,7 +445,7 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
                                     : [...block.customDias, dia]
                                   updateBlock(block.id, "customDias", dias)
                                 }}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${block.customDias.includes(dia) ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-blue-600 border border-blue-200 hover:bg-blue-100'}`}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${block.customDias.includes(dia) ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-blue-600 border border-blue-200/60 hover:bg-blue-50'}`}
                               >
                                 {dia.toUpperCase()}
                               </button>
@@ -450,16 +455,16 @@ export default function NovoAlunoForm({ initialModalidades, initialPrecos, initi
 
                         <div className="flex gap-4">
                           <div className="flex-1">
-                            <label className="text-xs font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Início</label>
-                            <input type="time" value={block.customHoraInicio} onChange={e => updateBlock(block.id, "customHoraInicio", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label className="text-[10px] font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Início (Opcional)</label>
+                            <input type="time" value={block.customHoraInicio} onChange={e => updateBlock(block.id, "customHoraInicio", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                           </div>
                           <div className="flex-1">
-                            <label className="text-xs font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Fim</label>
-                            <input type="time" value={block.customHoraFim} onChange={e => updateBlock(block.id, "customHoraFim", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-sm text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                            <label className="text-[10px] font-bold text-blue-800 mb-1 block uppercase tracking-wider">Hora Fim (Opcional)</label>
+                            <input type="time" value={block.customHoraFim} onChange={e => updateBlock(block.id, "customHoraFim", e.target.value)} className="w-full bg-white border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500" />
                           </div>
                         </div>
                         
-                        <p className="text-xs text-blue-600/80 font-medium italic mt-1">Se os horários ficarem vazios, será considerado "Livre / A Combinar".</p>
+                        <p className="text-[10px] text-blue-650/80 font-medium italic">Se os horários ficarem vazios, será considerado "Livre / A Combinar".</p>
                       </div>
                     )}
                   </div>

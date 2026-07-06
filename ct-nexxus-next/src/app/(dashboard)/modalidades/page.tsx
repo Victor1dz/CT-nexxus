@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { getModalidades, excluirModalidade } from '@/app/actions'
+import { getModalidades } from '@/app/actions'
+import { DeleteModalidadeButton } from '@/components/DeleteModalidadeButton'
 
 export const dynamic = "force-dynamic"
 
@@ -64,12 +65,7 @@ export default async function ModalidadesPage() {
                         <Link href={`/modalidades/form?id=${m.id}`} className="w-8 h-8 flex items-center justify-center rounded bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 transition-colors" title="Editar">
                           <i className="bi bi-pencil"></i>
                         </Link>
-                        <form action={async (formData) => { "use server"; const id = Number(formData.get('id')); await excluirModalidade(id); }}>
-                          <input type="hidden" name="id" value={m.id} />
-                          <button type="submit" className="w-8 h-8 flex items-center justify-center rounded bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition-colors" title="Excluir">
-                            <i className="bi bi-trash"></i>
-                          </button>
-                        </form>
+                        <DeleteModalidadeButton id={Number(m.id)} />
                       </div>
                     </td>
                   </tr>

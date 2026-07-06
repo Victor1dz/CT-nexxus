@@ -58,25 +58,27 @@ export default async function AgendaPage() {
       if (m.alunos) {
         horarioMap.get(m.horario_id)?.alunos.push({ id: Number(m.alunos.id), nome: m.alunos.nome, telefone: m.alunos.telefone || '' })
       }
-    } else if (m.dias_personalizados || m.horario_personalizado) {
+    }
+    
+    if (m.dias_personalizados || m.horario_personalizado) {
       const diasStr = m.dias_personalizados || ""
       const hInicio = m.hora_inicio_personalizada ? new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16) : ""
       const hFim = m.hora_fim_personalizada ? new Date(m.hora_fim_personalizada).toISOString().substring(11, 16) : undefined
-      if (diasStr && hInicio) {
+      if (diasStr) {
         const daysOfWeek = parseDays(diasStr)
         if (daysOfWeek.length > 0) {
           customEvents.push({
-            title: `${m.modalidades?.nome || 'Treino'} - ${m.alunos?.nome}`,
+            title: `${m.modalidades?.nome || 'Treino'} (${hInicio || 'Livre'}) - ${m.alunos?.nome}`,
             daysOfWeek,
-            startTime: hInicio,
-            endTime: hFim,
+            startTime: hInicio || "07:00",
+            endTime: hFim || "22:00",
             color: '#10b981', // emerald-500
             extendedProps: {
               isCustom: true,
               telefone: m.alunos?.telefone,
               modalidade: m.modalidades?.nome || 'Treino',
               alunosList: m.alunos ? [{ id: Number(m.alunos.id), nome: m.alunos.nome, telefone: m.alunos.telefone || '' }] : [],
-              startTime: hInicio,
+              startTime: hInicio || 'Livre',
               endTime: hFim || ''
             }
           })
