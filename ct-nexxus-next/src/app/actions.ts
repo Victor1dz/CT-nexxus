@@ -234,7 +234,8 @@ export async function getDashboardStats() {
 
     const inadimplentesCount = await prisma.mensalidades.count({
       where: {
-        status: 'INADIMPLENTE'
+        status: 'INADIMPLENTE',
+        valor: { gt: 0 }
       }
     })
 
@@ -247,7 +248,8 @@ export async function getDashboardStats() {
         },
         vencimento: {
           lte: lastDay
-        }
+        },
+        valor: { gt: 0 }
       },
       include: {
         alunos: true,
@@ -516,7 +518,8 @@ export async function getFinanceiroData(mesString?: string) {
         vencimento: {
           gte: firstDay,
           lte: lastDay
-        }
+        },
+        valor: { gt: 0 }
       },
       include: {
         alunos: true,
@@ -1333,7 +1336,7 @@ export async function atualizarStatusMensalidade(formData: FormData) {
           })
           log(`Aluno consultado: ${aluno ? aluno.nome : 'NULO'}, telefone: ${aluno ? aluno.telefone : 'NULO'}`)
 
-          if (aluno && aluno.telefone) {
+          if (aluno && aluno.telefone && currentMensalidade.valor !== null && Number(currentMensalidade.valor) > 0) {
             const compStr = currentMensalidade.competencia || ''
             const msg = templates.confirmacaoPagamento
               .replace('{nome}', aluno.nome || 'Aluno')
@@ -1355,6 +1358,8 @@ export async function atualizarStatusMensalidade(formData: FormData) {
             .catch((err) => {
               log(`Erro ao enviar mensagem em background: ${err.message || err}`);
             });
+          } else if (currentMensalidade.valor === null || Number(currentMensalidade.valor) === 0) {
+            log('Envio cancelado: A mensalidade não possui valor financeiro (plano gratuito/combo).')
           } else {
             log('Envio cancelado: Aluno ou telefone nulo.')
           }
@@ -2135,6 +2140,9 @@ export async function enviarAlertaMensalidadeManual(id: number) {
     })
 
     if (!m) return { success: false, error: 'Mensalidade não encontrada.' }
+    if (m.valor === null || Number(m.valor) === 0) {
+      return { success: false, error: 'Esta mensalidade não possui valor financeiro (plano gratuito/combo) e não requer disparo.' }
+    }
     if (!m.alunos || !m.alunos.telefone) return { success: false, error: 'Aluno ou telefone não cadastrado.' }
 
     // 2. Carregar templates do banco (Neon) usando Prisma

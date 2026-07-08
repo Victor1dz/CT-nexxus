@@ -144,6 +144,7 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
   interface StudentTab {
     id: number
     nome: string
+    modalidade?: string
     ficha: any | null
     loading: boolean
   }
@@ -151,12 +152,13 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
   const [openTabs, setOpenTabs] = useState<StudentTab[]>([])
   const [activeTabId, setActiveTabId] = useState<number | null>(null)
 
-  const handleOpenStudentTab = async (alunoId: number, alunoNome: string) => {
+  const handleOpenStudentTab = async (alunoId: number, alunoNome: string, modalidade?: string) => {
     const tabExists = openTabs.some(t => t.id === alunoId)
     if (!tabExists) {
       const newTab: StudentTab = {
         id: alunoId,
         nome: alunoNome,
+        modalidade,
         ficha: null,
         loading: true
       }
@@ -191,7 +193,10 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
   }
 
   // Color mapping helpers
-  const getGradient = (title: string) => {
+   const getGradient = (title: string) => {
+    if (title.includes(',')) {
+      return 'linear-gradient(135deg, #4f46e5 0%, #312e81 100%)' // Royal Indigo gradient for grouped modalities
+    }
     const t = title.toUpperCase()
     if (t.includes('BOXE')) return 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' // Blue
     if (t.includes('MUAY')) return 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' // Red
@@ -201,6 +206,7 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
   }
 
   const getBorderColor = (title: string) => {
+    if (title.includes(',')) return '#4338ca' // Indigo-700
     const t = title.toUpperCase()
     if (t.includes('BOXE')) return '#2563eb'
     if (t.includes('MUAY')) return '#dc2626'
@@ -599,47 +605,63 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                         </div>
                       )}
 
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-4 overflow-y-auto max-h-[50vh] pr-1">
                         <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Alunos Matriculados ({detailsModal.alunos.length})</span>
                         {detailsModal.alunos.length === 0 ? (
                           <p className="text-xs text-slate-500 italic">Nenhum aluno cadastrado.</p>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            {(detailsModal.alunos as any[]).map((a: any, i: number) => {
-                              const isTabOpen = openTabs.some(t => t.id === a.id);
-                              const isActive = activeTabId === a.id;
-                              return (
-                                <div key={i} className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
-                                  isActive ? 'bg-blue-50 border-blue-200' : isTabOpen ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 hover:border-slate-200'
-                                }`}>
-                                  <button 
-                                    type="button" 
-                                    onClick={() => {
-                                      if (a.id) handleOpenStudentTab(a.id, a.nome);
-                                    }}
-                                    className="text-left font-bold text-xs text-slate-800 hover:text-blue-600 transition-colors truncate flex-1 mr-1"
-                                  >
-                                    {a.nome}
-                                  </button>
-                                  
-                                  <div className="flex items-center gap-1">
-                                    {a.telefone && (
-                                      <a 
-                                        href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
-                                        target="_blank" 
-                                        rel="noreferrer" 
-                                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-150 hover:bg-emerald-100 transition-colors"
-                                        title="Enviar lembrete por WhatsApp"
+                        ) : (() => {
+                          const groupedByMod: Record<string, any[]> = {}
+                          detailsModal.alunos.forEach((a: any) => {
+                            const modName = a.modalidade || detailsModal.modalidade
+                            if (!groupedByMod[modName]) {
+                              groupedByMod[modName] = []
+                            }
+                            groupedByMod[modName].push(a)
+                          })
+
+                          return Object.entries(groupedByMod).map(([modName, alunosList]) => (
+                            <div key={modName} className="space-y-1.5 border-b border-slate-100 pb-3 last:border-b-0">
+                              <span className="block text-[9px] font-extrabold text-blue-600 uppercase tracking-wider bg-blue-50/60 px-2.5 py-1 rounded-lg w-fit border border-blue-100 shadow-sm mb-2">
+                                {modName}
+                              </span>
+                              <div className="flex flex-col gap-1.5 pl-1">
+                                {alunosList.map((a: any, idx: number) => {
+                                  const isTabOpen = openTabs.some(t => t.id === a.id);
+                                  const isActive = activeTabId === a.id;
+                                  return (
+                                    <div key={idx} className={`flex items-center justify-between p-2 rounded-xl border transition-all ${
+                                      isActive ? 'bg-blue-50 border-blue-200' : isTabOpen ? 'bg-slate-50 border-slate-200' : 'bg-white border-slate-100 hover:border-slate-200 shadow-sm'
+                                    }`}>
+                                      <button 
+                                        type="button" 
+                                        onClick={() => {
+                                          if (a.id) handleOpenStudentTab(a.id, a.nome, modName);
+                                        }}
+                                        className="text-left font-bold text-xs text-slate-800 hover:text-blue-600 transition-colors truncate flex-1 mr-1"
                                       >
-                                        <i className="bi bi-whatsapp text-[10px]"></i>
-                                      </a>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                                        {a.nome}
+                                      </button>
+                                      
+                                      <div className="flex items-center gap-1">
+                                        {a.telefone && (
+                                          <a 
+                                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${modName} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
+                                            target="_blank" 
+                                            rel="noreferrer" 
+                                            className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-150 hover:bg-emerald-100 transition-colors"
+                                            title="Enviar lembrete por WhatsApp"
+                                          >
+                                            <i className="bi bi-whatsapp text-[10px]"></i>
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
 
@@ -659,6 +681,7 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                     <div className="flex bg-slate-100 border-b border-slate-200 overflow-x-auto shrink-0 select-none px-3 pt-2">
                       {openTabs.map((tab) => {
                         const isActive = activeTabId === tab.id
+                        const label = tab.modalidade ? `${tab.nome.split(' ')[0]} (${tab.modalidade})` : tab.nome.split(' ')[0]
                         return (
                           <div
                             key={tab.id}
@@ -669,10 +692,10 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                                 : 'bg-transparent border-transparent text-slate-500 hover:bg-slate-200/50'
                             }`}
                           >
-                            <span className="truncate max-w-[120px]">{tab.nome.split(' ')[0]}</span>
+                            <span className="truncate max-w-[150px]">{label}</span>
                             <button 
                               onClick={(e) => handleCloseStudentTab(tab.id, e)} 
-                              className="text-slate-400 hover:text-slate-655 p-0.5 rounded-full hover:bg-slate-200 flex items-center justify-center"
+                              className="text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200 flex items-center justify-center"
                             >
                               <i className="bi bi-x text-xs leading-none"></i>
                             </button>
@@ -782,35 +805,53 @@ export function AgendaCalendar({ initialEvents, initialLembretes }: Props) {
                       {detailsModal.alunos.length === 0 ? (
                         <p className="text-xs text-slate-500 italic">Nenhum aluno cadastrado para este horário.</p>
                       ) : (
-                        <div className="flex flex-col gap-2 max-h-72 overflow-y-auto pr-1">
-                          {(detailsModal.alunos as any[]).map((a: any, i: number) => {
-                            return (
-                              <div key={i} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/60">
-                                <button 
-                                  type="button" 
-                                  onClick={() => {
-                                    if (a.id) handleOpenStudentTab(a.id, a.nome);
-                                  }}
-                                  className="text-left font-extrabold text-xs text-slate-800 hover:text-blue-600 transition-colors flex-1 truncate mr-1"
-                                >
-                                  <i className="bi bi-chevron-right text-slate-400 text-[10px] mr-1"></i>
-                                  {a.nome}
-                                </button>
-                                
-                                {a.telefone && (
-                                  <a 
-                                    href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${detailsModal.modalidade} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
-                                    target="_blank" 
-                                    rel="noreferrer" 
-                                    className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-250 hover:bg-emerald-100 transition-colors"
-                                    title="Enviar lembrete por WhatsApp"
-                                  >
-                                    <i className="bi bi-whatsapp text-[10px]"></i>
-                                  </a>
-                                )}
+                        <div className="flex flex-col gap-3 max-h-72 overflow-y-auto pr-1">
+                          {(() => {
+                            const groupedByMod: Record<string, any[]> = {}
+                            detailsModal.alunos.forEach((a: any) => {
+                              const modName = a.modalidade || detailsModal.modalidade
+                              if (!groupedByMod[modName]) {
+                                groupedByMod[modName] = []
+                              }
+                              groupedByMod[modName].push(a)
+                            })
+
+                            return Object.entries(groupedByMod).map(([modName, alunosList]) => (
+                              <div key={modName} className="space-y-1.5 border-b border-slate-100 pb-2 last:border-b-0">
+                                <span className="block text-[9px] font-extrabold text-blue-600 uppercase tracking-wider bg-blue-50/60 px-2 py-0.5 rounded-lg w-fit border border-blue-100">
+                                  {modName}
+                                </span>
+                                <div className="flex flex-col gap-1.5 pl-1">
+                                  {alunosList.map((a: any, idx: number) => (
+                                    <div key={idx} className="flex items-center justify-between p-2 bg-slate-50 rounded-xl border border-slate-200/60">
+                                      <button 
+                                        type="button" 
+                                        onClick={() => {
+                                          if (a.id) handleOpenStudentTab(a.id, a.nome, modName);
+                                        }}
+                                        className="text-left font-extrabold text-xs text-slate-800 hover:text-blue-600 transition-colors flex-1 truncate mr-1"
+                                      >
+                                        <i className="bi bi-chevron-right text-slate-400 text-[10px] mr-1"></i>
+                                        {a.nome}
+                                      </button>
+                                      
+                                      {a.telefone && (
+                                        <a 
+                                          href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${a.nome.split(' ')[0]}, passando para lembrar que você tem treino de ${modName} hoje às ${detailsModal.startTime}! Nos vemos lá! 💪`)}`} 
+                                          target="_blank" 
+                                          rel="noreferrer" 
+                                          className="w-6 h-6 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-250 hover:bg-emerald-100 transition-colors"
+                                          title="Enviar lembrete por WhatsApp"
+                                        >
+                                          <i className="bi bi-whatsapp text-[10px]"></i>
+                                        </a>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            );
-                          })}
+                            ));
+                          })()}
                         </div>
                       )}
                     </div>

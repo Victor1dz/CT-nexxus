@@ -124,6 +124,75 @@ export default async function AgendaPage() {
 
   events.push(...customEvents)
 
+  // Group events by daysOfWeek and startTime to avoid overlapping vertical cards
+  const groupedEvents: any[] = []
+  const tempGroups = new Map<string, any[]>()
+
+  events.forEach(evt => {
+    if (evt.startTime && !evt.allDay && !evt.extendedProps?.isBloqueio && !evt.extendedProps?.isLembrete) {
+      const daysKey = evt.daysOfWeek ? [...evt.daysOfWeek].sort().join(',') : ''
+      const key = `${daysKey}|${evt.startTime}`
+      if (!tempGroups.has(key)) {
+        tempGroups.set(key, [])
+      }
+      tempGroups.get(key)!.push(evt)
+    } else {
+      groupedEvents.push(evt)
+    }
+  })
+
+  tempGroups.forEach((group, key) => {
+    if (group.length === 1) {
+      groupedEvents.push(group[0])
+    } else {
+      const first = group[0]
+      const combinedAlunosList: any[] = []
+      const modalitiesSet = new Set<string>()
+      let maxFim = first.endTime || ''
+
+      group.forEach(evt => {
+        const modName = evt.extendedProps?.modalidade || 'Treino'
+        modalitiesSet.add(modName)
+        
+        if (evt.endTime && evt.endTime > maxFim) {
+          maxFim = evt.endTime
+        }
+
+        const list = evt.extendedProps?.alunosList || []
+        list.forEach((aluno: any) => {
+          combinedAlunosList.push({
+            ...aluno,
+            modalidade: modName,
+            isCustom: !!evt.extendedProps?.isCustom,
+            startTime: evt.startTime,
+            endTime: evt.endTime || ''
+          })
+        })
+      })
+
+      const modalitiesArr = Array.from(modalitiesSet)
+      const combinedTitle = `${modalitiesArr.join(', ')} (${combinedAlunosList.length} Alunos)`
+
+      groupedEvents.push({
+        title: combinedTitle,
+        daysOfWeek: first.daysOfWeek,
+        startTime: first.startTime,
+        endTime: maxFim || undefined,
+        extendedProps: {
+          isGrouped: true,
+          modalidade: modalitiesArr.join(', '),
+          modalidadesList: modalitiesArr,
+          alunosList: combinedAlunosList,
+          startTime: first.startTime,
+          endTime: maxFim
+        }
+      })
+    }
+  })
+
+  events.length = 0
+  events.push(...groupedEvents)
+
   // We should also fetch "horarios livres" (bloqueios)
   const bloqueios = await prisma.horarios.findMany({
     where: { modalidade_id: null }
