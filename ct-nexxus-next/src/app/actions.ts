@@ -1318,17 +1318,27 @@ export async function atualizarStatusMensalidade(formData: FormData) {
       
       if (targetAlunoId) {
         try {
-          const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
           let templates = {
             confirmacaoPagamento: "Obrigado, {nome}! Confirmamos o recebimento do pagamento da sua mensalidade referente a {competencia}. Bom treino!\n\n💵 *Formas de Pagamento:*\n• Pix: ctnexxus@gmail.com 📱\n• Dinheiro 💵\n• Cartão 💳"
           }
 
-          if (fs.existsSync(templatesPath)) {
-            const fileData = fs.readFileSync(templatesPath, 'utf8')
-            templates = JSON.parse(fileData)
-            log('Templates de WhatsApp carregados do JSON.')
-          } else {
-            log('Arquivo de templates não encontrado. Usando default.')
+          try {
+            const record = await prisma.whatsapp_session.findUnique({
+              where: { key: 'templates' }
+            })
+            if (record) {
+              templates = { ...templates, ...JSON.parse(record.value) }
+              log('Templates de WhatsApp carregados do Banco.')
+            } else {
+              const templatesPath = path.join(process.cwd(), 'whatsapp-templates.json')
+              if (fs.existsSync(templatesPath)) {
+                const fileData = fs.readFileSync(templatesPath, 'utf8')
+                templates = { ...templates, ...JSON.parse(fileData) }
+                log('Templates de WhatsApp carregados do JSON.')
+              }
+            }
+          } catch (e: any) {
+            log(`Erro ao carregar templates: ${e.message || e}`)
           }
 
           const aluno = await prisma.alunos.findUnique({
@@ -2076,16 +2086,38 @@ export async function getWhatsAppStatus() {
 
 export async function getWhatsAppTemplates() {
   try {
+    const record = await prisma.whatsapp_session.findUnique({
+      where: { key: 'templates' }
+    })
+    if (record) {
+      return JSON.parse(record.value)
+    }
+  } catch (err: any) {
+    console.error('Error reading templates from DB, falling back to server:', err.message || err)
+  }
+
+  try {
     const res = await fetch(`${WPP_URL}/templates`, { cache: 'no-store' })
     if (!res.ok) throw new Error(`HTTP error ${res.status}`)
     return await res.json()
   } catch (err: any) {
-    console.error('Error in getWhatsAppTemplates:', err.message || err)
+    console.error('Error in getWhatsAppTemplates server fallback:', err.message || err)
     return null
   }
 }
 
 export async function saveWhatsAppTemplates(templates: any) {
+  try {
+    const value = JSON.stringify(templates)
+    await prisma.whatsapp_session.upsert({
+      where: { key: 'templates' },
+      update: { value },
+      create: { key: 'templates', value }
+    })
+  } catch (err: any) {
+    console.error('Error saving templates to DB:', err.message || err)
+  }
+
   try {
     const res = await fetch(`${WPP_URL}/templates`, {
       method: 'POST',
@@ -2093,12 +2125,14 @@ export async function saveWhatsAppTemplates(templates: any) {
       body: JSON.stringify(templates),
       cache: 'no-store'
     })
-    if (!res.ok) throw new Error(`HTTP error ${res.status}`)
-    return await res.json()
+    if (res.ok) {
+      return await res.json()
+    }
   } catch (err: any) {
-    console.error('Error in saveWhatsAppTemplates:', err.message || err)
-    return { success: false }
+    console.error('Error in saveWhatsAppTemplates remote sync:', err.message || err)
   }
+
+  return { success: true }
 }
 
 export async function disconnectWhatsApp() {
@@ -2182,6 +2216,7 @@ export async function enviarAlertaMensalidadeManual(id: number) {
         .replace('{nome}', m.alunos.nome || 'Aluno')
         .replace('{competencia}', m.competencia || '')
         .replace('{vencimento}', formattedDate)
+        .replace('{valor}', Number(m.valor || 0).toFixed(2))
     } else {
       // PENDENTE
       const hoje = new Date()

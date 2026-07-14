@@ -253,6 +253,69 @@ export default function WhatsAppPage() {
             )}
           </div>
 
+          {/* Card de Variáveis Úteis */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl shadow-sm p-6 animate-fadeIn">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
+              <i className="bi bi-info-circle text-blue-500 text-base"></i> Guia Rápido de Variáveis
+            </h3>
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Você pode utilizar as seguintes variáveis em seus modelos de mensagem para que o sistema as substitua automaticamente com as informações do aluno correspondente:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-[11px] text-slate-600 leading-normal">
+              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col gap-1.5 shadow-sm">
+                <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> Gerais
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <code className="bg-slate-100 text-blue-600 px-1.5 py-0.5 rounded font-mono font-bold">{`{nome}`}</code>
+                  <span className="font-medium">Nome do Aluno</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <code className="bg-slate-100 text-blue-600 px-1.5 py-0.5 rounded font-mono font-bold">{`{valor}`}</code>
+                  <span className="font-medium">Valor do Plano (ex: 150.00)</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col gap-1.5 shadow-sm">
+                <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> Financeiro
+                </span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <code className="bg-slate-100 text-emerald-600 px-1.5 py-0.5 rounded font-mono font-bold">{`{competencia}`}</code>
+                  <span className="font-medium">Mês de Referência (ex: Julho/28)</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <code className="bg-slate-100 text-emerald-600 px-1.5 py-0.5 rounded font-mono font-bold">{`{vencimento}`}</code>
+                  <span className="font-medium">Data de Vencimento</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <code className="bg-slate-100 text-emerald-600 px-1.5 py-0.5 rounded font-mono font-bold">{`{dias}`}</code>
+                  <span className="font-medium">Dias Restantes (Apenas Vencimento)</span>
+                </div>
+              </div>
+
+              <div className="bg-white p-3 rounded-xl border border-slate-100 flex flex-col gap-1.5 shadow-sm md:col-span-2">
+                <span className="font-bold text-slate-700 text-xs flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span> Treino Diário (Aviso de Aula)
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <code className="bg-slate-100 text-amber-700 px-1.5 py-0.5 rounded font-mono font-bold">{`{dia}`}</code>
+                    <span className="font-medium">Dia do Treino (ex: Seg)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <code className="bg-slate-100 text-amber-700 px-1.5 py-0.5 rounded font-mono font-bold">{`{modalidade}`}</code>
+                    <span className="font-medium">Modalidade</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <code className="bg-slate-100 text-amber-700 px-1.5 py-0.5 rounded font-mono font-bold">{`{horario}`}</code>
+                    <span className="font-medium">Horário (ex: 19:00 ou Livre)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Form de Edição de Templates */}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
             <h2 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2 pb-2 border-b border-slate-100">
@@ -327,6 +390,7 @@ export default function WhatsAppPage() {
                     <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{nome}`}</span>
                     <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{competencia}`}</span>
                     <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{vencimento}`}</span>
+                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">{`{valor}`}</span>
                   </div>
                 </div>
 
