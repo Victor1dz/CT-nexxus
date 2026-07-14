@@ -253,6 +253,7 @@ export default async function AgendaPage() {
       const first = group[0]
       const combinedAlunosList: any[] = []
       const modalitiesSet = new Set<string>()
+      const seenAlunosKeys = new Set<string>()
       let maxFim = first.end || undefined
 
       group.forEach(evt => {
@@ -265,13 +266,17 @@ export default async function AgendaPage() {
 
         const list = evt.extendedProps?.alunosList || []
         list.forEach((aluno: any) => {
-          combinedAlunosList.push({
-            ...aluno,
-            modalidade: modName,
-            isCustom: !!evt.extendedProps?.isCustom,
-            startTime: evt.extendedProps?.startTime || '',
-            endTime: evt.extendedProps?.endTime || ''
-          })
+          const key = `${aluno.id}-${modName}`
+          if (!seenAlunosKeys.has(key)) {
+            seenAlunosKeys.add(key)
+            combinedAlunosList.push({
+              ...aluno,
+              modalidade: modName,
+              isCustom: !!evt.extendedProps?.isCustom,
+              startTime: evt.extendedProps?.startTime || '',
+              endTime: evt.extendedProps?.endTime || ''
+            })
+          }
         })
       })
 
