@@ -270,8 +270,8 @@ async function rodarVerificacoesDoDia() {
   const templates = globalTemplates;
 
   try {
-    const hojeLocal = new Date();
-    const hojeUTC = new Date(Date.UTC(hojeLocal.getUTCFullYear(), hojeLocal.getUTCMonth(), hojeLocal.getUTCDate(), 0, 0, 0, 0));
+    const SPDate = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const hojeUTC = new Date(Date.UTC(SPDate.getFullYear(), SPDate.getMonth(), SPDate.getDate(), 0, 0, 0, 0));
 
     // Atualiza automaticamente as mensalidades vencidas de PENDENTE para INADIMPLENTE
     await prisma.mensalidades.updateMany({
@@ -297,7 +297,17 @@ async function rodarVerificacoesDoDia() {
     
     // --- 1. AULA HOJE ---
     const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const diaTermo = diasMap[hojeLocal.getDay()];
+    const diaTermo = diasMap[SPDate.getDay()];
+    const diasMapLong = {
+      'Seg': 'Segunda-feira',
+      'Ter': 'Terça-feira',
+      'Qua': 'Quarta-feira',
+      'Qui': 'Quinta-feira',
+      'Sex': 'Sexta-feira',
+      'Sáb': 'Sábado',
+      'Dom': 'Domingo'
+    };
+    const diaLongo = diasMapLong[diaTermo] || '';
 
     const matriculasAtivas = await prisma.matriculas.findMany({
       where: { ativo: true },
@@ -311,7 +321,7 @@ async function rodarVerificacoesDoDia() {
     const matriculasDoDia = matriculasAtivas.filter((m) => {
       if (!m.alunos || !m.alunos.ativo) return false;
       const fixo = m.horarios?.dias_semana?.includes(diaTermo);
-      const custom = m.dias_personalizados?.includes(diaTermo);
+      const custom = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo);
       const livre = m.horario_personalizado?.toLowerCase().includes('livre');
       return fixo || custom || livre;
     });
@@ -321,10 +331,16 @@ async function rodarVerificacoesDoDia() {
       const modNome = m.modalidades?.nome || 'Treino';
       let horaDisplay = 'Livre';
       
-      if (m.horarios?.hora_inicio) {
+      const isCustomToday = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo);
+      
+      if (isCustomToday) {
+        if (m.hora_inicio_personalizada) {
+          horaDisplay = new Date(m.hora_inicio_personalizada).toISOString().substring(11, 16);
+        } else if (m.horario_personalizado) {
+          horaDisplay = m.horario_personalizado.split('|')[1] || m.horario_personalizado;
+        }
+      } else if (m.horarios?.hora_inicio) {
         horaDisplay = new Date(m.horarios.hora_inicio).toISOString().substring(11, 16);
-      } else if (m.horario_personalizado) {
-        horaDisplay = m.horario_personalizado.split('|')[1] || m.horario_personalizado;
       }
 
       const msg = templates.aulaHoje
