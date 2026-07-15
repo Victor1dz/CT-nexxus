@@ -166,6 +166,9 @@ async function usePrismaAuthState(prismaInstance) {
 function formatPhone(phone) {
   let cleaned = phone.replace(/\D/g, '');
   if (!cleaned) return '';
+  if (cleaned.startsWith('0')) {
+    cleaned = cleaned.substring(1);
+  }
   if (!cleaned.startsWith('55')) {
     if (cleaned.length === 10 || cleaned.length === 11) {
       cleaned = '55' + cleaned;
@@ -318,20 +321,24 @@ async function rodarVerificacoesDoDia() {
       }
     });
 
+    const diaTermoSemAcento = diaTermo.replace('Sáb', 'Sab');
+
     const matriculasDoDia = matriculasAtivas.filter((m) => {
       if (!m.alunos || !m.alunos.ativo) return false;
-      const fixo = m.horarios?.dias_semana?.includes(diaTermo);
-      const custom = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo);
+      const fixo = m.horarios?.dias_semana?.includes(diaTermo) || m.horarios?.dias_semana?.includes(diaTermoSemAcento);
+      const custom = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo) || m.dias_personalizados?.includes(diaTermoSemAcento);
       const livre = m.horario_personalizado?.toLowerCase().includes('livre');
       return fixo || custom || livre;
     });
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
     for (const m of matriculasDoDia) {
       const aluno = m.alunos;
       const modNome = m.modalidades?.nome || 'Treino';
       let horaDisplay = 'Livre';
       
-      const isCustomToday = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo);
+      const isCustomToday = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo) || m.dias_personalizados?.includes(diaTermoSemAcento);
       
       if (isCustomToday) {
         if (m.hora_inicio_personalizada) {
@@ -350,6 +357,7 @@ async function rodarVerificacoesDoDia() {
         .replace('{horario}', horaDisplay);
 
       await sendWhatsAppMessage(aluno.telefone, msg, 'Aviso de Aula Hoje');
+      await sleep(2500);
     }
 
     console.log('Varredura de aulas concluída com sucesso!');

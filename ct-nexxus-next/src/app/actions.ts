@@ -641,6 +641,18 @@ export async function getDiarioData(dateStr: string, busca?: string) {
     const diaNum = dataObj.getUTCDay()
     const diasMap = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
     const diaTermo = diasMap[diaNum]
+    const diaTermoSemAcento = diaTermo.replace('Sáb', 'Sab')
+    const diasMapLong: Record<string, string> = {
+      'Seg': 'Segunda-feira',
+      'Ter': 'Terça-feira',
+      'Qua': 'Quarta-feira',
+      'Qui': 'Quinta-feira',
+      'Sex': 'Sexta-feira',
+      'Sáb': 'Sábado',
+      'Sab': 'Sábado',
+      'Dom': 'Domingo'
+    }
+    const diaLongo = diasMapLong[diaTermo] || ''
 
     const matriculas = await prisma.matriculas.findMany({
       where: { ativo: true },
@@ -652,8 +664,9 @@ export async function getDiarioData(dateStr: string, busca?: string) {
     })
 
     const doDia = matriculas.filter((m: any) => {
-      const fixo = m.horarios?.dias_semana?.includes(diaTermo)
-      const custom = m.dias_personalizados?.includes(diaTermo)
+      if (!m.alunos || !m.alunos.ativo) return false
+      const fixo = m.horarios?.dias_semana?.includes(diaTermo) || m.horarios?.dias_semana?.includes(diaTermoSemAcento)
+      const custom = m.dias_personalizados?.includes(diaLongo) || m.dias_personalizados?.includes(diaTermo) || m.dias_personalizados?.includes(diaTermoSemAcento)
       const livre = m.horario_personalizado?.toLowerCase().includes('livre')
       
       const ehDoDia = fixo || custom || livre

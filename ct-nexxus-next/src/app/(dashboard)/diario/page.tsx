@@ -5,7 +5,12 @@ export const dynamic = "force-dynamic"
 
 export default async function DiarioPage(props: { searchParams: Promise<{ data?: string, busca?: string }> }) {
   const searchParams = await props.searchParams
-  const dataAtual = searchParams.data || new Date().toISOString().split('T')[0]
+  const dataSP = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }))
+  const year = dataSP.getFullYear()
+  const month = String(dataSP.getMonth() + 1).padStart(2, '0')
+  const day = String(dataSP.getDate()).padStart(2, '0')
+  const defaultLocalData = `${year}-${month}-${day}`
+  const dataAtual = searchParams.data || defaultLocalData
   const termoBusca = searchParams.busca || ""
   
   const { agrupados, mapaPresencas, diaTermo } = await getDiarioData(dataAtual, termoBusca)
